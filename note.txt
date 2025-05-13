@@ -1,0 +1,66 @@
+├── public/                  # 靜態資源（圖片、icons、favicon等）
+│
+├── src/
+│   ├── components/        
+│   │   ├── Sidebar.tsx
+│   │   ├── ChannelList.tsx
+│   │   ├── Topbar.tsx
+│   │   ├── PostList.tsx
+│   │   ├── PostDetail.tsx
+│   │   └── MessageInput.tsx
+│   │
+│   ├── pages/               
+│   │   └── index.tsx        # 首頁
+│   │
+│   ├── styles/              # 全域與自訂 CSS
+│   │   └── globals.css
+│   │
+│   ├── utils/               # 工具函式
+│   │
+│   └── types/               # TypeScript 型別定義
+│
+├── .gitignore
+├── next.config.js           # Next.js 設定檔
+├── tailwind.config.js       # Tailwind CSS 設定檔
+├── postcss.config.js        # PostCSS 設定檔
+├── package.json
+└── README.md
+
+
+---------
+1. Sidebar（最左側伺服器列）
+要有+號 添加伺服器
+---------
+2. ChannelList（左側頻道清單）
+要有+號 添加貼文
+---------
+3. Topbar（上方搜尋列）
+
+---------
+4. PostList（中間貼文列表）
+---------
+5. PostDetail（右側貼文詳情）
+---------
+6. MessageInput（底部輸入區）
+
+------------------
+要能看到誰正在編輯
+添加AI
+要有共編功能
+查看變更紀錄
+使用者頭像和jira看到誰在線
+儲存密碼要加密
+文章恢復前一版 
+文章備份
+添加外部連結
+文字編輯器
+建立表單
+更新時間
+用戶要可以調整分隔線寬度
+顯示所有伺服器
+貼文篩選：最近更新 最近新增
+不需要傳送訊息
+通知設定：新貼文
+拖曳伺服器、貼文順序
+------------------
+
