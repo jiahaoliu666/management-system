@@ -1,5 +1,5 @@
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Lock } from 'lucide-react'
-import { TreeData, Folder as FolderType } from '@/types/sop'
+import { TreeData, Folder as FolderType } from '@/types/management'
 
 interface FileTreeProps {
   data: TreeData[]

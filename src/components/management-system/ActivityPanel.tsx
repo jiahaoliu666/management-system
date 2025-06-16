@@ -1,5 +1,5 @@
 import { Activity, Clock, User, FileText } from 'lucide-react'
-import type { Activity as ActivityType } from '@/types/sop'
+import type { Activity as ActivityType } from '@/types/management'
 
 const mockActivities: ActivityType[] = [
   {

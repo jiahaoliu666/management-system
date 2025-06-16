@@ -1,4 +1,4 @@
-import type { TreeData } from '@/types/sop'
+import type { TreeData } from '@/types/management'
 
 export const treeData: TreeData[] = [
   {

@@ -1,5 +1,5 @@
 import { Download, Edit, Trash2, Star, Lock, Share2, Copy, MoreVertical } from 'lucide-react'
-import type { File, Folder } from '@/types/sop'
+import type { File, Folder } from '@/types/management'
 
 interface ContextMenuProps {
   show: { x: number; y: number; item: File | Folder } | null

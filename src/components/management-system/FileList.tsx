@@ -1,5 +1,5 @@
 import { FileText, Star, Lock, Download, Eye } from 'lucide-react'
-import type { File } from '@/types/sop'
+import type { File } from '@/types/management'
 import { getFileIcon } from '@/lib/utils'
 
 interface FileListProps {
