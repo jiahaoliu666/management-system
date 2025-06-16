@@ -29,8 +29,10 @@ export function FileTree({
     return (
       <div>
         <div
-          className={`flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-colors group ${
-            isSelected ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+          className={`flex items-center space-x-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 group ${
+            isSelected 
+              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
+              : 'text-slate-300 hover:bg-slate-800/50 hover:text-white border border-transparent'
           }`}
           style={{ paddingLeft: `${level * 20 + 12}px` }}
           onClick={() => {
@@ -42,7 +44,7 @@ export function FileTree({
           onContextMenu={(e) => onContextMenu(e, node)}
         >
           {hasChildren && (
-            <button className="flex items-center justify-center w-4 h-4">
+            <button className="flex items-center justify-center w-4 h-4 text-slate-400 group-hover:text-white transition-colors">
               {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             </button>
           )}
@@ -55,14 +57,15 @@ export function FileTree({
               <Folder className="w-4 h-4 text-blue-400" />
             )}
             {node.isProtected && (
-              <Lock className="w-2 h-2 text-yellow-400 absolute -top-1 -right-1" />
+              <Lock className="w-2.5 h-2.5 text-yellow-400 absolute -top-1 -right-1" />
             )}
           </div>
           
-          <span className="text-sm font-medium flex-1">{node.name}</span>
+          <span className="text-sm font-medium flex-1 truncate">{node.name}</span>
           
           {node.children && (
-            <span className="text-xs bg-slate-600 px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="text-xs bg-slate-800/50 px-2 py-1 rounded-full text-slate-400 
+                           opacity-0 group-hover:opacity-100 transition-all duration-200">
               {node.children.filter(child => !('children' in child)).length}
             </span>
           )}
@@ -76,7 +79,7 @@ export function FileTree({
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {data.map((node) => (
         <TreeNode key={node.id} node={node} />
       ))}
