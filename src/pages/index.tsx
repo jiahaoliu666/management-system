@@ -114,15 +114,16 @@ export default function Home() {
       
       <div className="flex h-[calc(100vh-80px)]">
         {/* 左側樹狀目錄 */}
-        <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-slate-800 border-r border-slate-700 flex flex-col transition-all duration-300`}>
-          <div className="p-4 border-b border-slate-700 flex-1 overflow-y-auto">
+        <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-slate-900/50 backdrop-blur border-r border-slate-800/50 
+                      flex flex-col transition-all duration-300`}>
+          <div className="p-4 border-b border-slate-800/50 flex-1 overflow-y-auto">
             {!sidebarCollapsed && (
               <>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-4">
                   <h2 className="text-white font-semibold text-sm">文件目錄</h2>
                   <button
                     onClick={() => setShowActivityPanel(!showActivityPanel)}
-                    className="p-1 text-slate-400 hover:text-white"
+                    className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all duration-200"
                   >
                     <Activity className="w-4 h-4" />
                   </button>
@@ -152,11 +153,13 @@ export default function Home() {
           </div>
           
           {/* 快速操作按鈕 */}
-          <div className="p-4 border-t border-slate-700">
+          <div className="p-4 border-t border-slate-800/50">
             <div className={`${sidebarCollapsed ? 'flex flex-col space-y-2' : 'grid grid-cols-2 gap-2'}`}>
               <button
                 onClick={() => setShowUploadModal(true)}
-                className="flex items-center justify-center space-x-2 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="flex items-center justify-center space-x-2 p-2.5 bg-gradient-to-r from-blue-500 to-blue-600 
+                         hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all duration-200 
+                         shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30"
                 title="上傳文件"
               >
                 <Upload className="w-4 h-4" />
@@ -164,7 +167,9 @@ export default function Home() {
               </button>
               <button
                 onClick={() => setShowNewFolderModal(true)}
-                className="flex items-center justify-center space-x-2 p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                className="flex items-center justify-center space-x-2 p-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 
+                         hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl transition-all duration-200 
+                         shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30"
                 title="新增資料夾"
               >
                 <Plus className="w-4 h-4" />
@@ -184,12 +189,14 @@ export default function Home() {
 
               {/* 進階搜尋 */}
               {showAdvancedSearch && (
-                <div className="bg-slate-800 rounded-lg p-4 mb-6 border border-slate-700">
-                  <h3 className="text-white font-medium mb-3">進階搜尋</h3>
+                <div className="bg-slate-900/50 backdrop-blur rounded-xl p-5 mb-6 border border-slate-800/50">
+                  <h3 className="text-white font-medium mb-4">進階搜尋</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-slate-400 text-sm mb-2">文件類型</label>
-                      <select className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600">
+                      <select className="w-full bg-slate-800/50 text-white rounded-xl px-3 py-2.5 border border-slate-700/50 
+                                     focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none 
+                                     transition-all duration-200">
                         <option>所有類型</option>
                         <option>PDF</option>
                         <option>Word</option>
@@ -198,7 +205,9 @@ export default function Home() {
                     </div>
                     <div>
                       <label className="block text-slate-400 text-sm mb-2">修改日期</label>
-                      <select className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600">
+                      <select className="w-full bg-slate-800/50 text-white rounded-xl px-3 py-2.5 border border-slate-700/50 
+                                     focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none 
+                                     transition-all duration-200">
                         <option>任何時間</option>
                         <option>今天</option>
                         <option>本週</option>
@@ -210,7 +219,9 @@ export default function Home() {
                       <input
                         type="text"
                         placeholder="搜尋作者..."
-                        className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600"
+                        className="w-full bg-slate-800/50 text-white rounded-xl px-3 py-2.5 border border-slate-700/50 
+                                 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none 
+                                 placeholder:text-slate-500 transition-all duration-200"
                       />
                     </div>
                   </div>
@@ -233,11 +244,15 @@ export default function Home() {
                 <div className="flex items-center space-x-3">
                   {selectedFiles.length > 0 && (
                     <div className="flex items-center space-x-2">
-                      <button className="flex items-center space-x-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
+                      <button className="flex items-center space-x-1.5 px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 
+                                     hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-sm 
+                                     transition-all duration-200 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30">
                         <Download className="w-4 h-4" />
                         <span>批量下載</span>
                       </button>
-                      <button className="flex items-center space-x-1 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm">
+                      <button className="flex items-center space-x-1.5 px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 
+                                     hover:from-red-600 hover:to-red-700 text-white rounded-xl text-sm 
+                                     transition-all duration-200 shadow-lg shadow-red-500/20 hover:shadow-red-500/30">
                         <Trash2 className="w-4 h-4" />
                         <span>刪除</span>
                       </button>
@@ -246,12 +261,12 @@ export default function Home() {
                   
                   <button
                     onClick={() => setSelectedFiles(selectedFiles.length === currentFiles.length ? [] : currentFiles.map(f => f.id))}
-                    className="text-slate-400 hover:text-white text-sm"
+                    className="text-slate-400 hover:text-white text-sm transition-colors"
                   >
                     {selectedFiles.length === currentFiles.length ? '取消全選' : '全選'}
                   </button>
                   
-                  <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg">
+                  <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl transition-all duration-200">
                     <RefreshCw className="w-4 h-4" />
                   </button>
                 </div>
