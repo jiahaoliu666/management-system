@@ -74,15 +74,15 @@ const ActivityPanel = () => {
   const getActionIcon = (action: ActivityType['action']) => {
     switch (action) {
       case 'upload':
-        return <FileText className="w-4 h-4 text-blue-500" />
+        return <FileText className="w-4 h-4 text-blue-400" />
       case 'edit':
-        return <FileText className="w-4 h-4 text-yellow-500" />
+        return <FileText className="w-4 h-4 text-yellow-400" />
       case 'delete':
-        return <FileText className="w-4 h-4 text-red-500" />
+        return <FileText className="w-4 h-4 text-red-400" />
       case 'share':
-        return <FileText className="w-4 h-4 text-green-500" />
+        return <FileText className="w-4 h-4 text-green-400" />
       default:
-        return <FileText className="w-4 h-4 text-gray-500" />
+        return <FileText className="w-4 h-4 text-slate-400" />
     }
   }
 
@@ -102,34 +102,43 @@ const ActivityPanel = () => {
   }
 
   return (
-    <div className="w-80 bg-slate-800 border-l border-slate-700 p-4 overflow-y-auto">
-      <div className="flex items-center justify-between mb-4">
+    <div className="w-80 bg-slate-900/50 backdrop-blur border-l border-slate-800/50 p-4 overflow-y-auto">
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-white font-semibold text-sm">最近活動</h2>
-        <button className="p-1 text-slate-400 hover:text-white">
+        <button className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all duration-200">
           <Clock className="w-4 h-4" />
         </button>
       </div>
 
       <div className="space-y-4">
         {mockActivities.map((activity) => (
-          <div key={activity.id} className="flex items-start space-x-3">
-            <div className="flex-shrink-0">
-              {getActionIcon(activity.action)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-2">
-                <span className="text-white text-sm font-medium">
-                  {activity.user}
-                </span>
-                <span className="text-slate-400 text-sm">
-                  {getActionText(activity.action)}
-                </span>
+          <div key={activity.id} className="group">
+            <div className="flex items-start space-x-3 p-3 rounded-xl hover:bg-slate-800/50 transition-all duration-200">
+              <div className="flex-shrink-0 p-2 bg-slate-800/50 rounded-lg">
+                {getActionIcon(activity.action)}
               </div>
-              <div className="text-slate-400 text-sm truncate">
-                {activity.file.name}
-              </div>
-              <div className="text-slate-500 text-xs">
-                {activity.time}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2">
+                  <span className="text-white text-sm font-medium">
+                    {activity.user}
+                  </span>
+                  <span className="text-slate-400 text-sm">
+                    {getActionText(activity.action)}
+                  </span>
+                </div>
+                <div className="mt-1 text-slate-300 text-sm truncate">
+                  {activity.file.name}
+                </div>
+                <div className="mt-2 flex items-center space-x-3">
+                  <div className="flex items-center space-x-1.5 text-xs text-slate-500">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{activity.time}</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5 text-xs text-slate-500">
+                    <User className="w-3.5 h-3.5" />
+                    <span>{activity.file.author}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
