@@ -62,18 +62,113 @@ import {
   MoreVertical,
   UserPlus,
   ChevronLeft,
+  Globe,
+  Lock,
+  AtSign,
+  RefreshCw,
+  File,
+  FileArchive,
+  FileVideo,
+  FileAudio,
+  FileText as FileTextIcon2,
+  FileCode as FileCodeIcon,
+  FileImage as FileImageIcon,
+  FileVideo as FileVideoIcon,
+  FileAudio as FileAudioIcon,
+  FileArchive as FileArchiveIcon,
+  File as FileIcon,
+  Folder as FolderIcon,
+  FolderOpen as FolderOpenIcon,
+  FolderPlus,
+  FolderMinus,
+  FolderX,
+  FolderCheck,
+  FolderSearch,
+  FolderGit,
+  FolderGit2,
+  FolderSymlink,
+  FolderInput,
+  FolderOutput,
+  FolderCog,
+  FolderHeart,
+  FolderKey,
+  FolderLock,
+  FolderUp,
+  FolderDown,
+  FolderTree,
+  FolderKanban,
+  FolderArchive,
 } from 'lucide-react';
 
+// 文件標籤介面
+interface FileTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+// 文件權限介面
+interface FilePermission {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+}
+
+// 搜尋過濾器介面
+interface SearchFilter {
+  id: string;
+  name: string;
+}
+
+// 文件分類介面
+interface Category {
+  id: string;
+  name: string;
+  subcategories: string[];
+}
+
+// 通知類型介面
+interface NotificationType {
+  type: string;
+  name: string;
+  icon: LucideIcon;
+  color: string;
+}
+
+// 版本比較介面
+interface VersionComparison {
+  type: string;
+  name: string;
+}
+
+// 統計指標介面
+interface StatMetric {
+  type: string;
+  name: string;
+  value: string;
+  change: string;
+}
+
+// 文件類型介面
+interface FileType {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  color: string;
+}
+
+// 更新現有的 FileNode 介面
 interface FileNode {
   id: string;
   name: string;
-  type: 'folder' | 'file';
-  children?: FileNode[];
+  type: string;
   count?: number;
+  children: FileNode[];
 }
 
+// 更新現有的 Activity 介面
 interface Activity {
-  id: number;
+  id: string;
   user: string;
   action: string;
   target: string;
@@ -81,8 +176,12 @@ interface Activity {
   icon: LucideIcon;
   iconColor: string;
   iconBg: string;
+  type: string;
+  priority: string;
+  status: string;
 }
 
+// 更新現有的 Version 介面
 interface Version {
   id: string;
   version: string;
@@ -90,18 +189,27 @@ interface Version {
   date: string;
   message: string;
   changes: string[];
+  status: string;
 }
 
+// 更新現有的 Document 介面
 interface Document {
-  id: number;
+  id: string;
   title: string;
   category: string;
+  subcategory: string;
   lastModified: string;
   author: string;
-  status: 'published' | 'draft';
-  priority: 'high' | 'medium' | 'low';
-  versions?: Version[];
-  currentVersion?: string;
+  status: string;
+  priority: string;
+  tags: string[];
+  permissions: string[];
+  fileType: string;
+  size: number;
+  views: number;
+  downloads: number;
+  comments: number;
+  versions: Version[];
 }
 
 interface StatCardProps {
@@ -114,13 +222,6 @@ interface StatCardProps {
 }
 
 interface ExpandedFolders {
-  root: boolean;
-  operation: boolean;
-  development: boolean;
-  aws: boolean;
-  azure: boolean;
-  frontend: boolean;
-  backend: boolean;
   [key: string]: boolean;
 }
 
@@ -161,6 +262,303 @@ interface TeamActivity {
 const ActivityIcon: React.FC<ActivityIconProps> = ({ className }) => (
   <Activity className={className} />
 );
+
+// 文件標籤
+const fileTags: FileTag[] = [
+  { id: 'urgent', name: '緊急', color: 'bg-red-100 text-red-700' },
+  { id: 'review', name: '待審核', color: 'bg-amber-100 text-amber-700' },
+  { id: 'draft', name: '草稿', color: 'bg-slate-100 text-slate-700' },
+  { id: 'important', name: '重要', color: 'bg-blue-100 text-blue-700' },
+  { id: 'archived', name: '已歸檔', color: 'bg-slate-100 text-slate-500' }
+];
+
+// 文件權限
+const filePermissions: FilePermission[] = [
+  { id: 'public', name: '公開', icon: Globe },
+  { id: 'private', name: '私有', icon: Lock },
+  { id: 'team', name: '團隊', icon: Users }
+];
+
+// 搜尋過濾器
+const searchFilters: SearchFilter[] = [
+  { id: 'title', name: '標題' },
+  { id: 'content', name: '內容' },
+  { id: 'author', name: '作者' },
+  { id: 'date', name: '日期' },
+  { id: 'category', name: '分類' },
+  { id: 'tag', name: '標籤' }
+];
+
+// 分類
+const categories: Category[] = [
+  {
+    id: 'cloud',
+    name: '雲端服務',
+    subcategories: ['AWS', 'Azure', 'GCP']
+  },
+  {
+    id: 'cdn',
+    name: 'CDN',
+    subcategories: ['Akamai', 'Cloudflare']
+  },
+  {
+    id: 'customer-service',
+    name: '客服',
+    subcategories: ['常見問題', '標準作業程序']
+  },
+  {
+    id: 'network',
+    name: '網路設定',
+    subcategories: ['DNS', '防火牆']
+  },
+  {
+    id: 'security',
+    name: '安全性',
+    subcategories: ['SSL 憑證', '備份策略']
+  }
+];
+
+// 通知類型
+const notificationTypes: NotificationType[] = [
+  { type: 'mention', name: '提及', icon: AtSign, color: 'text-blue-500' },
+  { type: 'comment', name: '評論', icon: MessageSquare, color: 'text-green-500' },
+  { type: 'update', name: '更新', icon: RefreshCw, color: 'text-amber-500' },
+  { type: 'alert', name: '提醒', icon: AlertCircle, color: 'text-red-500' }
+];
+
+// 版本比較設定
+const versionComparison: VersionComparison[] = [
+  { type: 'diff', name: '差異比較' },
+  { type: 'side-by-side', name: '並排比較' },
+  { type: 'merge', name: '合併' },
+  { type: 'rollback', name: '回滾' }
+];
+
+// 統計指標
+const additionalStats: StatMetric[] = [
+  { type: 'response-time', name: '平均回應時間', value: '2.5h', change: '+0.5h' },
+  { type: 'completion-rate', name: '文件完成率', value: '85%', change: '+5%' },
+  { type: 'active-users', name: '活躍用戶', value: '8', change: '+2' },
+  { type: 'new-docs', name: '新增文件', value: '12', change: '+3' }
+];
+
+// 文件類型
+const fileTypes: FileType[] = [
+  { id: 'doc', name: '文件', icon: FileTextIcon, color: 'text-blue-500' },
+  { id: 'code', name: '程式碼', icon: FileCodeIcon, color: 'text-green-500' },
+  { id: 'image', name: '圖片', icon: FileImageIcon, color: 'text-purple-500' },
+  { id: 'video', name: '影片', icon: FileVideoIcon, color: 'text-red-500' },
+  { id: 'audio', name: '音訊', icon: FileAudioIcon, color: 'text-yellow-500' },
+  { id: 'archive', name: '壓縮檔', icon: FileArchiveIcon, color: 'text-orange-500' },
+  { id: 'other', name: '其他', icon: FileIcon, color: 'text-gray-500' }
+];
+
+// 模擬版本數據
+const mockVersions: Version[] = [
+  {
+    id: 'v1.0.0',
+    version: '1.0.0',
+    author: '張工程師',
+    date: '2024-03-15',
+    message: '初始版本',
+    changes: ['創建文件', '添加基本內容'],
+    status: 'current'
+  },
+  {
+    id: 'v1.1.0',
+    version: '1.1.0',
+    author: '李工程師',
+    date: '2024-03-16',
+    message: '更新操作步驟',
+    changes: ['更新步驟 1', '添加新的注意事項'],
+    status: 'previous'
+  },
+  {
+    id: 'v1.2.0',
+    version: '1.2.0',
+    author: '王工程師',
+    date: '2024-03-17',
+    message: '修復錯誤',
+    changes: ['修正步驟 2 的錯誤', '更新相關連結'],
+    status: 'archived'
+  }
+];
+
+// 最近文件
+const recentDocuments: Document[] = [
+  {
+    id: 'doc1',
+    title: 'Akamai CDN 配置指南',
+    category: 'cdn',
+    subcategory: 'akamai',
+    lastModified: '2024-03-15',
+    author: '張工程師',
+    status: 'published',
+    priority: 'high',
+    tags: ['urgent', 'important'],
+    permissions: ['team'],
+    fileType: 'doc',
+    size: 1024 * 1024 * 2.5,
+    views: 156,
+    downloads: 45,
+    comments: 12,
+    versions: mockVersions
+  },
+  {
+    id: 'doc2',
+    title: 'AWS EC2 實例管理 SOP',
+    category: 'cloud',
+    subcategory: 'aws',
+    lastModified: '2024-03-14',
+    author: '李工程師',
+    status: 'draft',
+    priority: 'medium',
+    tags: ['draft'],
+    permissions: ['private'],
+    fileType: 'doc',
+    size: 1024 * 1024 * 1.8,
+    views: 89,
+    downloads: 23,
+    comments: 5,
+    versions: mockVersions
+  },
+  {
+    id: 'doc3',
+    title: '客戶問題處理流程',
+    category: 'customer-service',
+    subcategory: 'sop',
+    lastModified: '2024-03-13',
+    author: '王工程師',
+    status: 'published',
+    priority: 'high',
+    tags: ['important'],
+    permissions: ['team'],
+    fileType: 'doc',
+    size: 1024 * 1024 * 3.2,
+    views: 234,
+    downloads: 78,
+    comments: 34,
+    versions: mockVersions
+  },
+  {
+    id: 'doc4',
+    title: '網路安全配置指南',
+    category: 'security',
+    subcategory: 'firewall',
+    lastModified: '2024-03-12',
+    author: '陳工程師',
+    status: 'published',
+    priority: 'high',
+    tags: ['urgent', 'important'],
+    permissions: ['team'],
+    fileType: 'doc',
+    size: 1024 * 1024 * 4.1,
+    views: 167,
+    downloads: 56,
+    comments: 23,
+    versions: mockVersions
+  },
+  {
+    id: 'doc5',
+    title: '系統維護標準作業程序',
+    category: 'cloud',
+    subcategory: 'aws',
+    lastModified: '2024-03-11',
+    author: '林工程師',
+    status: 'draft',
+    priority: 'medium',
+    tags: ['draft'],
+    permissions: ['private'],
+    fileType: 'doc',
+    size: 1024 * 1024 * 2.8,
+    views: 45,
+    downloads: 12,
+    comments: 3,
+    versions: mockVersions
+  }
+];
+
+// 最近活動
+const recentActivities: Activity[] = [
+  {
+    id: 'act1',
+    user: '張工程師',
+    action: 'uploaded',
+    target: 'Akamai CDN 配置指南',
+    time: '10 分鐘前',
+    icon: Upload,
+    iconColor: 'text-blue-500',
+    iconBg: 'bg-blue-100',
+    type: 'file',
+    priority: 'high',
+    status: 'completed'
+  },
+  {
+    id: 'act2',
+    user: '李工程師',
+    action: 'edited',
+    target: 'AWS EC2 實例管理 SOP',
+    time: '30 分鐘前',
+    icon: Edit,
+    iconColor: 'text-green-500',
+    iconBg: 'bg-green-100',
+    type: 'file',
+    priority: 'medium',
+    status: 'completed'
+  },
+  {
+    id: 'act3',
+    user: '王工程師',
+    action: 'deleted',
+    target: '舊版配置文檔',
+    time: '2 小時前',
+    icon: Trash2,
+    iconColor: 'text-red-500',
+    iconBg: 'bg-red-100',
+    type: 'file',
+    priority: 'low',
+    status: 'completed'
+  },
+  {
+    id: 'act4',
+    user: '趙六',
+    action: 'viewed',
+    target: '客戶問題處理流程',
+    time: '3 小時前',
+    icon: Eye,
+    iconColor: 'text-purple-500',
+    iconBg: 'bg-purple-100',
+    type: 'file',
+    priority: 'low',
+    status: 'completed'
+  },
+  {
+    id: 'act5',
+    user: '陳工程師',
+    action: 'commented',
+    target: '網路安全配置指南',
+    time: '4 小時前',
+    icon: MessageSquare,
+    iconColor: 'text-amber-500',
+    iconBg: 'bg-amber-100',
+    type: 'comment',
+    priority: 'medium',
+    status: 'completed'
+  },
+  {
+    id: 'act6',
+    user: '林工程師',
+    action: 'shared',
+    target: '系統維護標準作業程序',
+    time: '5 小時前',
+    icon: Share2,
+    iconColor: 'text-indigo-500',
+    iconBg: 'bg-indigo-100',
+    type: 'share',
+    priority: 'medium',
+    status: 'completed'
+  }
+];
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -249,115 +647,6 @@ export default function Home() {
           ]
         }
       ]
-    }
-  ];
-
-  // 最近活動數據
-  const recentActivities: Activity[] = [
-    {
-      id: 1,
-      user: '張三',
-      action: '上傳了文件',
-      target: 'AWS架構設計.pdf',
-      time: '10分鐘前',
-      icon: Upload,
-      iconColor: 'text-blue-600',
-      iconBg: 'bg-gradient-to-br from-blue-50 to-blue-100'
-    },
-    {
-      id: 2,
-      user: '李四',
-      action: '編輯了文件',
-      target: '系統架構圖.vsdx',
-      time: '30分鐘前',
-      icon: Edit,
-      iconColor: 'text-amber-600',
-      iconBg: 'bg-gradient-to-br from-amber-50 to-amber-100'
-    },
-    {
-      id: 3,
-      user: '王五',
-      action: '刪除了文件',
-      target: '舊版API文檔.docx',
-      time: '2小時前',
-      icon: Trash2,
-      iconColor: 'text-red-600',
-      iconBg: 'bg-gradient-to-br from-red-50 to-red-100'
-    },
-    {
-      id: 4,
-      user: '趙六',
-      action: '查看了文件',
-      target: 'Docker部署指南.md',
-      time: '3小時前',
-      icon: Eye,
-      iconColor: 'text-emerald-600',
-      iconBg: 'bg-gradient-to-br from-emerald-50 to-emerald-100'
-    }
-  ];
-
-  const categories = [
-    { id: 'aws', name: 'AWS 雲端服務', count: 15, color: 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800' },
-    { id: 'akamai', name: 'Akamai CDN', count: 8, color: 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800' },
-    { id: 'customer', name: '客戶服務流程', count: 12, color: 'bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800' },
-    { id: 'network', name: '網路設定', count: 6, color: 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800' },
-    { id: 'security', name: '資安規範', count: 9, color: 'bg-gradient-to-r from-red-100 to-red-200 text-red-800' }
-  ];
-
-  const recentDocuments: Document[] = [
-    {
-      id: 1,
-      title: 'Akamai CDN 配置指南',
-      category: 'Akamai CDN',
-      lastModified: '2024-06-15',
-      author: '張工程師',
-      status: 'published',
-      priority: 'high'
-    },
-    {
-      id: 2,
-      title: 'AWS EC2 實例管理 SOP',
-      category: 'AWS 雲端服務',
-      lastModified: '2024-06-14',
-      author: '李工程師',
-      status: 'draft',
-      priority: 'medium'
-    },
-    {
-      id: 3,
-      title: '客戶問題處理流程',
-      category: '客戶服務流程',
-      lastModified: '2024-06-13',
-      author: '王工程師',
-      status: 'published',
-      priority: 'high'
-    }
-  ];
-
-  const mockVersions: Version[] = [
-    {
-      id: 'v1.0.0',
-      version: '1.0.0',
-      author: '張工程師',
-      date: '2024-03-15',
-      message: '初始版本',
-      changes: ['創建文件', '添加基本內容']
-    },
-    {
-      id: 'v1.1.0',
-      version: '1.1.0',
-      author: '李工程師',
-      date: '2024-03-16',
-      message: '更新操作步驟',
-      changes: ['更新步驟 1', '添加新的注意事項']
-    },
-    {
-      id: 'v1.2.0',
-      version: '1.2.0',
-      author: '王工程師',
-      date: '2024-03-17',
-      message: '修復錯誤',
-      changes: ['修正步驟 2 的錯誤', '更新相關連結']
     }
   ];
 
