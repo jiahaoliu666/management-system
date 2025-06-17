@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Plus, 
@@ -31,7 +31,36 @@ import {
   AlertCircle,
   CheckCircle,
   MoreHorizontal,
-  LucideIcon
+  LucideIcon,
+  Moon,
+  Sun,
+  GitBranch,
+  History,
+  GitCommit,
+  GitPullRequest,
+  X,
+  Image,
+  Code,
+  Table,
+  ListOrdered,
+  ListChecks,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Link,
+  FileImage,
+  FileCode,
+  FileText as FileTextIcon,
+  MessageSquare,
+  Video,
+  Phone,
+  Mail,
+  MoreVertical,
+  UserPlus,
 } from 'lucide-react';
 
 interface FileNode {
@@ -53,6 +82,15 @@ interface Activity {
   iconBg: string;
 }
 
+interface Version {
+  id: string;
+  version: string;
+  author: string;
+  date: string;
+  message: string;
+  changes: string[];
+}
+
 interface Document {
   id: number;
   title: string;
@@ -61,6 +99,8 @@ interface Document {
   author: string;
   status: 'published' | 'draft';
   priority: 'high' | 'medium' | 'low';
+  versions?: Version[];
+  currentVersion?: string;
 }
 
 interface StatCardProps {
@@ -87,6 +127,36 @@ interface ActivityIconProps {
   className?: string;
 }
 
+interface EditorTool {
+  icon: LucideIcon;
+  label: string;
+  shortcut?: string;
+  group?: string;
+}
+
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  status: 'online' | 'offline' | 'away' | 'busy';
+  avatar?: string;
+  lastActive?: string;
+  tasks?: {
+    total: number;
+    completed: number;
+  };
+}
+
+interface TeamActivity {
+  id: string;
+  type: 'message' | 'meeting' | 'task' | 'document';
+  title: string;
+  description: string;
+  time: string;
+  participants?: string[];
+  status?: 'pending' | 'completed' | 'in-progress';
+}
+
 const ActivityIcon: React.FC<ActivityIconProps> = ({ className }) => (
   <Activity className={className} />
 );
@@ -95,6 +165,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [viewMode, setViewMode] = useState('grid');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<ExpandedFolders>({
     root: true,
     operation: false,
@@ -104,17 +175,37 @@ export default function Home() {
     frontend: false,
     backend: false
   });
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [isPreview, setIsPreview] = useState(false);
+  const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [showMemberDetails, setShowMemberDetails] = useState<string | null>(null);
+
+  useEffect(() => {
+    // 檢查系統主題偏好
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setIsDarkMode(prefersDark);
+  }, []);
+
+  useEffect(() => {
+    // 更新根元素的 class
+    document.documentElement.classList.toggle('dark', isDarkMode);
+  }, [isDarkMode]);
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
 
   // 文件目錄樹狀結構
   const fileDirectoryTree: FileNode[] = [
     {
       id: 'root',
-      name: '根目錄',
+      name: 'P400',
       type: 'folder',
       children: [
         {
           id: 'operation',
-          name: '營運部門',
+          name: '維運團隊',
           type: 'folder',
           children: [
             {
@@ -234,6 +325,33 @@ export default function Home() {
       author: '王工程師',
       status: 'published',
       priority: 'high'
+    }
+  ];
+
+  const mockVersions: Version[] = [
+    {
+      id: 'v1.0.0',
+      version: '1.0.0',
+      author: '張工程師',
+      date: '2024-03-15',
+      message: '初始版本',
+      changes: ['創建文件', '添加基本內容']
+    },
+    {
+      id: 'v1.1.0',
+      version: '1.1.0',
+      author: '李工程師',
+      date: '2024-03-16',
+      message: '更新操作步驟',
+      changes: ['更新步驟 1', '添加新的注意事項']
+    },
+    {
+      id: 'v1.2.0',
+      version: '1.2.0',
+      author: '王工程師',
+      date: '2024-03-17',
+      message: '修復錯誤',
+      changes: ['修正步驟 2 的錯誤', '更新相關連結']
     }
   ];
 
@@ -369,7 +487,7 @@ export default function Home() {
   );
 
   const Header = () => (
-    <header className="bg-white border-b border-slate-200 px-8 py-4 shadow-sm">
+    <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-4 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-6">
           <div className="relative">
@@ -377,34 +495,40 @@ export default function Home() {
             <input
               type="text"
               placeholder="搜尋文件、SOP、流程..."
-              className="pl-12 pr-6 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-96 bg-slate-50 focus:bg-white transition-all duration-200 text-sm"
+              className="pl-12 pr-6 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-96 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 text-sm dark:text-slate-200"
             />
           </div>
-          <button className="flex items-center px-4 py-2.5 text-sm border border-slate-200 rounded-xl hover:bg-slate-50 transition-all duration-200 text-slate-600 hover:text-slate-900">
+          <button className="flex items-center px-4 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
             <Filter className="mr-2 h-4 w-4" />
             篩選
           </button>
         </div>
         
         <div className="flex items-center space-x-4">
+          <button 
+            onClick={toggleTheme}
+            className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200"
+          >
+            {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
           <button className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-5 py-2.5 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 flex items-center shadow-lg hover:shadow-xl font-medium">
             <Plus className="mr-2 h-4 w-4" />
             新增文件
           </button>
-          <button className="relative p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all duration-200">
+          <button className="relative p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200">
             <Bell className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
           </button>
-          <button className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all duration-200">
+          <button className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200">
             <Settings className="h-5 w-5" />
           </button>
-          <div className="flex items-center space-x-3 pl-4 border-l border-slate-200">
+          <div className="flex items-center space-x-3 pl-4 border-l border-slate-200 dark:border-slate-700">
             <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
               <User className="h-5 w-5 text-white" />
             </div>
             <div>
-              <span className="text-sm font-semibold text-slate-700">張工程師</span>
-              <p className="text-xs text-slate-500">系統管理員</p>
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">張工程師</span>
+              <p className="text-xs text-slate-500 dark:text-slate-400">系統管理員</p>
             </div>
           </div>
         </div>
@@ -571,7 +695,7 @@ export default function Home() {
   );
 
   const DocumentsView = () => (
-    <div className="p-8 bg-slate-50 min-h-screen">
+    <div className="p-8 bg-slate-50 dark:bg-slate-900 min-h-screen">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-3xl font-bold text-slate-900 mb-2">文件管理</h2>
@@ -605,31 +729,41 @@ export default function Home() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {recentDocuments.map((doc) => (
-          <div key={doc.id} className="bg-white rounded-2xl border border-slate-200 hover:shadow-xl transition-all duration-300 group overflow-hidden">
+          <div key={doc.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300 group overflow-hidden">
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl">
-                  <FileText className="h-6 w-6 text-indigo-600" />
+                <div className="p-3 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900 dark:to-indigo-800 rounded-xl">
+                  <FileText className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
                 </div>
                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <button className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all duration-200">
+                  <button 
+                    onClick={() => {
+                      setSelectedDocument(doc);
+                      setShowVersionHistory(true);
+                    }}
+                    className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all duration-200"
+                    title="版本歷史"
+                  >
+                    <History className="h-4 w-4" />
+                  </button>
+                  <button className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/50 rounded-lg transition-all duration-200">
                     <Star className="h-4 w-4" />
                   </button>
-                  <button className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all duration-200">
+                  <button className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all duration-200">
                     <Share2 className="h-4 w-4" />
                   </button>
-                  <button className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all duration-200">
+                  <button className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 rounded-lg transition-all duration-200">
                     <Download className="h-4 w-4" />
                   </button>
                 </div>
               </div>
               
-              <h3 className="font-semibold text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors duration-200">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
                 {doc.title}
               </h3>
-              <p className="text-sm text-slate-600 mb-4">{doc.category}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{doc.category}</p>
               
-              <div className="flex items-center justify-between text-sm text-slate-500 mb-4">
+              <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 mb-4">
                 <span>{doc.author}</span>
                 <span>{doc.lastModified}</span>
               </div>
@@ -641,17 +775,17 @@ export default function Home() {
                   )}
                   <span className={`px-3 py-1 text-xs rounded-lg font-medium ${
                     doc.status === 'published' 
-                      ? 'bg-emerald-100 text-emerald-700' 
-                      : 'bg-amber-100 text-amber-700'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' 
+                      : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
                   }`}>
                     {doc.status === 'published' ? '已發布' : '草稿'}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <button className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all duration-200">
+                  <button className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all duration-200">
                     <Edit className="h-4 w-4" />
                   </button>
-                  <button className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200">
+                  <button className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-all duration-200">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -660,18 +794,103 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {showVersionHistory && <VersionHistoryModal />}
     </div>
   );
 
+  const VersionHistoryModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">版本歷史</h3>
+            <button 
+              onClick={() => setShowVersionHistory(false)}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors duration-200"
+            >
+              <X className="h-5 w-5 text-slate-500" />
+            </button>
+          </div>
+        </div>
+        <div className="p-6 overflow-y-auto max-h-[calc(80vh-8rem)]">
+          <div className="space-y-6">
+            {mockVersions.map((version) => (
+              <div key={version.id} className="relative pl-8 pb-6 border-l-2 border-slate-200 dark:border-slate-700 last:border-l-0">
+                <div className="absolute left-0 top-0 w-4 h-4 bg-indigo-500 rounded-full -translate-x-1/2"></div>
+                <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <GitCommit className="h-4 w-4 text-indigo-500" />
+                      <span className="font-medium text-slate-900 dark:text-slate-100">v{version.version}</span>
+                    </div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">{version.date}</span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{version.message}</p>
+                  <div className="space-y-2">
+                    {version.changes.map((change, index) => (
+                      <div key={index} className="flex items-start space-x-2 text-sm">
+                        <span className="text-emerald-500">•</span>
+                        <span className="text-slate-600 dark:text-slate-300">{change}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-center text-xs text-slate-500 dark:text-slate-400">
+                    <User className="h-3 w-3 mr-1" />
+                    {version.author}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const editorTools: EditorTool[] = [
+    { icon: Bold, label: '粗體', shortcut: 'Ctrl+B', group: 'text' },
+    { icon: Italic, label: '斜體', shortcut: 'Ctrl+I', group: 'text' },
+    { icon: Underline, label: '底線', shortcut: 'Ctrl+U', group: 'text' },
+    { icon: Strikethrough, label: '刪除線', shortcut: 'Ctrl+S', group: 'text' },
+    { icon: AlignLeft, label: '靠左對齊', group: 'align' },
+    { icon: AlignCenter, label: '置中對齊', group: 'align' },
+    { icon: AlignRight, label: '靠右對齊', group: 'align' },
+    { icon: ListOrdered, label: '有序列表', group: 'list' },
+    { icon: ListChecks, label: '待辦列表', group: 'list' },
+    { icon: Link, label: '插入連結', shortcut: 'Ctrl+K', group: 'insert' },
+    { icon: Image, label: '插入圖片', group: 'insert' },
+    { icon: Table, label: '插入表格', group: 'insert' },
+    { icon: Code, label: '插入代碼', group: 'insert' },
+  ];
+
+  const groupedTools = editorTools.reduce((acc, tool) => {
+    const group = tool.group || 'other';
+    if (!acc[group]) {
+      acc[group] = [];
+    }
+    acc[group].push(tool);
+    return acc;
+  }, {} as Record<string, EditorTool[]>);
+
   const EditorView = () => (
-    <div className="p-8 bg-slate-50 min-h-screen">
+    <div className="p-8 bg-slate-50 dark:bg-slate-900 min-h-screen">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">文件編輯器</h2>
-          <p className="text-slate-600">創建和編輯您的技術文件</p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">文件編輯器</h2>
+          <p className="text-slate-600 dark:text-slate-400">創建和編輯您的技術文件</p>
         </div>
         <div className="flex items-center space-x-4">
-          <button className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all duration-200 font-medium">
+          <button 
+            onClick={() => setIsPreview(!isPreview)}
+            className={`px-5 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 font-medium flex items-center space-x-2 ${
+              isPreview ? 'bg-slate-100 dark:bg-slate-800' : ''
+            }`}
+          >
+            <Eye className="h-4 w-4" />
+            <span>{isPreview ? '編輯模式' : '預覽模式'}</span>
+          </button>
+          <button className="px-5 py-2.5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 font-medium">
             儲存草稿
           </button>
           <button className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium">
@@ -680,16 +899,16 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
-        <div className="border-b border-slate-100 p-6">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="border-b border-slate-100 dark:border-slate-700 p-6">
           <input
             type="text"
             placeholder="輸入文件標題..."
-            className="w-full text-2xl font-bold border-none outline-none text-slate-900 placeholder-slate-400"
+            className="w-full text-2xl font-bold border-none outline-none text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-transparent"
             defaultValue="新的 SOP 文件"
           />
           <div className="flex items-center space-x-6 mt-6">
-            <select className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <select className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100">
               <option>選擇分類</option>
               <option>AWS 雲端服務</option>
               <option>Akamai CDN</option>
@@ -700,146 +919,407 @@ export default function Home() {
               <input
                 type="text"
                 placeholder="新增標籤..."
-                className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
               />
             </div>
           </div>
         </div>
 
-        {/* 富文本編輯器工具列 */}
-        <div className="border-b border-slate-100 p-6">
-          <div className="flex items-center space-x-2 flex-wrap gap-2">
-            {[
-              { label: '粗體', shortcut: 'Ctrl+B' },
-              { label: '斜體', shortcut: 'Ctrl+I' },
-              { label: '底線', shortcut: 'Ctrl+U' },
-            ].map((btn) => (
-              <button
-                key={btn.label}
-                className="px-4 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 transition-all duration-200 font-medium"
-                title={btn.shortcut}
-              >
-                {btn.label}
-              </button>
-            ))}
-            <div className="w-px h-6 bg-slate-300 mx-2"></div>
-            {['標題 1', '標題 2', '標題 3'].map((btn) => (
-              <button
-                key={btn}
-                className="px-4 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 transition-all duration-200 font-medium"
-              >
-                {btn}
-              </button>
-            ))}
-            <div className="w-px h-6 bg-slate-300 mx-2"></div>
-            {['項目清單', '數字清單', '連結', '表格'].map((btn) => (
-              <button
-                key={btn}
-                className="px-4 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 transition-all duration-200 font-medium"
-              >
-                {btn}
-              </button>
-            ))}
+        {!isPreview && (
+          <div className="border-b border-slate-100 dark:border-slate-700 p-4">
+            <div className="flex items-center space-x-2 flex-wrap gap-2">
+              {Object.entries(groupedTools).map(([group, tools]) => (
+                <div key={group} className="flex items-center space-x-2">
+                  {tools.map((tool) => (
+                    <button
+                      key={tool.label}
+                      onClick={() => setActiveTool(tool.label)}
+                      className={`p-2 rounded-lg transition-all duration-200 ${
+                        activeTool === tool.label
+                          ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
+                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                      title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
+                    >
+                      <tool.icon className="h-4 w-4" />
+                    </button>
+                  ))}
+                  {group !== Object.keys(groupedTools)[Object.keys(groupedTools).length - 1] && (
+                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* 編輯區域 */}
         <div className="p-8">
-          <div className="min-h-96 text-slate-700 leading-relaxed prose max-w-none">
-            <h1 className="text-3xl font-bold mb-6 text-slate-900">文件內容編輯區</h1>
-            <p className="mb-6 text-slate-600">在這裡開始編寫您的 SOP 文件內容...</p>
-            
-            <h2 className="text-2xl font-semibold mb-4 text-slate-900">操作步驟</h2>
-            <ol className="list-decimal list-inside space-y-3 mb-6 text-slate-700">
-              <li>第一步操作說明</li>
-              <li>第二步操作說明</li>
-              <li>第三步操作說明</li>
-            </ol>
-            
-            <h2 className="text-2xl font-semibold mb-4 text-slate-900">相關連結</h2>
-            <ul className="list-disc list-inside space-y-2 mb-6">
-              <li><a href="#" className="text-indigo-600 hover:text-indigo-700 hover:underline transition-colors duration-200">AWS 官方文件</a></li>
-              <li><a href="#" className="text-indigo-600 hover:text-indigo-700 hover:underline transition-colors duration-200">內部流程規範</a></li>
-            </ul>
-            
-            <h2 className="text-2xl font-semibold mb-4 text-slate-900">注意事項</h2>
-            <p className="text-slate-600">重要的操作注意事項和安全提醒...</p>
-          </div>
+          {isPreview ? (
+            <div className="min-h-96 text-slate-700 dark:text-slate-300 leading-relaxed prose dark:prose-invert max-w-none">
+              <h1 className="text-3xl font-bold mb-6 text-slate-900 dark:text-slate-100">文件內容預覽</h1>
+              <p className="mb-6">在這裡預覽您的 SOP 文件內容...</p>
+              
+              <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-slate-100">操作步驟</h2>
+              <ol className="list-decimal list-inside space-y-3 mb-6">
+                <li>第一步操作說明</li>
+                <li>第二步操作說明</li>
+                <li>第三步操作說明</li>
+              </ol>
+              
+              <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-slate-100">相關連結</h2>
+              <ul className="list-disc list-inside space-y-2 mb-6">
+                <li><a href="#" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline transition-colors duration-200">AWS 官方文件</a></li>
+                <li><a href="#" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline transition-colors duration-200">內部流程規範</a></li>
+              </ul>
+              
+              <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-slate-100">注意事項</h2>
+              <p>重要的操作注意事項和安全提醒...</p>
+            </div>
+          ) : (
+            <div className="min-h-96">
+              <div className="prose dark:prose-invert max-w-none">
+                <div className="flex items-center space-x-4 mb-6">
+                  <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200">
+                    <FileTextIcon className="h-5 w-5" />
+                  </button>
+                  <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200">
+                    <FileImage className="h-5 w-5" />
+                  </button>
+                  <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200">
+                    <FileCode className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
+                    <p className="text-slate-500 dark:text-slate-400">點擊或拖放文件到這裡</p>
+                  </div>
+                  <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
+                    <p className="text-slate-500 dark:text-slate-400">點擊或拖放圖片到這裡</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 
+  const teamMembers: TeamMember[] = [
+    {
+      id: '1',
+      name: '張工程師',
+      role: '維運工程師',
+      status: 'online',
+      lastActive: '剛剛',
+      tasks: { total: 5, completed: 3 }
+    },
+    {
+      id: '2',
+      name: '李工程師',
+      role: '維運工程師',
+      status: 'away',
+      lastActive: '10分鐘前',
+      tasks: { total: 3, completed: 1 }
+    },
+    {
+      id: '3',
+      name: '王工程師',
+      role: '維運工程師',
+      status: 'busy',
+      lastActive: '30分鐘前',
+      tasks: { total: 4, completed: 2 }
+    },
+    {
+      id: '4',
+      name: '陳工程師',
+      role: '維運工程師',
+      status: 'offline',
+      lastActive: '2小時前',
+      tasks: { total: 2, completed: 2 }
+    },
+    {
+      id: '5',
+      name: '林工程師',
+      role: '維運工程師',
+      status: 'online',
+      lastActive: '剛剛',
+      tasks: { total: 6, completed: 4 }
+    }
+  ];
+
+  const teamActivities: TeamActivity[] = [
+    {
+      id: '1',
+      type: 'meeting',
+      title: '週會討論',
+      description: '討論本週工作進度和下週計劃',
+      time: '今天 14:00',
+      participants: ['張工程師', '李工程師', '王工程師'],
+      status: 'pending'
+    },
+    {
+      id: '2',
+      type: 'task',
+      title: 'AWS 架構優化',
+      description: '優化現有 AWS 架構以提高效能',
+      time: '明天 10:00',
+      participants: ['張工程師', '陳工程師'],
+      status: 'in-progress'
+    },
+    {
+      id: '3',
+      type: 'document',
+      title: '系統維護 SOP',
+      description: '更新系統維護標準作業程序',
+      time: '後天 15:00',
+      participants: ['王工程師', '林工程師'],
+      status: 'completed'
+    }
+  ];
+
+  const getStatusColor = (status: TeamMember['status']) => {
+    switch (status) {
+      case 'online':
+        return 'bg-emerald-400';
+      case 'away':
+        return 'bg-amber-400';
+      case 'busy':
+        return 'bg-red-400';
+      case 'offline':
+        return 'bg-slate-400';
+      default:
+        return 'bg-slate-400';
+    }
+  };
+
+  const getStatusText = (status: TeamMember['status']) => {
+    switch (status) {
+      case 'online':
+        return '在線';
+      case 'away':
+        return '暫時離開';
+      case 'busy':
+        return '忙碌中';
+      case 'offline':
+        return '離線';
+      default:
+        return '未知';
+    }
+  };
+
+  const getActivityIcon = (type: TeamActivity['type']) => {
+    switch (type) {
+      case 'meeting':
+        return <Video className="h-4 w-4" />;
+      case 'task':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'document':
+        return <FileText className="h-4 w-4" />;
+      case 'message':
+        return <MessageSquare className="h-4 w-4" />;
+      default:
+        return null;
+    }
+  };
+
+  const getActivityStatusColor = (status: TeamActivity['status']) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300';
+      case 'in-progress':
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300';
+      case 'completed':
+        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300';
+      default:
+        return 'bg-slate-100 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300';
+    }
+  };
+
   const TeamView = () => (
-    <div className="p-8 bg-slate-50 min-h-screen">
+    <div className="p-8 bg-slate-50 dark:bg-slate-900 min-h-screen">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">團隊協作</h2>
-          <p className="text-slate-600">管理團隊成員和協作活動</p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">團隊協作</h2>
+          <p className="text-slate-600 dark:text-slate-400">管理團隊成員和協作活動</p>
+        </div>
+        <div className="flex items-center space-x-4">
+          <button className="px-5 py-2.5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 font-medium flex items-center space-x-2">
+            <Calendar className="h-4 w-4" />
+            <span>排程會議</span>
+          </button>
+          <button className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium flex items-center space-x-2">
+            <UserPlus className="h-4 w-4" />
+            <span>邀請成員</span>
+          </button>
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <div className="p-6 border-b border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900">團隊成員</h3>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {['張工程師', '李工程師', '王工程師', '陳工程師', '林工程師'].map((name, index) => (
-                <div key={index} className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 transition-all duration-200">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm">
-                      <User className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">{name}</p>
-                      <p className="text-sm text-slate-500">維運工程師</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
-                    <span className="text-xs text-emerald-600 font-medium">在線</span>
-                  </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">團隊成員</h3>
+                <div className="flex items-center space-x-2">
+                  <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200">
+                    <MessageSquare className="h-4 w-4" />
+                  </button>
+                  <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200">
+                    <Video className="h-4 w-4" />
+                  </button>
+                  <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200">
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
                 </div>
-              ))}
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {teamMembers.map((member) => (
+                  <div 
+                    key={member.id}
+                    className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-200 cursor-pointer"
+                    onClick={() => setShowMemberDetails(member.id)}
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="relative">
+                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm">
+                          <User className="h-5 w-5 text-white" />
+                        </div>
+                        <span className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800 ${getStatusColor(member.status)}`}></span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-slate-100">{member.name}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{member.role}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-slate-500 dark:text-slate-400">{member.tasks?.completed}/{member.tasks?.total}</span>
+                        <div className="w-24 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-indigo-500 rounded-full"
+                            style={{ width: `${(member.tasks?.completed || 0) / (member.tasks?.total || 1) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <span className={`w-2 h-2 rounded-full ${getStatusColor(member.status)}`}></span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{getStatusText(member.status)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">團隊活動</h3>
+                <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">
+                  查看全部
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {teamActivities.map((activity) => (
+                  <div key={activity.id} className="flex items-start space-x-4 p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-200">
+                    <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl">
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-semibold text-slate-900 dark:text-slate-100">{activity.title}</h4>
+                        <span className={`px-3 py-1 text-xs rounded-lg font-medium ${getActivityStatusColor(activity.status)}`}>
+                          {activity.status === 'pending' ? '待處理' : activity.status === 'in-progress' ? '進行中' : '已完成'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{activity.description}</p>
+                      <div className="flex items-center space-x-4 text-xs text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {activity.time}
+                        </div>
+                        {activity.participants && (
+                          <div className="flex items-center">
+                            <Users className="h-3 w-3 mr-1" />
+                            {activity.participants.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-900">最近活動</h3>
-            <Clock className="h-5 w-5 text-slate-400" />
+        <div className="space-y-8">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">快速操作</h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <button className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
+                  <MessageSquare className="h-6 w-6 text-indigo-500 mb-2" />
+                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100">發送訊息</span>
+                </button>
+                <button className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
+                  <Video className="h-6 w-6 text-indigo-500 mb-2" />
+                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100">視訊會議</span>
+                </button>
+                <button className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
+                  <Phone className="h-6 w-6 text-indigo-500 mb-2" />
+                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100">語音通話</span>
+                </button>
+                <button className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
+                  <Mail className="h-6 w-6 text-indigo-500 mb-2" />
+                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100">發送郵件</span>
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-4 p-4 rounded-xl hover:bg-slate-50 transition-all duration-200">
-                  <div className={`p-2.5 rounded-xl shadow-sm ${activity.iconBg}`}>
-                    <activity.icon className={`h-4 w-4 ${activity.iconColor}`} />
+
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">團隊統計</h3>
+            </div>
+            <div className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">任務完成率</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">75%</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-900 mb-1">
-                      <span className="font-semibold">{activity.user}</span>{' '}
-                      <span className="text-slate-600">{activity.action}</span>
-                    </p>
-                    <p className="text-sm font-medium text-slate-900 truncate mb-2">
-                      {activity.target}
-                    </p>
-                    <div className="flex items-center text-xs text-slate-500 space-x-4">
-                      <div className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {activity.time}
-                      </div>
-                      <div className="flex items-center">
-                        <User className="h-3 w-3 mr-1" />
-                        {activity.user}
-                      </div>
-                    </div>
+                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: '75%' }}></div>
                   </div>
                 </div>
-              ))}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">文件更新</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">12 份</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: '60%' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">會議時數</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">8 小時</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-500 rounded-full" style={{ width: '40%' }}></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -863,7 +1343,7 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen bg-slate-100 flex">
+    <div className="h-screen bg-slate-100 dark:bg-slate-900 flex">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
