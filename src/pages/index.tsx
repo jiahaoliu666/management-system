@@ -1183,9 +1183,9 @@ export default function Home() {
         <div className="border-b border-slate-100 dark:border-slate-700 p-6">
           <input
             type="text"
-            placeholder="輸入文件標題..."
+            placeholder="文件標題..."
             className="w-full text-2xl font-bold border-none outline-none text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-transparent"
-            defaultValue="新的 SOP 文件"
+            defaultValue=""
           />
           <div className="flex items-center space-x-6 mt-6">
             <select className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100">
@@ -1205,81 +1205,53 @@ export default function Home() {
           </div>
         </div>
 
-        {!isPreview && (
-          <div className="border-b border-slate-100 dark:border-slate-700 p-4">
-            <div className="flex items-center space-x-2 flex-wrap gap-2">
-              {Object.entries(groupedTools).map(([group, tools]) => (
-                <div key={group} className="flex items-center space-x-2">
-                  {tools.map((tool) => (
-                    <button
-                      key={tool.label}
-                      onClick={() => setActiveTool(tool.label)}
-                      className={`p-2 rounded-lg transition-all duration-200 ${
-                        activeTool === tool.label
-                          ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
-                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                      }`}
-                      title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
-                    >
-                      <tool.icon className="h-4 w-4" />
-                    </button>
+        <div className="grid grid-cols-2 h-[calc(100vh-20rem)]">
+          <div className="border-r border-slate-200 dark:border-slate-700">
+            <div className="border-b border-slate-200 dark:border-slate-700 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  {Object.entries(groupedTools).map(([group, tools]) => (
+                    <div key={group} className="flex items-center space-x-2">
+                      {tools.map((tool) => (
+                        <button
+                          key={tool.label}
+                          onClick={() => setActiveTool(tool.label)}
+                          className={`p-2 rounded-lg transition-all duration-200 ${
+                            activeTool === tool.label
+                              ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
+                              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                          }`}
+                          title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
+                        >
+                          <tool.icon className="h-4 w-4" />
+                        </button>
+                      ))}
+                      {group !== Object.keys(groupedTools)[Object.keys(groupedTools).length - 1] && (
+                        <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                      )}
+                    </div>
                   ))}
-                  {group !== Object.keys(groupedTools)[Object.keys(groupedTools).length - 1] && (
-                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-2"></div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="p-8">
-          {isPreview ? (
-            <div className="min-h-96 text-slate-700 dark:text-slate-300 leading-relaxed prose dark:prose-invert max-w-none">
-              <h1 className="text-3xl font-bold mb-6 text-slate-900 dark:text-slate-100">文件內容預覽</h1>
-              <p className="mb-6">在這裡預覽您的 SOP 文件內容...</p>
-              
-              <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-slate-100">操作步驟</h2>
-              <ol className="list-decimal list-inside space-y-3 mb-6">
-                <li>第一步操作說明</li>
-                <li>第二步操作說明</li>
-                <li>第三步操作說明</li>
-              </ol>
-              
-              <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-slate-100">相關連結</h2>
-              <ul className="list-disc list-inside space-y-2 mb-6">
-                <li><a href="#" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline transition-colors duration-200">AWS 官方文件</a></li>
-                <li><a href="#" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline transition-colors duration-200">內部流程規範</a></li>
-              </ul>
-              
-              <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-slate-100">注意事項</h2>
-              <p>重要的操作注意事項和安全提醒...</p>
-            </div>
-          ) : (
-            <div className="min-h-96">
-              <div className="prose dark:prose-invert max-w-none">
-                <div className="flex items-center space-x-4 mb-6">
-                  <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200">
-                    <FileTextIcon className="h-5 w-5" />
-                  </button>
-                  <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200">
-                    <FileImage className="h-5 w-5" />
-                  </button>
-                  <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200">
-                    <FileCode className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
-                    <p className="text-slate-500 dark:text-slate-400">點擊或拖放文件到這裡</p>
-                  </div>
-                  <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
-                    <p className="text-slate-500 dark:text-slate-400">點擊或拖放圖片到這裡</p>
-                  </div>
                 </div>
               </div>
             </div>
-          )}
+            <div className="p-6">
+              <textarea
+                placeholder="開始編寫文件內容..."
+                className="w-full h-full resize-none border-none outline-none text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-transparent"
+                defaultValue=""
+              />
+            </div>
+          </div>
+          
+          <div>
+            <div className="border-b border-slate-200 dark:border-slate-700 p-4">
+              <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100">預覽</h3>
+            </div>
+            <div className="p-6 prose dark:prose-invert max-w-none h-full overflow-y-auto">
+              <h1>文件標題</h1>
+              <p>在這裡顯示文件的預覽內容...</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
