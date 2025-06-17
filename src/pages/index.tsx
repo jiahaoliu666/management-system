@@ -1387,8 +1387,8 @@ export default function Home() {
     <div className="p-8 bg-slate-50 dark:bg-slate-900 min-h-screen">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">團隊協作</h2>
-          <p className="text-slate-600 dark:text-slate-400">管理團隊成員和協作活動</p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">團隊成員</h2>
+          <p className="text-slate-600 dark:text-slate-400">管理您的團隊成員</p>
         </div>
         <div className="flex items-center space-x-4">
           <button className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium flex items-center space-x-2">
