@@ -430,9 +430,9 @@ export default function Home() {
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center justify-between">
             {!isCollapsed && (
-              <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                技術文件系統
-              </h1>
+              <div className="flex items-center">
+                <img src="/logo.png" alt="技術文件系統" className="h-8 w-auto" />
+              </div>
             )}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
@@ -441,7 +441,6 @@ export default function Home() {
               {isCollapsed ? <ChevronRight className="h-5 w-5 text-slate-400" /> : <ChevronLeft className="h-5 w-5 text-slate-400" />}
             </button>
           </div>
-          {!isCollapsed && <p className="text-sm text-slate-500 mt-1">專業文件管理平台</p>}
         </div>
         
         <nav className="px-4 py-6 space-y-2">
@@ -598,10 +597,6 @@ export default function Home() {
               className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200"
             >
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
-            <button className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-5 py-2.5 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 flex items-center shadow-lg hover:shadow-xl font-medium">
-              <Plus className="mr-2 h-4 w-4" />
-              新增文件
             </button>
             <div className="relative">
               <button 
@@ -1396,10 +1391,6 @@ export default function Home() {
           <p className="text-slate-600 dark:text-slate-400">管理團隊成員和協作活動</p>
         </div>
         <div className="flex items-center space-x-4">
-          <button className="px-5 py-2.5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 font-medium flex items-center space-x-2">
-            <Calendar className="h-4 w-4" />
-            <span>排程會議</span>
-          </button>
           <button className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium flex items-center space-x-2">
             <UserPlus className="h-4 w-4" />
             <span>邀請成員</span>
@@ -1463,114 +1454,6 @@ export default function Home() {
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">團隊活動</h3>
-                <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">
-                  查看全部
-                </button>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {teamActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-4 p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-200">
-                    <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl">
-                      {getActivityIcon(activity.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className="font-semibold text-slate-900 dark:text-slate-100">{activity.title}</h4>
-                        <span className={`px-3 py-1 text-xs rounded-lg font-medium ${getActivityStatusColor(activity.status)}`}>
-                          {activity.status === 'pending' ? '待處理' : activity.status === 'in-progress' ? '進行中' : '已完成'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{activity.description}</p>
-                      <div className="flex items-center space-x-4 text-xs text-slate-500 dark:text-slate-400">
-                        <div className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {activity.time}
-                        </div>
-                        {activity.participants && (
-                          <div className="flex items-center">
-                            <Users className="h-3 w-3 mr-1" />
-                            {activity.participants.join(', ')}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-8">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">快速操作</h3>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                <button className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
-                  <MessageSquare className="h-6 w-6 text-indigo-500 mb-2" />
-                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100">發送訊息</span>
-                </button>
-                <button className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
-                  <Video className="h-6 w-6 text-indigo-500 mb-2" />
-                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100">視訊會議</span>
-                </button>
-                <button className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
-                  <Phone className="h-6 w-6 text-indigo-500 mb-2" />
-                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100">語音通話</span>
-                </button>
-                <button className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
-                  <Mail className="h-6 w-6 text-indigo-500 mb-2" />
-                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100">發送郵件</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">團隊統計</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">任務完成率</span>
-                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">75%</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: '75%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">文件更新</span>
-                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">12 份</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: '60%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">會議時數</span>
-                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">8 小時</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full" style={{ width: '40%' }}></div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
