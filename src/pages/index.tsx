@@ -61,6 +61,7 @@ import {
   Mail,
   MoreVertical,
   UserPlus,
+  ChevronLeft,
 } from 'lucide-react';
 
 interface FileNode {
@@ -180,6 +181,11 @@ export default function Home() {
   const [isPreview, setIsPreview] = useState(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [showMemberDetails, setShowMemberDetails] = useState<string | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     // 檢查系統主題偏好
@@ -410,131 +416,283 @@ export default function Home() {
     ));
   };
 
-  const Sidebar = () => (
-    <div className="w-72 bg-white border-r border-slate-200 h-full shadow-sm">
-      <div className="p-6 border-b border-slate-100">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-          技術文件系統
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">專業文件管理平台</p>
-      </div>
-      
-      <nav className="px-4 py-6 space-y-2">
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out ${
-            activeTab === 'dashboard' 
-              ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm border-r-3 border-indigo-500' 
-              : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <HomeIcon className="mr-3 h-5 w-5" />
-          儀表板
-        </button>
-        
-        <button
-          onClick={() => setActiveTab('documents')}
-          className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out ${
-            activeTab === 'documents' 
-              ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm border-r-3 border-indigo-500' 
-              : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <BookOpen className="mr-3 h-5 w-5" />
-          文件管理
-        </button>
-        
-        <button
-          onClick={() => setActiveTab('editor')}
-          className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out ${
-            activeTab === 'editor' 
-              ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm border-r-3 border-indigo-500' 
-              : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <Edit className="mr-3 h-5 w-5" />
-          文件編輯器
-        </button>
-        
-        <button
-          onClick={() => setActiveTab('team')}
-          className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out ${
-            activeTab === 'team' 
-              ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm border-r-3 border-indigo-500' 
-              : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <Users className="mr-3 h-5 w-5" />
-          團隊協作
-        </button>
-      </nav>
+  const Sidebar = () => {
+    const toggleFavorite = (folderId: string) => {
+      setFavorites(prev => 
+        prev.includes(folderId) 
+          ? prev.filter(id => id !== folderId)
+          : [...prev, folderId]
+      );
+    };
 
-      {/* 文件目錄樹狀結構 */}
-      <div className="px-4 pb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            文件目錄
-          </h3>
-          <button className="p-1 hover:bg-slate-100 rounded-md transition-colors duration-200">
-            <MoreHorizontal className="h-4 w-4 text-slate-400" />
-          </button>
-        </div>
-        <div className="space-y-1">
-          {renderDirectoryTree(fileDirectoryTree)}
-        </div>
-      </div>
-    </div>
-  );
-
-  const Header = () => (
-    <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="搜尋文件、SOP、流程..."
-              className="pl-12 pr-6 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-96 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 text-sm dark:text-slate-200"
-            />
+    return (
+      <div className={`${isCollapsed ? 'w-20' : 'w-72'} bg-white border-r border-slate-200 h-full shadow-sm transition-all duration-300`}>
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center justify-between">
+            {!isCollapsed && (
+              <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                技術文件系統
+              </h1>
+            )}
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors duration-200"
+            >
+              {isCollapsed ? <ChevronRight className="h-5 w-5 text-slate-400" /> : <ChevronLeft className="h-5 w-5 text-slate-400" />}
+            </button>
           </div>
-          <button className="flex items-center px-4 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
-            <Filter className="mr-2 h-4 w-4" />
-            篩選
-          </button>
+          {!isCollapsed && <p className="text-sm text-slate-500 mt-1">專業文件管理平台</p>}
         </div>
         
-        <div className="flex items-center space-x-4">
-          <button 
-            onClick={toggleTheme}
-            className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200"
-          >
-            {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </button>
-          <button className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-5 py-2.5 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 flex items-center shadow-lg hover:shadow-xl font-medium">
-            <Plus className="mr-2 h-4 w-4" />
-            新增文件
-          </button>
-          <button className="relative p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-          </button>
-          <button className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200">
-            <Settings className="h-5 w-5" />
-          </button>
-          <div className="flex items-center space-x-3 pl-4 border-l border-slate-200 dark:border-slate-700">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-              <User className="h-5 w-5 text-white" />
+        <nav className="px-4 py-6 space-y-2">
+          {!isCollapsed && (
+            <>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out ${
+                  activeTab === 'dashboard' 
+                    ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm border-r-3 border-indigo-500' 
+                    : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <HomeIcon className="mr-3 h-5 w-5" />
+                儀表板
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('documents')}
+                className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out ${
+                  activeTab === 'documents' 
+                    ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm border-r-3 border-indigo-500' 
+                    : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <BookOpen className="mr-3 h-5 w-5" />
+                文件管理
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('editor')}
+                className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out ${
+                  activeTab === 'editor' 
+                    ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm border-r-3 border-indigo-500' 
+                    : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <Edit className="mr-3 h-5 w-5" />
+                文件編輯器
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('team')}
+                className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out ${
+                  activeTab === 'team' 
+                    ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm border-r-3 border-indigo-500' 
+                    : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <Users className="mr-3 h-5 w-5" />
+                團隊協作
+              </button>
+            </>
+          )}
+
+          {isCollapsed && (
+            <div className="flex flex-col items-center space-y-4">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`p-3 rounded-xl transition-all duration-200 ease-in-out ${
+                  activeTab === 'dashboard' 
+                    ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm' 
+                    : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <HomeIcon className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setActiveTab('documents')}
+                className={`p-3 rounded-xl transition-all duration-200 ease-in-out ${
+                  activeTab === 'documents' 
+                    ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm' 
+                    : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <BookOpen className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setActiveTab('editor')}
+                className={`p-3 rounded-xl transition-all duration-200 ease-in-out ${
+                  activeTab === 'editor' 
+                    ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm' 
+                    : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <Edit className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setActiveTab('team')}
+                className={`p-3 rounded-xl transition-all duration-200 ease-in-out ${
+                  activeTab === 'team' 
+                    ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm' 
+                    : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <Users className="h-5 w-5" />
+              </button>
             </div>
-            <div>
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">張工程師</span>
-              <p className="text-xs text-slate-500 dark:text-slate-400">系統管理員</p>
+          )}
+        </nav>
+
+        {/* 文件目錄樹狀結構 */}
+        {!isCollapsed && (
+          <div className="px-4 pb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                文件目錄
+              </h3>
+              <button className="p-1 hover:bg-slate-100 rounded-md transition-colors duration-200">
+                <MoreHorizontal className="h-4 w-4 text-slate-400" />
+              </button>
+            </div>
+            <div className="space-y-1">
+              {renderDirectoryTree(fileDirectoryTree)}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const Header = () => {
+    return (
+      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-6">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="搜尋文件、SOP、流程..."
+                className="pl-12 pr-6 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-96 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 text-sm dark:text-slate-200"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <button className="flex items-center px-4 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+              <Filter className="mr-2 h-4 w-4" />
+              篩選
+            </button>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={toggleTheme}
+              className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200"
+            >
+              {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+            <button className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-5 py-2.5 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 flex items-center shadow-lg hover:shadow-xl font-medium">
+              <Plus className="mr-2 h-4 w-4" />
+              新增文件
+            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200"
+              >
+                <Bell className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+              </button>
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
+                  <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">通知</h3>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {recentActivities.map((activity) => (
+                      <div key={activity.id} className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
+                        <div className="flex items-start space-x-3">
+                          <div className={`p-2 rounded-lg ${activity.iconBg}`}>
+                            <activity.icon className={`h-4 w-4 ${activity.iconColor}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-900 dark:text-slate-100">
+                              <span className="font-medium">{activity.user}</span>{' '}
+                              {activity.action}
+                            </p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                              {activity.target}
+                            </p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                              {activity.time}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-700">
+                    <button className="w-full text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">
+                      查看全部通知
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <button 
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center space-x-3 pl-4 border-l border-slate-200 dark:border-slate-700"
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <div className="text-left">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">張工程師</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">system@example.com</p>
+                </div>
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
+                  <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">張工程師</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">system@example.com</p>
+                  </div>
+                  <div className="py-1">
+                    <button className="w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-left transition-colors duration-200">
+                      <User className="h-4 w-4 inline-block mr-2" />
+                      個人資料
+                    </button>
+                    <button className="w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-left transition-colors duration-200">
+                      <Settings className="h-4 w-4 inline-block mr-2" />
+                      設定
+                    </button>
+                    <button className="w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-left transition-colors duration-200">
+                      <Bell className="h-4 w-4 inline-block mr-2" />
+                      通知設定
+                    </button>
+                  </div>
+                  <div className="py-1 border-t border-slate-100 dark:border-slate-700">
+                    <button className="w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 text-left transition-colors duration-200">
+                      登出
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
-    </header>
-  );
+      </header>
+    );
+  };
 
   const StatCard: React.FC<StatCardProps> = ({ icon: Icon, title, value, trend, color, bgColor }) => (
     <div className={`${bgColor} p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group`}>
@@ -694,110 +852,232 @@ export default function Home() {
     </div>
   );
 
-  const DocumentsView = () => (
-    <div className="p-8 bg-slate-50 dark:bg-slate-900 min-h-screen">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">文件管理</h2>
-          <p className="text-slate-600">管理和組織您的技術文件</p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-white rounded-xl p-1 border border-slate-200">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-all duration-200 ${
-                viewMode === 'grid' 
-                  ? 'bg-indigo-100 text-indigo-600 shadow-sm' 
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-all duration-200 ${
-                viewMode === 'list' 
-                  ? 'bg-indigo-100 text-indigo-600 shadow-sm' 
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              <List className="h-4 w-4" />
+  const DocumentsView = () => {
+    const [showPreview, setShowPreview] = useState(false);
+    const [showVersionCompare, setShowVersionCompare] = useState(false);
+    const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
+
+    return (
+      <div className="p-8 bg-slate-50 dark:bg-slate-900 min-h-screen">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">文件管理</h2>
+            <p className="text-slate-600 dark:text-slate-400">管理和組織您的技術文件</p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  viewMode === 'grid' 
+                    ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  viewMode === 'list' 
+                    ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
+            <button className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium flex items-center space-x-2">
+              <Plus className="h-4 w-4" />
+              <span>新增文件</span>
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recentDocuments.map((doc) => (
-          <div key={doc.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300 group overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900 dark:to-indigo-800 rounded-xl">
-                  <FileText className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {recentDocuments.map((doc) => (
+            <div key={doc.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300 group overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900 dark:to-indigo-800 rounded-xl">
+                    <FileText className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
+                  </div>
+                  <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button 
+                      onClick={() => {
+                        setSelectedDocument(doc);
+                        setShowVersionHistory(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all duration-200"
+                      title="版本歷史"
+                    >
+                      <History className="h-4 w-4" />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedDocument(doc);
+                        setShowVersionCompare(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/50 rounded-lg transition-all duration-200"
+                      title="版本比較"
+                    >
+                      <GitBranch className="h-4 w-4" />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedDocument(doc);
+                        setShowPreview(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 rounded-lg transition-all duration-200"
+                      title="預覽"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all duration-200">
+                      <Share2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                
+                <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
+                  {doc.title}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{doc.category}</p>
+                
+                <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 mb-4">
+                  <span>{doc.author}</span>
+                  <span>{doc.lastModified}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {doc.priority === 'high' && (
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className={`px-3 py-1 text-xs rounded-lg font-medium ${
+                      doc.status === 'published' 
+                        ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' 
+                        : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+                    }`}>
+                      {doc.status === 'published' ? '已發布' : '草稿'}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all duration-200">
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-all duration-200">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {showVersionHistory && <VersionHistoryModal />}
+        
+        {showPreview && selectedDocument && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
+              <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">文件預覽</h3>
                   <button 
-                    onClick={() => {
-                      setSelectedDocument(doc);
-                      setShowVersionHistory(true);
-                    }}
-                    className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all duration-200"
-                    title="版本歷史"
+                    onClick={() => setShowPreview(false)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors duration-200"
                   >
-                    <History className="h-4 w-4" />
-                  </button>
-                  <button className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/50 rounded-lg transition-all duration-200">
-                    <Star className="h-4 w-4" />
-                  </button>
-                  <button className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all duration-200">
-                    <Share2 className="h-4 w-4" />
-                  </button>
-                  <button className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 rounded-lg transition-all duration-200">
-                    <Download className="h-4 w-4" />
+                    <X className="h-5 w-5 text-slate-500" />
                   </button>
                 </div>
               </div>
-              
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200">
-                {doc.title}
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{doc.category}</p>
-              
-              <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 mb-4">
-                <span>{doc.author}</span>
-                <span>{doc.lastModified}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  {doc.priority === 'high' && (
-                    <AlertCircle className="h-4 w-4 text-red-500" />
-                  )}
-                  <span className={`px-3 py-1 text-xs rounded-lg font-medium ${
-                    doc.status === 'published' 
-                      ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' 
-                      : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
-                  }`}>
-                    {doc.status === 'published' ? '已發布' : '草稿'}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <button className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-all duration-200">
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-all duration-200">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+              <div className="p-6 overflow-y-auto max-h-[calc(80vh-8rem)]">
+                <div className="prose dark:prose-invert max-w-none">
+                  <h1>{selectedDocument.title}</h1>
+                  <div className="flex items-center space-x-4 text-sm text-slate-500 dark:text-slate-400 mb-8">
+                    <span>{selectedDocument.category}</span>
+                    <span>•</span>
+                    <span>{selectedDocument.author}</span>
+                    <span>•</span>
+                    <span>最後更新：{selectedDocument.lastModified}</span>
+                  </div>
+                  <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
+                    <p className="text-slate-500 dark:text-slate-400">文件內容預覽區域</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      {showVersionHistory && <VersionHistoryModal />}
-    </div>
-  );
+        {showVersionCompare && selectedDocument && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-6xl max-h-[80vh] overflow-hidden">
+              <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">版本比較</h3>
+                  <button 
+                    onClick={() => setShowVersionCompare(false)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors duration-200"
+                  >
+                    <X className="h-5 w-5 text-slate-500" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center space-x-4 mb-6">
+                  <select 
+                    className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                    value={selectedVersions[0] || ''}
+                    onChange={(e) => setSelectedVersions([e.target.value, selectedVersions[1]])}
+                  >
+                    <option value="">選擇版本 1</option>
+                    {mockVersions.map((version) => (
+                      <option key={version.id} value={version.id}>
+                        v{version.version} - {version.date}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-slate-400">vs</span>
+                  <select 
+                    className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                    value={selectedVersions[1] || ''}
+                    onChange={(e) => setSelectedVersions([selectedVersions[0], e.target.value])}
+                  >
+                    <option value="">選擇版本 2</option>
+                    {mockVersions.map((version) => (
+                      <option key={version.id} value={version.id}>
+                        v{version.version} - {version.date}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-6">
+                    <div className="prose dark:prose-invert max-w-none">
+                      <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">版本 1</h4>
+                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
+                        <p className="text-slate-500 dark:text-slate-400">選擇版本以查看內容</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-6">
+                    <div className="prose dark:prose-invert max-w-none">
+                      <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">版本 2</h4>
+                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
+                        <p className="text-slate-500 dark:text-slate-400">選擇版本以查看內容</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const VersionHistoryModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1191,7 +1471,7 @@ export default function Home() {
                       </div>
                       <div>
                         <p className="font-semibold text-slate-900 dark:text-slate-100">{member.name}</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">{member.role}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{member.role}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
@@ -1354,3 +1634,4 @@ export default function Home() {
     </div>
   );
 }
+
