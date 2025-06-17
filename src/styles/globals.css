@@ -23,7 +23,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-    --radius: 0.75rem;
+    --radius: 0.5rem;
   }
 
   .dark {
@@ -56,83 +56,199 @@
   body {
     @apply bg-background text-foreground;
   }
-  
-  /* 自定義滾動條樣式 */
-  ::-webkit-scrollbar {
-    @apply w-2;
-  }
-  
-  ::-webkit-scrollbar-track {
-    @apply bg-muted;
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/50 rounded-full hover:bg-muted-foreground/70 transition-colors;
+}
+
+/* 自定義滾動條樣式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+/* 自定義選中文本樣式 */
+::selection {
+  background: #3b82f6;
+  color: white;
+}
+
+.dark ::selection {
+  background: #60a5fa;
+  color: white;
+}
+
+/* 自定義過渡動畫 */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* 自定義陰影效果 */
+.shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.shadow {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* 自定義動畫 */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-@layer components {
-  .btn {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors 
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 
-           disabled:opacity-50 disabled:pointer-events-none ring-offset-background;
-  }
-  
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
-  }
-  
-  .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
-  }
-  
-  .btn-destructive {
-    @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
-  }
-  
-  .input {
-    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm 
-           ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium 
-           placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 
-           focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  
-  .card {
-    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
-  }
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
 
-  /* 深色模式過渡效果 */
-  .dark-transition {
-    @apply transition-colors duration-200;
-  }
-
-  /* 深色模式下的卡片樣式 */
-  .dark .card {
-    @apply bg-slate-800 border-slate-700;
-  }
-
-  /* 深色模式下的按鈕樣式 */
-  .dark .btn {
-    @apply bg-slate-700 text-slate-200 hover:bg-slate-600;
-  }
-
-  /* 深色模式下的輸入框樣式 */
-  .dark .input {
-    @apply bg-slate-800 border-slate-700 text-slate-200;
-  }
-
-  /* 深色模式下的文字顏色 */
-  .dark {
-    @apply text-slate-200;
-  }
-
-  /* 深色模式下的背景顏色 */
-  .dark .bg-white {
-    @apply bg-slate-800;
-  }
-
-  /* 深色模式下的邊框顏色 */
-  .dark .border-slate-200 {
-    @apply border-slate-700;
+@keyframes pulse {
+  50% {
+    opacity: .5;
   }
 }
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 自定義工具提示樣式 */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltip-text {
+  visibility: hidden;
+  width: 120px;
+  background-color: #1e293b;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* 自定義按鈕懸停效果 */
+.hover-scale {
+  transition: transform 0.2s;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* 自定義輸入框焦點效果 */
+.focus-ring {
+  outline: none;
+  transition: box-shadow 0.2s;
+}
+
+.focus-ring:focus {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.dark .focus-ring:focus {
+  box-shadow: 0 0 0 2px #60a5fa;
+}
+
+/* 自定義卡片懸停效果 */
+.card-hover {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* 自定義漸變背景 */
+.gradient-bg {
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+.dark .gradient-bg {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+}
+
+/* 自定義文本截斷 */
+.truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 自定義載入動畫 */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.dark .loading-spinner {
+  border-color: #334155;
+  border-top-color: #60a5fa;
+}
+
+/* 自定義骨架屏動畫 */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+html, body, #__next {
+  height: 100%;
+  min-height: 100%;
+} 
