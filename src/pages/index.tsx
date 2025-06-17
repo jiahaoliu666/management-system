@@ -1,15 +1,8 @@
-import React, { useState } from 'react';
-import { FileText, MessageSquare } from 'lucide-react';
+import React from 'react';
 import MainLayout from '@/layouts/MainLayout';
-import Dashboard from '@/components/Dashboard';
-import DocumentsView from '@/components/DocumentsView';
-import EditorView from '@/components/EditorView';
-import TeamView from '@/components/TeamView';
 import { Document, TeamMember, TeamActivity, Activity } from '@/types';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-
   // 模擬數據
   const recentDocuments: Document[] = [
     {
@@ -57,7 +50,7 @@ export default function Home() {
       action: '更新了文件',
       target: '系統架構設計文件',
       time: '10 分鐘前',
-      icon: FileText,
+      icon: require('lucide-react').FileText,
       iconColor: 'text-blue-600',
       iconBg: 'bg-blue-50',
       type: 'document',
@@ -70,7 +63,7 @@ export default function Home() {
       action: '評論了文件',
       target: '使用者介面設計規範',
       time: '30 分鐘前',
-      icon: MessageSquare,
+      icon: require('lucide-react').MessageSquare,
       iconColor: 'text-green-600',
       iconBg: 'bg-green-50',
       type: 'message',
@@ -125,47 +118,13 @@ export default function Home() {
     }
   ];
 
-  const handleDocumentClick = (doc: Document) => {
-    console.log('Document clicked:', doc.id);
-  };
-
-  const handleSaveContent = () => {
-    console.log('Saving content...');
-  };
-
-  const handlePublish = () => {
-    console.log('Publishing...');
-  };
-
-  const handlePreview = () => {
-    console.log('Previewing...');
-  };
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} />;
-      case 'documents':
-        return <DocumentsView documents={recentDocuments} onDocumentClick={handleDocumentClick} />;
-      case 'editor':
-        return (
-          <EditorView
-            onSave={handleSaveContent}
-            onPublish={handlePublish}
-            onPreview={handlePreview}
-          />
-        );
-      case 'team':
-        return <TeamView members={teamMembers} activities={teamActivities} />;
-      default:
-        return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} />;
-    }
-  };
-
   return (
-    <MainLayout>
-      {renderContent()}
-    </MainLayout>
+    <MainLayout
+      recentDocuments={recentDocuments}
+      recentActivities={recentActivities}
+      teamMembers={teamMembers}
+      teamActivities={teamActivities}
+    />
   );
 }
 

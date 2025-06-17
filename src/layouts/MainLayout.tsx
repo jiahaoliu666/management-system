@@ -2,13 +2,26 @@ import React, { useState } from 'react';
 import { FileText, MessageSquare, CheckCircle2 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
-import { Activity } from '@/types';
+import Dashboard from '@/components/Dashboard';
+import DocumentsView from '@/components/DocumentsView';
+import EditorView from '@/components/EditorView';
+import TeamView from '@/components/TeamView';
+import { Activity, Document, TeamMember, TeamActivity } from '@/types';
 
 interface MainLayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  recentDocuments: Document[];
+  recentActivities: Activity[];
+  teamMembers: TeamMember[];
+  teamActivities: TeamActivity[];
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({
+  recentDocuments,
+  recentActivities,
+  teamMembers,
+  teamActivities,
+}) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -18,51 +31,24 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const recentActivities: Activity[] = [
-    {
-      id: '1',
-      user: '張工程師',
-      action: '更新了文件',
-      target: '系統架構設計文件',
-      time: '10 分鐘前',
-      icon: FileText,
-      iconColor: 'text-blue-600 dark:text-blue-400',
-      iconBg: 'bg-blue-50 dark:bg-blue-900/30',
-      type: 'document',
-      priority: 'high',
-      status: 'completed'
-    },
-    {
-      id: '2',
-      user: '李設計師',
-      action: '評論了文件',
-      target: '使用者介面設計規範',
-      time: '30 分鐘前',
-      icon: MessageSquare,
-      iconColor: 'text-green-600 dark:text-green-400',
-      iconBg: 'bg-green-50 dark:bg-green-900/30',
-      type: 'message',
-      priority: 'medium',
-      status: 'in-progress'
-    },
-    {
-      id: '3',
-      user: '王經理',
-      action: '審核了文件',
-      target: '專案進度報告',
-      time: '1 小時前',
-      icon: CheckCircle2,
-      iconColor: 'text-purple-600 dark:text-purple-400',
-      iconBg: 'bg-purple-50 dark:bg-purple-900/30',
-      type: 'task',
-      priority: 'high',
-      status: 'completed'
-    }
-  ];
-
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle('dark');
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} />;
+      case 'documents':
+        return <DocumentsView documents={recentDocuments} onDocumentClick={() => {}} />;
+      case 'editor':
+        return <EditorView onSave={() => {}} onPublish={() => {}} onPreview={() => {}} />;
+      case 'team':
+        return <TeamView members={teamMembers} activities={teamActivities} />;
+      default:
+        return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} />;
+    }
   };
 
   return (
@@ -90,7 +76,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           recentActivities={recentActivities}
         />
         <main className="flex-1 min-h-0 h-full flex flex-col px-4 md:px-8 py-4 md:py-8 w-full max-w-7xl mx-auto">
-          {children}
+          {renderContent()}
         </main>
       </div>
     </div>
