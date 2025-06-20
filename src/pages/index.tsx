@@ -6,7 +6,7 @@ export default function Home() {
   // 模擬數據
   const recentDocuments: Document[] = [
     {
-      id: '123',
+      id: '1',
       title: '系統架構設計文件',
       category: '技術文檔',
       subcategory: '架構設計',
