@@ -16,7 +16,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     isAuthenticated, 
     loading, 
     newPasswordRequired, 
-    mfaRequired,
     isMfaSetupRequired
   } = useAuth();
   const router = useRouter();
@@ -27,12 +26,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     const isPublicPage = publicPaths.includes(router.pathname);
 
     // 統一 Cognito 驗證流程於 login 頁面
-    if ((newPasswordRequired || mfaRequired || isMfaSetupRequired) && router.pathname !== AUTH_PATHS.LOGIN) {
+    if (newPasswordRequired && router.pathname !== AUTH_PATHS.LOGIN) {
       router.push(AUTH_PATHS.LOGIN);
       return;
     }
     // 允許在 login 頁面停留進行 Cognito 驗證
-    if ((newPasswordRequired || mfaRequired || isMfaSetupRequired) && router.pathname === AUTH_PATHS.LOGIN) {
+    if (newPasswordRequired && router.pathname === AUTH_PATHS.LOGIN) {
       return;
     }
 
@@ -52,7 +51,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     isAuthenticated,
     loading,
     newPasswordRequired,
-    mfaRequired,
     isMfaSetupRequired,
     router.pathname
   ]);
