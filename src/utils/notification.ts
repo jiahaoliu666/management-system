@@ -109,7 +109,7 @@ export const mapCognitoErrorToMessage = (errorCode: string, errorMessage?: strin
     [COGNITO_ERROR_CODES.INVALID_PASSWORD]: '密碼不符合要求',
     [COGNITO_ERROR_CODES.LIMIT_EXCEEDED]: '嘗試次數過多，請稍後再試',
     [COGNITO_ERROR_CODES.TOO_MANY_REQUESTS]: '請求過於頻繁，請稍後再試',
-    [COGNITO_ERROR_CODES.INVALID_PARAMETER]: '輸入參數無效',
+    [COGNITO_ERROR_CODES.INVALID_PARAMETER]: '請確認電子郵件或密碼是否正確',
     [COGNITO_ERROR_CODES.CODE_MISMATCH]: '驗證碼不正確',
     [COGNITO_ERROR_CODES.EXPIRED_CODE]: '驗證碼已過期',
     [COGNITO_ERROR_CODES.CLIENT_NOT_FOUND]: '系統配置錯誤：請通知工程師團隊設置正確的環境變數',

@@ -273,36 +273,37 @@ export const useCognito = () => {
       return { success: true, session: result.session, setupRequired: false };
     } catch (err) {
       const cognitoError = err as CognitoError;
+      const message = (err as Error).message || String(err);
       let errorMessage = '登入失敗';
 
       // 添加錯誤日誌以便調試
       console.log('Cognito Error:', {
         code: cognitoError.code,
         name: cognitoError.name,
-        message: cognitoError.message
+        message: message
       });
 
       // 處理常見的 Cognito 錯誤
       if (cognitoError.name === 'UserNotFoundException' || 
-          cognitoError.message?.includes('User does not exist')) {
+          message.includes('User does not exist')) {
         errorMessage = '請確認電子郵件或密碼是否正確';
       } else if (cognitoError.name === 'NotAuthorizedException' || 
-                 cognitoError.message?.includes('Incorrect username or password')) {
+                 message.includes('Incorrect username or password')) {
         // Cognito出於安全考量，將未註冊用戶和密碼錯誤返回相同的錯誤代碼
         errorMessage = '請確認電子郵件或密碼是否正確';
       } else if (cognitoError.name === 'ResourceNotFoundException' || 
                  cognitoError.code === 'ResourceNotFoundException' ||
-                 cognitoError.message?.includes('User pool client') && 
-                 cognitoError.message?.includes('does not exist')) {
+                 (message.includes('User pool client') && 
+                 message.includes('does not exist'))) {
         errorMessage = '認證服務未正確設置，請聯繫工程團隊';
       } else if (cognitoError.name === 'UserNotConfirmedException') {
         errorMessage = '用戶尚未確認';
       } else {
-        errorMessage = cognitoError.message || '登入過程發生錯誤';
+        errorMessage = message || '登入過程發生錯誤';
       }
 
       setError(errorMessage);
-      showError(mapCognitoErrorToMessage(cognitoError.code, cognitoError.message));
+      showError(mapCognitoErrorToMessage(cognitoError.code, message));
       return { success: false, setupRequired: false };
     } finally {
       setLoading(false);
