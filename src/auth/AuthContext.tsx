@@ -23,6 +23,12 @@ const clearAllCognitoLocalStorage = () => {
   ];
   
   keysToRemove.forEach(key => localStorage.removeItem(key));
+  // 新增：清除 Cognito SDK 自動寫入的 key
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('CognitoIdentityServiceProvider')) {
+      localStorage.removeItem(key);
+    }
+  });
 };
 
 type AuthContextType = {
@@ -282,8 +288,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           onSuccess: async () => {
             setNewPasswordRequired(false);
             setChallengeUser(null);
+            setIsAuthenticated(false);
+            setUser(null);
+            setEmail('');
+            clearAllCognitoLocalStorage();
             showSuccess('密碼設定成功，請重新登入！');
-            router.push('/login');
+            router.push('/login').then(() => {
+              clearAllCognitoLocalStorage(); // 再次清除，確保跳轉後也乾淨
+            });
             resolve();
           },
           onFailure: (err) => {
