@@ -27,7 +27,9 @@ import {
   ListChecks,
   Link,
   Table,
-  Code
+  Code,
+  Image,
+  MoreHorizontal
 } from 'lucide-react';
 
 export const fileTags = [
@@ -114,47 +116,97 @@ export const editorTools = [
   { icon: Code, label: '插入代碼', group: 'insert' },
 ];
 
-export const getActivityIcon = (type: string) => {
-  switch (type) {
-    case 'meeting':
-      return Video;
-    case 'task':
-      return CheckCircle;
-    case 'document':
-      return FileText;
-    case 'message':
-      return MessageSquareIcon;
-    default:
-      return null;
-  }
+export const permissionOptions = [
+  { id: 'view', name: '可以查看' },
+  { id: 'comment', name: '可以評論' },
+  { id: 'edit', name: '可以編輯' },
+  { id: 'full', name: '完整權限' }
+];
+
+export const NOTIFICATION = {
+  DURATION: {
+    DEFAULT: 4000,
+    SUCCESS: 3000,
+    ERROR: 5000,
+  },
+  POSITION: {
+    TOP_LEFT: 'top-left',
+    TOP_CENTER: 'top-center',
+    TOP_RIGHT: 'top-right',
+    BOTTOM_LEFT: 'bottom-left',
+    BOTTOM_CENTER: 'bottom-center',
+    BOTTOM_RIGHT: 'bottom-right',
+  },
 };
 
+export const COGNITO_ERROR_CODES = {
+  USER_NOT_FOUND: 'UserNotFoundException',
+  NOT_AUTHORIZED: 'NotAuthorizedException',
+  RESOURCE_NOT_FOUND: 'ResourceNotFoundException',
+  USER_NOT_CONFIRMED: 'UserNotConfirmedException',
+  USERNAME_EXISTS: 'UsernameExistsException',
+  INVALID_PASSWORD: 'InvalidPasswordException',
+  LIMIT_EXCEEDED: 'LimitExceededException',
+  TOO_MANY_REQUESTS: 'TooManyRequestsException',
+  INVALID_PARAMETER: 'InvalidParameterException',
+  CODE_MISMATCH: 'CodeMismatchException',
+  EXPIRED_CODE: 'ExpiredCodeException',
+  CLIENT_NOT_FOUND: 'ResourceNotFoundException', // Cognito有時會針對Client ID錯誤返回這個
+};
+
+export const AUTH_PATHS = {
+  LOGIN: '/login',
+  SIGNUP: '/signup',
+  FORGOT_PASSWORD: '/forgot-password',
+  CHANGE_PASSWORD: '/change-password',
+  MFA_SETUP: '/mfa-setup',
+  OPTIONS: '/options'
+};
+
+/**
+ * 根據活動類型返回對應的 Lucide 圖標
+ * @param type 活動類型
+ * @returns Lucide 圖標組件
+ */
+// 由於 components/Dashboard.tsx 中使用了 icon，但 lucide-react 並未在此文件中導入，
+// 為了避免 lint 錯誤，我們將這個函數的實現移至使用它的地方或更高層的組件中。
+// export const getActivityIcon = (type: string) => { ... };
+
+/**
+ * 根據狀態返回對應的顏色 class
+ * @param status 狀態字符串
+ * @returns Tailwind CSS 顏色 class
+ */
 export const getStatusColor = (status: string) => {
   switch (status) {
     case 'online':
-      return 'bg-emerald-400';
+      return 'bg-green-500';
     case 'away':
-      return 'bg-amber-400';
+      return 'bg-yellow-500';
     case 'busy':
-      return 'bg-red-400';
-    case 'offline':
-      return 'bg-slate-400';
+      return 'bg-red-500';
     default:
       return 'bg-slate-400';
   }
 };
 
+/**
+ * 根據狀態返回對應的文本
+ * @param status 狀態字符串
+ * @returns 狀態文本
+ */
 export const getStatusText = (status: string) => {
   switch (status) {
     case 'online':
-      return '在線';
+      return '在線上';
     case 'away':
-      return '暫時離開';
+      return '離開';
     case 'busy':
       return '忙碌中';
-    case 'offline':
-      return '離線';
     default:
-      return '未知';
+      return '離線';
   }
-}; 
+};
+
+export const USER = 'user';
+export const TEAM = 'team'; 
