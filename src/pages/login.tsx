@@ -37,9 +37,13 @@ export default function Login() {
     setupTotpMfa, 
     verifyAndEnableTotpMfa, 
     logout,
-    newPasswordRequired
+    newPasswordRequired,
+    mfaRequired,
+    loading: authLoading,
+    error: authError,
+    isMfaSetupRequired
   } = useAuth();
-  const [step, setStep] = useState<'login' | 'newPassword' | 'mfaSetup' | 'mfaVerify'>('login');
+  
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -52,16 +56,14 @@ export default function Login() {
   const [totpCode, setTotpCode] = useState('');
   const [mfaCode, setMfaCode] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    // 根據來自 AuthContext 的權威狀態來決定當前步驟
-    if (newPasswordRequired) {
-      setStep('newPassword');
-    } else {
-      // 如果不是 newPassword 流程，確保是乾淨的登入狀態
-      setStep('login');
-    }
-  }, [newPasswordRequired]);
+  
+  const getCurrentStep = () => {
+    if (newPasswordRequired) return 'newPassword';
+    if (isMfaSetupRequired) return 'mfaSetup';
+    if (mfaRequired) return 'mfaVerify';
+    return 'login';
+  };
+  const step = getCurrentStep();
 
   useEffect(() => {
     if (step === 'mfaVerify') {
@@ -69,34 +71,20 @@ export default function Login() {
     }
   }, [step]);
 
-  // 登入流程
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       const result = await login(username, password);
-      if (result.success) {
-        if (result.needsMfaSetup) {
-          setStep('mfaSetup');
-          setLoading(false);
-        } else {
-          router.replace('/');
-        }
-      } else if (result.newPasswordRequired) {
-        setStep('newPassword');
-        setLoading(false);
-      } else if (result.mfaRequired) {
-        setStep('mfaVerify');
-        setLoading(false);
-      } else {
-        setLoading(false);
-      }
-    } catch (err) {
+      if (result.success && !result.needsMfaSetup) {
+        router.replace('/');
+      } 
+      // 其他情況（如需要設新密碼、需要MFA設置）將由 context 狀態驅動 UI 更新
+    } finally {
       setLoading(false);
     }
   };
 
-  // 設置新密碼流程
   const handleSetNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isPasswordValid(newPassword) || newPassword !== confirmNewPassword) {
@@ -105,16 +93,13 @@ export default function Login() {
     }
     setLoading(true);
     const result = await completeNewPassword(newPassword);
-    if (result.success) {
-      if (result.mfaSetupRequired) {
-        setStep('mfaSetup');
-      }
-      // 成功後的跳轉由 AuthContext 處理
+    if (result.success && result.mfaSetupRequired) {
+      // 不需要做任何事，UI 會因為 context 狀態改變而自動切換到 mfaSetup
     }
+    // 成功且不需要 MFA 設置的跳轉由 AuthContext 處理
     setLoading(false);
   };
 
-  // MFA 設定流程
   const handleSetupTotp = async () => {
     setLoading(true);
     const result = await setupTotpMfa();
@@ -151,12 +136,10 @@ export default function Login() {
 
   const handleLogout = () => {
     logout();
-    setStep('login');
     setUsername('');
     setPassword('');
   };
 
-  // 自動產生 QRCode 的副作用
   useEffect(() => {
     if (step === 'mfaSetup' && !mfaQr) {
       handleSetupTotp();
@@ -164,7 +147,6 @@ export default function Login() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, mfaQr]);
 
-  // step-based UI
   return (
     <>
       <Head>
@@ -202,7 +184,7 @@ export default function Login() {
                           onChange={(e) => setUsername(e.target.value)}
                           className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                           placeholder="請輸入您的電子郵件"
-                          disabled={loading}
+                          disabled={authLoading}
                         />
                       </div>
                     </div>
@@ -223,7 +205,7 @@ export default function Login() {
                           onChange={(e) => setPassword(e.target.value)}
                           className={`w-full pl-10 pr-12 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-left font-mono ${showPassword ? '' : 'tracking-password'}`}
                           placeholder="請輸入您的密碼"
-                          disabled={loading}
+                          disabled={authLoading}
                           autoComplete="current-password"
                         />
                         <button
@@ -247,10 +229,10 @@ export default function Login() {
                     </div>
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={authLoading}
                       className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {loading ? (
+                      {authLoading ? (
                         <div className="flex items-center justify-center">
                           <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -292,7 +274,7 @@ export default function Login() {
                           onChange={(e) => setNewPassword(e.target.value)}
                           className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                           placeholder="請輸入新密碼"
-                          disabled={loading}
+                          disabled={authLoading}
                         />
                         <button
                           type="button"
@@ -329,7 +311,7 @@ export default function Login() {
                           onChange={(e) => setConfirmNewPassword(e.target.value)}
                           className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                           placeholder="請再次輸入新密碼"
-                          disabled={loading}
+                          disabled={authLoading}
                         />
                         <button
                           type="button"
@@ -372,10 +354,10 @@ export default function Login() {
                     </div>
                     <button
                       type="submit"
-                      disabled={loading || !isPasswordValid(newPassword) || newPassword !== confirmNewPassword}
+                      disabled={authLoading || !isPasswordValid(newPassword) || newPassword !== confirmNewPassword}
                       className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {loading ? (
+                      {authLoading ? (
                         <div className="flex items-center justify-center">
                           <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -418,16 +400,16 @@ export default function Login() {
                         className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-center text-lg tracking-widest"
                         placeholder="請輸入 6 位數驗證碼"
                         maxLength={6}
-                        disabled={loading}
+                        disabled={authLoading}
                       />
                     </div>
                     <button
                       type="button"
                       onClick={handleVerifyTotp}
-                      disabled={!totpCode || loading}
+                      disabled={!totpCode || authLoading}
                       className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {loading ? (
+                      {authLoading ? (
                         <div className="flex items-center justify-center">
                           <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -461,15 +443,15 @@ export default function Login() {
                         className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-center text-lg tracking-widest"
                         placeholder="請輸入 6 位數驗證碼"
                         maxLength={6}
-                        disabled={loading}
+                        disabled={authLoading}
                       />
                     </div>
                     <button
                       onClick={handleVerifyMfa}
-                      disabled={!mfaCode || loading}
+                      disabled={!mfaCode || authLoading}
                       className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {loading ? (
+                      {authLoading ? (
                         <div className="flex items-center justify-center">
                           <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

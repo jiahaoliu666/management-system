@@ -104,12 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return false;
   });
   const [currentSetupStep, setCurrentSetupStep] = useState<'password' | 'mfa' | 'complete'>('password');
-  const [isMfaSetupRequired, setIsMfaSetupRequired] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('cognito_mfa_setup_required') !== 'false';
-    }
-    return true; // 預設值為true，表示需要設置MFA
-  });
+  const [isMfaSetupRequired, setIsMfaSetupRequired] = useState<boolean>(false);
   
   // 新增一個MFA已啟用的狀態，緩存MFA狀態避免頻繁API調用
   const [isMfaEnabled, setIsMfaEnabled] = useState<boolean>(() => {
@@ -295,6 +290,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (result.user) {
           setChallengeUser(result.user);
         }
+        setIsMfaSetupRequired(false); // 確保在進入新密碼流程時，MFA設置標記為false
         // 標記為首次登入，需要設置新密碼
         setIsFirstLogin(true);
         setCurrentSetupStep('password');
@@ -473,9 +469,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // 設置 TOTP MFA
   const handleSetupTotpMfa = async () => {
     try {
-      return await cognitoSetupTotpMfa();
+      const userForMfa = challengeUser || getCurrentUser();
+      if (!userForMfa) {
+        throw new Error("無法設定MFA：找不到使用者會話。");
+      }
+      return await cognitoSetupTotpMfa(userForMfa);
     } catch (error) {
       console.error('Setup TOTP MFA error:', error);
+      showError('無法設定驗證器，請重新登入再試。');
       return { success: false };
     }
   };
@@ -483,9 +484,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // 驗證並啟用 TOTP MFA
   const handleVerifyAndEnableTotpMfa = async (totpCode: string, deviceName?: string): Promise<boolean> => {
     try {
-      const result = await cognitoVerifyAndEnableTotpMfa(totpCode, deviceName);
+      const userForMfa = challengeUser || getCurrentUser();
+      if (!userForMfa) {
+        throw new Error("無法驗證MFA：找不到使用者會話。");
+      }
+      const result = await cognitoVerifyAndEnableTotpMfa(userForMfa, totpCode, deviceName);
       
       if (result.success) {
+        // MFA 流程成功後，清除所有相關狀態
+        setIsMfaSetupRequired(false);
+        setChallengeUser(null);
+
         // 更新MFA啟用狀態
         setIsMfaEnabled(true);
         if (typeof window !== 'undefined') {
@@ -566,7 +575,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (result.success) {
         console.log('AuthContext: 新密碼設置成功！');
-        setChallengeUser(null); // 清除挑戰狀態
+        
+        // 如果需要設置MFA，更新狀態以觸發UI變化，但保留 challengeUser
+        if (result.mfaSetupRequired) {
+          setIsMfaSetupRequired(true);
+        } else {
+          // 只有在流程完全結束時才清除 challengeUser
+          setChallengeUser(null);
+        }
         
         // 如果有會話，保存令牌
         if (result.session) {

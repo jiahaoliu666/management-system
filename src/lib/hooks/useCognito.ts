@@ -162,19 +162,8 @@ export const useCognito = () => {
             // 處理首次登入需要更改密碼的情況
             setUserAttributes(userAttributes);
             setNewPasswordRequired(true);
-            
-            // 在 localStorage 中保存需要新密碼的標記
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('cognito_new_password_required', 'true');
-              localStorage.setItem('cognito_password', password); // 暫時存儲密碼用於會話恢復
-              
-              // 保存挑戰名稱和會話狀態
-              localStorage.setItem('cognito_challenge_session', JSON.stringify({
-                challengeName: 'NEW_PASSWORD_REQUIRED',
-                authenticationFlowType: cognitoUser.getAuthenticationFlowType()
-              }));
-            }
-            
+            // 最佳實踐：不應在 localStorage 中保存密碼或挑戰狀態，
+            // 而是將 user 物件返回，由上層在記憶體中管理
             resolve({ newPasswordRequired: true, user: cognitoUser, userAttributes, requiredAttributes, setupRequired: false });
           },
           mfaRequired: (challengeName: any, challengeParameters: any) => {
@@ -499,6 +488,9 @@ export const useCognito = () => {
           }
         });
       });
+
+      // 挑戰成功後，更新狀態
+      setNewPasswordRequired(false);
 
       // 如果有會話，表示整個流程已完成
       console.log('新密碼設置完成，並獲得有效會話');
@@ -834,7 +826,7 @@ export const useCognito = () => {
   }, []);
 
   // 設置 TOTP MFA
-  const setupTotpMfa = useCallback(async (): Promise<{
+  const setupTotpMfa = useCallback(async (userForMfaSetup: CognitoUser): Promise<{
     success: boolean;
     secretCode?: string;
     qrCodeUrl?: string;
@@ -843,16 +835,13 @@ export const useCognito = () => {
     setError(null);
 
     try {
-      const user = userPool.getCurrentUser();
+      const user = userForMfaSetup;
       console.log('setupTotpMfa: currentUser', user);
       if (!user) {
-        throw new Error('用戶未登入');
+        throw new Error('用戶物件無效');
       }
-      const session = user.getSignInUserSession();
-      console.log('setupTotpMfa: user.getSignInUserSession()', session);
-      if (!session) {
-        throw new Error('CognitoUser session 無效，請重新登入');
-      }
+      // 在此流程中，用戶可能還沒有一個有效的 session，這是預期行為
+      // 因此移除 getSignInUserSession 的檢查
 
       // 關聯軟件令牌 (獲取 secret code)
       const secretCode = await new Promise<string>((resolve, reject) => {
@@ -893,6 +882,7 @@ export const useCognito = () => {
 
   // 驗證並啟用 TOTP MFA
   const verifyAndEnableTotpMfa = useCallback(async (
+    userToVerify: CognitoUser,
     totpCode: string, 
     deviceName: string = '我的驗證器'
   ): Promise<{
@@ -902,9 +892,9 @@ export const useCognito = () => {
     setError(null);
 
     try {
-      const user = userPool.getCurrentUser();
+      const user = userToVerify;
       if (!user) {
-        throw new Error('用戶未登入');
+        throw new Error('用戶物件無效');
       }
 
       // 驗證 TOTP 碼
