@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { CognitoUser, CognitoUserSession, CognitoUserAttribute } from 'amazon-cognito-identity-js';
 import { useCognito, MFAType } from '@/lib/hooks/useCognito';
 import { showError, showInfo, showSuccess } from '@/utils/notification';
@@ -28,15 +28,8 @@ const clearAllCognitoLocalStorage = () => {
 type AuthContextType = {
   isAuthenticated: boolean;
   user: CognitoUser | null;
-  login: (username: string, password: string) => Promise<{ 
-    success: boolean; 
-    newPasswordRequired?: boolean;
-    mfaRequired?: boolean;
-    mfaType?: MFAType;
-    availableMfaTypes?: any[];
-    needsMfaSetup: boolean;
-  }>;
-  completeNewPassword: (newPassword: string) => Promise<{ success: boolean; mfaSetupRequired?: boolean }>;
+  login: (username: string, password: string) => Promise<void>;
+  completeNewPassword: (newPassword: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
   error: string | null;
@@ -95,6 +88,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<CognitoUser | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [challengeUser, setChallengeUser] = useState<CognitoUser | null>(null);
+  const [isMfaSetupRequired, setIsMfaSetupRequired] = useState<boolean>(false);
+  const [newPasswordRequired, setNewPasswordRequired] = useState<boolean>(false);
+  const [mfaRequired, setMfaRequired] = useState<boolean>(false);
+  const [mfaType, setMfaType] = useState<MFAType>('NOMFA');
+  const [error, setError] = useState<string | null>(null);
   
   // 首次登入與安全設置進度相關狀態
   const [isFirstLogin, setIsFirstLogin] = useState<boolean>(() => {
@@ -104,7 +102,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return false;
   });
   const [currentSetupStep, setCurrentSetupStep] = useState<'password' | 'mfa' | 'complete'>('password');
-  const [isMfaSetupRequired, setIsMfaSetupRequired] = useState<boolean>(false);
   
   // 新增一個MFA已啟用的狀態，緩存MFA狀態避免頻繁API調用
   const [isMfaEnabled, setIsMfaEnabled] = useState<boolean>(() => {
@@ -138,11 +135,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     completeNewPassword: cognitoCompleteNewPassword,
     loading: cognitoLoading,
     error: cognitoError,
-    newPasswordRequired: cognitoNewPasswordRequired,
     cancelNewPasswordChallenge: cognitoCancelNewPasswordChallenge,
     // MFA 相關
-    mfaRequired: cognitoMfaRequired,
-    mfaType: cognitoMfaType,
     verifyMfaCode: cognitoVerifyMfaCode,
     selectMfaType: cognitoSelectMfaType,
     getUserMfaSettings: cognitoGetUserMfaSettings,
@@ -158,20 +152,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // 清除所有憑證的函數
   const clearAllCredentials = useCallback(() => {
-    // 檢查是否在 change-password 頁面
-    const isChangePasswordPage = typeof window !== 'undefined' && 
-      window.location.pathname === '/change-password';
-    const needsNewPassword = typeof window !== 'undefined' && 
-      localStorage.getItem('cognito_new_password_required') === 'true';
-    
-    // 如果在 change-password 頁面且需要設置新密碼，保留必要的憑證
-    if (isChangePasswordPage && needsNewPassword) {
-      return;
-    }
-
     setIsAuthenticated(false);
     setUser(null);
-    setIsMfaVerified(false); // 重置 MFA 驗證狀態
+    setChallengeUser(null);
+    setNewPasswordRequired(false);
+    setMfaRequired(false);
+    setIsMfaSetupRequired(false);
+    setMfaType('NOMFA');
+    setIsMfaVerified(false);
     setEmail('');
     
     clearAllCognitoLocalStorage();
@@ -206,9 +194,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // localStorage.removeItem('cognito_access_token');
   };
 
+  const handleGetUserMfaSettings = useCallback(async () => {
+    try {
+      const result = await cognitoGetUserMfaSettings();
+      
+      // 如果成功獲取MFA設置，更新本地狀態和存儲
+      if (result.success) {
+        const isEnabled = result.enabled || false;
+        setIsMfaEnabled(isEnabled);
+        
+        // 同步到localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cognito_mfa_enabled', isEnabled.toString());
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Get MFA settings error:', error);
+      return { success: false };
+    }
+  }, [cognitoGetUserMfaSettings]);
+
   // 在組件掛載時檢查用戶的身份驗證狀態和MFA設置
   useEffect(() => {
     const checkAuthStatus = async () => {
+      setAuthLoading(true); // 開始時設定為載入中
       try {
         const currentUser = getCurrentUser();
         if (currentUser) {
@@ -235,127 +246,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // 檢查MFA設置狀態
             handleGetUserMfaSettings().catch(console.error);
           } else {
-            // 如果會話無效，則登出
-            handleLogout();
+            // 如果會話無效，則只清理憑證，不觸發登出或重定向
+            clearAllCredentials();
           }
         }
       } catch (error) {
-        console.error('Error checking authentication status:', error);
-        handleLogout();
+        console.log('checkAuthStatus: No valid session found.', error);
+        // 這通常不是一個錯誤，只是代表用戶未登入。清理所有狀態以確保一致。
+        clearAllCredentials();
       } finally {
         setAuthLoading(false);
       }
     };
     checkAuthStatus();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getCurrentUser, getCurrentSession]);
+  }, [clearAllCredentials, email, getCurrentUser, getCurrentSession, handleGetUserMfaSettings]);
 
   // 登入函數
-  const handleLogin = async (username: string, password: string): Promise<{ 
-    success: boolean; 
-    newPasswordRequired?: boolean;
-    mfaRequired?: boolean;
-    mfaType?: MFAType;
-    availableMfaTypes?: any[];
-    needsMfaSetup: boolean;
-  }> => {
-    try {
-      // 在開始新的登入前，清除所有可能存在的狀態
-      clearAllCredentials();
-      setChallengeUser(null);
+  const handleLogin = async (username: string, password: string): Promise<void> => {
+    setAuthLoading(true);
+    setError(null);
+    
+    // 每次登入都是一個全新的流程，清除所有先前的挑戰狀態
+    clearAllCredentials();
 
+    try {
       const result = await signIn(username, password);
-      
-      if (result.mfaRequired) {
-        // 如果需要 MFA 驗證，保存相關狀態
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('cognito_mfa_required', 'true');
-          localStorage.setItem('cognito_mfa_type', result.mfaType || 'SMS_MFA');
-          if (result.availableMfaTypes) {
-            localStorage.setItem('cognito_mfa_options', JSON.stringify(result.availableMfaTypes));
-          }
-          localStorage.setItem('cognito_username', username);
-        }
-        return { 
-          success: false, 
-          mfaRequired: true, 
-          mfaType: result.mfaType, 
-          availableMfaTypes: result.availableMfaTypes,
-          needsMfaSetup: false
-        };
-      }
-      
-      if (result.newPasswordRequired) {
-        // 保存需要處理挑戰的 user 物件
-        if (result.user) {
-          setChallengeUser(result.user);
-        }
-        setIsMfaSetupRequired(false); // 確保在進入新密碼流程時，MFA設置標記為false
-        // 標記為首次登入，需要設置新密碼
-        setIsFirstLogin(true);
-        setCurrentSetupStep('password');
-        // 不再需要保存這麼多本地狀態，由 React state 管理
-        return { success: false, newPasswordRequired: true, needsMfaSetup: false };
-      }
-      
-      // 新增：如果登入不成功，且不是其他需要處理的流程，直接返回結果
-      // 這樣可以確保底層 (useCognito) 顯示的錯誤能夠讓 UI 知道登入已終止
-      if (!result.success) {
-        return { ...result, success: false, needsMfaSetup: false };
-      }
-      
-      if (result.session) {
-        // 保存令牌
+
+      // 情況 1: 登入成功，沒有任何挑戰
+      if (result.success && result.session) {
         await saveTokenToStorage(result.session);
-        
+        const currentUser = getCurrentUser();
+        setUser(currentUser);
         setIsAuthenticated(true);
-        setUser(getCurrentUser());
-        
-        // 取得 email 並存到狀態與 localStorage
-        const cognitoUser = getCurrentUser();
-        if (cognitoUser) {
-          cognitoUser.getUserAttributes((err: any, attributes: any) => {
-            if (!err && attributes) {
-              const emailAttr = attributes.find((attr: any) => attr.getName() === 'email');
-              if (emailAttr) {
-                setEmail(emailAttr.getValue());
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('cognito_email', emailAttr.getValue());
-                }
+        if (currentUser) {
+           currentUser.getUserAttributes((err: any, attributes: any) => {
+              if (!err && attributes) {
+                const emailAttr = attributes.find((attr: any) => attr.getName() === 'email');
+                if (emailAttr) setEmail(emailAttr.getValue());
               }
-            }
-          });
+            });
         }
-        
-        // 檢查是否需要設置 MFA
-        const mfaSettings = await cognitoGetUserMfaSettings();
-        if (!mfaSettings.enabled) {
-          // 如果 MFA 未啟用，設置為首次登入並需要設置 MFA
-          setIsFirstLogin(true);
-          setCurrentSetupStep('mfa');
-          setIsMfaSetupRequired(true);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('cognito_first_login', 'true');
-            localStorage.setItem('cognito_setup_step', 'mfa');
-            localStorage.setItem('cognito_mfa_setup_required', 'true');
-            localStorage.setItem('cognito_mfa_enabled', 'false');
-          }
-          return { success: true, needsMfaSetup: true };
-        } else {
-          // 如果 MFA 已啟用，保存狀態
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('cognito_mfa_enabled', 'true');
-          }
-          return { success: true, needsMfaSetup: false };
-        }
+        return;
+      }
+
+      // 情況 2: 需要設定新密碼
+      if (result.newPasswordRequired && result.user) {
+        setChallengeUser(result.user);
+        setNewPasswordRequired(true);
+        return;
+      }
+
+      // 情況 3: 需要 MFA 驗證
+      if (result.mfaRequired && result.user) {
+        setChallengeUser(result.user);
+        setMfaRequired(true);
+        setMfaType(result.mfaType || 'NOMFA');
+        return;
       }
       
-      return { success: false, needsMfaSetup: false };
+      // 情況 4: 登入成功，但需要強制設定 MFA
+      if (result.setupRequired && result.user) {
+        setChallengeUser(result.user);
+        setIsMfaSetupRequired(true); // 直接進入 MFA 設定流程
+        return;
+      }
+      
+      // 其他失敗情況已由 useCognito 處理 (showError)
     } catch (error) {
-      console.error('Login error:', error);
-      // 登入失敗時清除所有狀態
+      console.error('Login error in AuthContext:', error);
       clearAllCredentials();
-      return { success: false, needsMfaSetup: false };
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -371,31 +332,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // 驗證 MFA 碼
   const handleVerifyMfaCode = async (mfaCode: string): Promise<boolean> => {
+    if (!challengeUser) {
+      showError('會話已過期，請重新登入');
+      clearAllCredentials();
+      router.push('/login');
+      return false;
+    }
+    
     try {
-      const result = await cognitoVerifyMfaCode(mfaCode);
+      const result = await cognitoVerifyMfaCode(mfaCode, mfaType);
       
       if (result.success && result.session) {
-        // 保存令牌
         await saveTokenToStorage(result.session);
         
         setIsAuthenticated(true);
         setUser(getCurrentUser());
-        setIsMfaVerified(true); // 設置 MFA 驗證狀態為已完成
+        setIsMfaVerified(true);
         
-        // 清除 MFA 相關狀態
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('cognito_mfa_required');
-          localStorage.removeItem('cognito_mfa_type');
-          localStorage.removeItem('cognito_mfa_options');
-          localStorage.removeItem('cognito_username');
-          localStorage.removeItem('cognito_password');
-          localStorage.setItem('cognito_mfa_verified', 'true'); // 保存 MFA 驗證狀態
-        }
-        
-        // 如果是首次登入流程，且已完成MFA設置
-        if (isFirstLogin && currentSetupStep === 'mfa') {
-          completeSetup();
-        }
+        // 清理流程狀態
+        setMfaRequired(false);
+        setChallengeUser(null);
+        setMfaType('NOMFA');
         
         return true;
       }
@@ -403,75 +360,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return false;
     } catch (error) {
       console.error('MFA verification error:', error);
-      // MFA 驗證失敗時，保留 MFA 相關狀態，但清除其他狀態
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('cognito_id_token');
-        localStorage.removeItem('cognito_first_login');
-        localStorage.removeItem('cognito_setup_step');
-        localStorage.removeItem('cognito_new_password_required');
-        localStorage.removeItem('cognito_mfa_verified'); // 清除 MFA 驗證狀態
-      }
-      setIsMfaVerified(false); // 重置 MFA 驗證狀態
       return false;
     }
   };
 
   // 選擇 MFA 類型
   const handleSelectMfaType = async (mfaType: MFAType): Promise<boolean> => {
+    if (!challengeUser) {
+      showError('會話已過期，請重新登入');
+      clearAllCredentials();
+      router.push('/login');
+      return false;
+    }
     try {
-      const result = await cognitoSelectMfaType(mfaType);
-      
-      if (result.success && result.session) {
-        // 如果選擇 MFA 類型後直接返回了會話，保存令牌
-        await saveTokenToStorage(result.session);
-        
-        setIsAuthenticated(true);
-        setUser(getCurrentUser());
-        
-        // 如果是首次登入流程，且已完成MFA設置
-        if (isFirstLogin && currentSetupStep === 'mfa') {
-          completeSetup();
-        }
-        
-        return true;
-      }
-      
-      return result.success;
+      // 在 useCognito 中，我們已不再依賴此函數來處理狀態，
+      // 但保留它以備將來可能的擴展
+      // 目前主要由 handleLogin 的 mfaType 決定
+      return true;
     } catch (error) {
       console.error('Select MFA type error:', error);
       return false;
     }
   };
 
-  // 獲取用戶 MFA 設置
-  const handleGetUserMfaSettings = async () => {
-    try {
-      const result = await cognitoGetUserMfaSettings();
-      
-      // 如果成功獲取MFA設置，更新本地狀態和存儲
-      if (result.success) {
-        const isEnabled = result.enabled || false;
-        setIsMfaEnabled(isEnabled);
-        
-        // 同步到localStorage
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('cognito_mfa_enabled', isEnabled.toString());
-        }
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Get MFA settings error:', error);
-      return { success: false };
-    }
-  };
-
   // 設置 TOTP MFA
   const handleSetupTotpMfa = async () => {
     try {
-      const userForMfa = challengeUser || getCurrentUser();
+      const userForMfa = challengeUser;
       if (!userForMfa) {
-        throw new Error("無法設定MFA：找不到使用者會話。");
+        throw new Error("無法設定MFA：使用者挑戰會話不存在。");
       }
       return await cognitoSetupTotpMfa(userForMfa);
     } catch (error) {
@@ -484,32 +401,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // 驗證並啟用 TOTP MFA
   const handleVerifyAndEnableTotpMfa = async (totpCode: string, deviceName?: string): Promise<boolean> => {
     try {
-      const userForMfa = challengeUser || getCurrentUser();
+      const userForMfa = challengeUser;
       if (!userForMfa) {
-        throw new Error("無法驗證MFA：找不到使用者會話。");
+        throw new Error("無法驗證MFA：使用者挑戰會話不存在。");
       }
       const result = await cognitoVerifyAndEnableTotpMfa(userForMfa, totpCode, deviceName);
       
       if (result.success) {
-        // MFA 流程成功後，清除所有相關狀態
+        // MFA 設置流程成功後，清理所有相關挑戰狀態
         setIsMfaSetupRequired(false);
+        setNewPasswordRequired(false); // 以防萬一
         setChallengeUser(null);
+        setIsMfaEnabled(true); // 更新MFA啟用狀態
 
-        // 更新MFA啟用狀態
-        setIsMfaEnabled(true);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('cognito_mfa_enabled', 'true');
-        }
-      
-        // 如果是首次登入流程，且已完成MFA設置
-        if (isFirstLogin && currentSetupStep === 'mfa') {
-          completeSetup();
-        }
+        showSuccess('MFA 設定成功！請使用您的新密碼及驗證碼重新登入。');
+
+        // 使用 setTimeout 確保用戶能看到成功訊息
+        setTimeout(() => {
+          // 只需清理狀態並導向登入頁，不需要執行完整的登出 (signOut)
+          // 因為用戶從未真正「登入」過。
+          clearAllCredentials();
+          router.push('/login');
+        }, 2000); // 延遲 2 秒給用戶閱讀訊息
+
+        return true;
       }
       
-      return result.success;
+      // 失敗的情況，useCognito hook 已經顯示錯誤
+      return false;
     } catch (error) {
       console.error('Verify and enable TOTP MFA error:', error);
+      showError('啟用MFA時發生未知錯誤。');
       return false;
     }
   };
@@ -560,89 +482,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // 完成新密碼設置函數
-  const handleCompleteNewPassword = async (newPassword: string): Promise<{ success: boolean; mfaSetupRequired?: boolean }> => {
+  const handleCompleteNewPassword = async (newPassword: string): Promise<void> => {
     if (!challengeUser) {
       showError('會話已過期，請重新登入');
-      // 清理狀態並導向登入頁
       clearAllCredentials();
       router.push('/login');
-      return { success: false };
+      return;
     }
 
+    setAuthLoading(true);
     try {
-      console.log('AuthContext: 開始處理完成新密碼設置...');
       const result = await cognitoCompleteNewPassword(challengeUser, newPassword);
       
-      if (result.success) {
-        console.log('AuthContext: 新密碼設置成功！');
-        
-        // 如果需要設置MFA，更新狀態以觸發UI變化，但保留 challengeUser
-        if (result.mfaSetupRequired) {
-          setIsMfaSetupRequired(true);
-        } else {
-          // 只有在流程完全結束時才清除 challengeUser
-          setChallengeUser(null);
-        }
-        
-        // 如果有會話，保存令牌
-        if (result.session) {
-          await saveTokenToStorage(result.session);
-          setIsAuthenticated(true);
-          setUser(getCurrentUser());
-          
-          // 保存會話狀態到 localStorage
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('cognito_session_valid', 'true');
-            localStorage.setItem('cognito_last_session_time', Date.now().toString());
-          }
-        }
-        
-        // 清除需要新密碼的標記
-        // 現在由 React state 管理，登出時會自動清理
-        
-        // 如果不需要設置 MFA，直接跳轉到首頁
-        if (!result.mfaSetupRequired) {
-          setTimeout(() => {
-            router.push('/');
-          }, 1000);
-        }
-        
-        return { success: true, mfaSetupRequired: result.mfaSetupRequired };
+      // 情況 1: 密碼設定成功，且需要接著設定 MFA
+      if (result.success && result.mfaSetupRequired) {
+        setNewPasswordRequired(false);
+        setIsMfaSetupRequired(true);
+        // challengeUser 仍然保留，給下一步使用
+        showSuccess('密碼更新成功！現在請設定 MFA。');
+        return;
       }
       
-      // 如果設置失敗，但沒有拋出錯誤，顯示通用錯誤訊息
-      console.log('AuthContext: 設置新密碼失敗，但沒有錯誤訊息');
-      showError('無法設置新密碼，請重新登入後再試');
-      
-      // 如果是特定錯誤，清除狀態並重新登入
-      setTimeout(() => {
-        cognitoCancelNewPasswordChallenge();
-        // 重定向到登入頁面
-        router.push('/login');
-      }, 1500);
-      
-      return { success: false };
+      // 情況 2: 密碼設定成功，流程結束 (已取得 session)
+      if (result.success && result.session) {
+        await saveTokenToStorage(result.session);
+        setIsAuthenticated(true);
+        setUser(getCurrentUser());
+        
+        // 清理所有挑戰狀態
+        setNewPasswordRequired(false);
+        setIsMfaSetupRequired(false);
+        setChallengeUser(null);
+        
+        showSuccess('密碼設定成功！');
+        return;
+      }
+
+      // 情況 3: 失敗
+      // 錯誤已由 useCognito hook 顯示
+      clearAllCredentials();
+      router.push('/login');
+
     } catch (error) {
       console.error('AuthContext: 完成新密碼過程中發生錯誤:', error);
-      setChallengeUser(null); // 清除挑戰狀態
-      
-      // 如果錯誤包含 Session 相關的錯誤，顯示更有指導性的錯誤訊息
-      if (error instanceof Error && (error.message.includes('Session') || error.message.includes('會話'))) {
-        showError('您的會話已過期。請返回登入頁面，重新登入後再設置新密碼');
-        
-        // 延遲一秒後跳轉到登入頁面，給用戶時間看到錯誤訊息
-        setTimeout(() => {
-          // 清除新密碼設置狀態
-          cognitoCancelNewPasswordChallenge();
-          
-          // 使用 window.location 強制刷新到登入頁
-          window.location.href = '/login';
-        }, 1500);
-      } else {
-        showError('設置新密碼時發生錯誤: ' + (error instanceof Error ? error.message : '未知錯誤'));
-      }
-      
-      return { success: false };
+      showError('設置新密碼時發生未知錯誤，請重試。');
+      clearAllCredentials();
+      router.push('/login');
     } finally {
       setAuthLoading(false);
     }
@@ -651,16 +536,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // 登出函數
   const handleLogout = useCallback(() => {
     // 清除所有狀態
-    setIsAuthenticated(false);
-    setUser(null);
-    setIsMfaVerified(false); // 重置 MFA 驗證狀態
-    setEmail('');
+    clearAllCredentials();
     
-    clearAllCognitoLocalStorage();
-
     // 調用 Cognito 的登出函數
     signOut();
-  }, [signOut]);
+    router.push('/login');
+  }, [signOut, router, clearAllCredentials]);
 
   // 獲取 JWT 令牌函數
   const handleGetToken = async (): Promise<string | null> => {
@@ -690,49 +571,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // 同步更新 AuthContext 的狀態
     setIsFirstLogin(false);
     setCurrentSetupStep('password');
-    setIsMfaSetupRequired(true);
+    setIsMfaSetupRequired(false);
+    setNewPasswordRequired(false);
+    setChallengeUser(null);
   }, [cognitoCancelNewPasswordChallenge]);
 
+  const memoizedValue = useMemo(() => ({
+    isAuthenticated,
+    user,
+    login: handleLogin,
+    completeNewPassword: handleCompleteNewPassword,
+    logout: handleLogout,
+    loading,
+    error: error || cognitoError,
+    getToken: handleGetToken,
+    newPasswordRequired,
+    cancelNewPasswordChallenge: handleCancelNewPasswordChallenge,
+    mfaRequired,
+    mfaType,
+    verifyMfaCode: handleVerifyMfaCode,
+    selectMfaType: handleSelectMfaType,
+    getUserMfaSettings: handleGetUserMfaSettings,
+    setupTotpMfa: handleSetupTotpMfa,
+    verifyAndEnableTotpMfa: handleVerifyAndEnableTotpMfa,
+    setupSmsMfa: handleSetupSmsMfa,
+    disableMfa: handleDisableMfa,
+    mfaSecret: cognitoMfaSecret,
+    mfaSecretQRCode: cognitoMfaSecretQRCode,
+    isFirstLogin,
+    setIsFirstLogin,
+    currentSetupStep,
+    setCurrentSetupStep,
+    isMfaSetupRequired,
+    setIsMfaSetupRequired,
+    completeSetup,
+    clearAllCredentials,
+    isMfaVerified,
+    email,
+    setEmail
+  }), [
+    isAuthenticated, user, handleLogin, handleCompleteNewPassword, handleLogout,
+    loading, error, cognitoError, handleGetToken, newPasswordRequired,
+    handleCancelNewPasswordChallenge, mfaRequired, mfaType, handleVerifyMfaCode,
+    handleSelectMfaType, handleGetUserMfaSettings, handleSetupTotpMfa,
+    handleVerifyAndEnableTotpMfa, handleSetupSmsMfa, handleDisableMfa,
+    cognitoMfaSecret, cognitoMfaSecretQRCode, isFirstLogin, currentSetupStep,
+    isMfaSetupRequired, completeSetup, clearAllCredentials, isMfaVerified, email
+  ]);
+
   return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        user,
-        login: handleLogin,
-        completeNewPassword: handleCompleteNewPassword,
-        logout: handleLogout,
-        loading,
-        error: cognitoError,
-        getToken: handleGetToken,
-        newPasswordRequired: cognitoNewPasswordRequired,
-        cancelNewPasswordChallenge: handleCancelNewPasswordChallenge,
-        // MFA 相關
-        mfaRequired: cognitoMfaRequired,
-        mfaType: cognitoMfaType,
-        verifyMfaCode: handleVerifyMfaCode,
-        selectMfaType: handleSelectMfaType,
-        getUserMfaSettings: handleGetUserMfaSettings,
-        setupTotpMfa: handleSetupTotpMfa,
-        verifyAndEnableTotpMfa: handleVerifyAndEnableTotpMfa,
-        setupSmsMfa: handleSetupSmsMfa,
-        disableMfa: handleDisableMfa,
-        mfaSecret: cognitoMfaSecret,
-        mfaSecretQRCode: cognitoMfaSecretQRCode,
-        // 安全設置進度相關
-        isFirstLogin,
-        setIsFirstLogin,
-        currentSetupStep,
-        setCurrentSetupStep,
-        isMfaSetupRequired,
-        setIsMfaSetupRequired,
-        completeSetup,
-        // 新增：清除所有憑證的函數
-        clearAllCredentials,
-        isMfaVerified,
-        email,
-        setEmail
-      }}
-    >
+    <AuthContext.Provider value={memoizedValue}>
       {children}
     </AuthContext.Provider>
   );

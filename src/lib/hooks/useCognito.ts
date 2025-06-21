@@ -30,13 +30,6 @@ export const useCognito = () => {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<CognitoUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [newPasswordRequired, setNewPasswordRequired] = useState<boolean>(() => {
-    // 檢查 localStorage 中是否有設置需要新密碼的標記
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('cognito_new_password_required') === 'true';
-    }
-    return false;
-  });
   const [currentCognitoUser, setCurrentCognitoUser] = useState<CognitoUser | null>(null);
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [mfaType, setMfaType] = useState<MFAType>('NOMFA');
@@ -112,15 +105,14 @@ export const useCognito = () => {
   }> => {
     setLoading(true);
     setError(null);
-    setNewPasswordRequired(false);
-    clearMfaState();
     
-    // 清除先前的標記
+    // 清理所有本地流程控制標記
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('cognito_new_password_required');
-      localStorage.removeItem('cognito_username');
-      localStorage.removeItem('cognito_challenge_session');
-      localStorage.removeItem('cognito_auth_details');
+      const keysToClear = [
+        'cognito_new_password_required', 'cognito_password', 'cognito_mfa_required',
+        'cognito_mfa_type', 'cognito_mfa_options', 'cognito_challenge_session'
+      ];
+      keysToClear.forEach(key => localStorage.removeItem(key));
     }
 
     try {
@@ -133,19 +125,6 @@ export const useCognito = () => {
         Username: username,
         Pool: userPool
       });
-
-      // 保存身份驗證詳情，用於後續恢復
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('cognito_auth_details', JSON.stringify({
-            username,
-            // 出於安全考慮，不存儲密碼
-          }));
-          localStorage.setItem('cognito_username', username);
-        } catch (e) {
-          console.error('無法保存身份驗證詳情', e);
-        }
-      }
 
       setCurrentCognitoUser(cognitoUser);
 
@@ -161,85 +140,32 @@ export const useCognito = () => {
           newPasswordRequired: (userAttributes: any, requiredAttributes: any) => {
             // 處理首次登入需要更改密碼的情況
             setUserAttributes(userAttributes);
-            setNewPasswordRequired(true);
-            // 最佳實踐：不應在 localStorage 中保存密碼或挑戰狀態，
-            // 而是將 user 物件返回，由上層在記憶體中管理
             resolve({ newPasswordRequired: true, user: cognitoUser, userAttributes, requiredAttributes, setupRequired: false });
           },
           mfaRequired: (challengeName: any, challengeParameters: any) => {
             // 處理 SMS MFA 挑戰
-            console.log('SMS MFA 挑戰', challengeName);
-            setMfaType('SMS_MFA');
-            setMfaRequired(true);
-            
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('cognito_mfa_required', 'true');
-              localStorage.setItem('cognito_mfa_type', 'SMS_MFA');
-              localStorage.setItem('cognito_password', password); // 暫時存儲密碼用於 MFA 失敗後重試
-            }
-            
-            resolve({ mfaRequired: true, mfaType: 'SMS_MFA', setupRequired: false });
+            resolve({ mfaRequired: true, mfaType: 'SMS_MFA', setupRequired: false, user: cognitoUser });
           },
           totpRequired: (challengeName: any, challengeParameters: any) => {
             // 處理 TOTP MFA 挑戰
-            console.log('TOTP MFA 挑戰', challengeName);
-            setMfaType('SOFTWARE_TOKEN_MFA');
-            setMfaRequired(true);
-            
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('cognito_mfa_required', 'true');
-              localStorage.setItem('cognito_mfa_type', 'SOFTWARE_TOKEN_MFA');
-              localStorage.setItem('cognito_password', password); // 暫時存儲密碼用於 MFA 失敗後重試
-            }
-            
-            resolve({ mfaRequired: true, mfaType: 'SOFTWARE_TOKEN_MFA', setupRequired: false });
+            resolve({ mfaRequired: true, mfaType: 'SOFTWARE_TOKEN_MFA', setupRequired: false, user: cognitoUser });
           },
           selectMFAType: (challengeName: any, challengeParameters: any) => {
             // 處理需要選擇 MFA 類型的情況
-            console.log('需要選擇 MFA 類型', challengeName);
-            setMfaType('SELECT_MFA_TYPE');
-            setMfaRequired(true);
-            
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('cognito_mfa_required', 'true');
-              localStorage.setItem('cognito_mfa_type', 'SELECT_MFA_TYPE');
-              localStorage.setItem('cognito_password', password); // 暫時存儲密碼用於 MFA 失敗後重試
-              
-              // 保存可用的MFA選項到localStorage
-              if (challengeParameters && challengeParameters.mfaOptions) {
-                try {
-                  localStorage.setItem('cognito_mfa_options', JSON.stringify(challengeParameters.mfaOptions));
-                } catch (e) {
-                  console.error('無法保存MFA選項到localStorage:', e);
-                }
-              }
-            }
-            
             resolve({ 
               mfaRequired: true, 
               mfaType: 'SELECT_MFA_TYPE',
               availableMfaTypes: challengeParameters.mfaOptions || [],
-              setupRequired: false
+              setupRequired: false,
+              user: cognitoUser
             });
           },
           mfaSetup: (challengeName: any, challengeParameters: any) => {
-            console.log('MFA 設置挑戰', challengeName, challengeParameters);
-            setMfaType('SOFTWARE_TOKEN_MFA');
-            setMfaRequired(true);
-            
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('cognito_mfa_required', 'true');
-              localStorage.setItem('cognito_mfa_type', 'SOFTWARE_TOKEN_MFA');
-              localStorage.setItem('cognito_password', password);
-              localStorage.setItem('cognito_first_login', 'true');
-              localStorage.setItem('cognito_setup_step', 'mfa');
-              localStorage.setItem('cognito_mfa_setup_required', 'true');
-            }
-            
+            // MFA 設置挑戰
             resolve({ 
-              mfaRequired: true, 
-              mfaType: 'SOFTWARE_TOKEN_MFA',
-              setupRequired: true
+              mfaRequired: false, 
+              setupRequired: true,
+              user: cognitoUser
             });
           }
         });
@@ -255,7 +181,8 @@ export const useCognito = () => {
           mfaRequired: true, 
           mfaType: result.mfaType,
           availableMfaTypes: result.availableMfaTypes,
-          setupRequired: false
+          setupRequired: false,
+          user: result.user
         };
       }
 
@@ -298,7 +225,7 @@ export const useCognito = () => {
     } finally {
       setLoading(false);
     }
-  }, [clearMfaState]);
+  }, []);
 
   // 驗證 MFA 碼
   const verifyMfaCode = useCallback(async (mfaCode: string, mfaType?: MFAType): Promise<{
@@ -451,46 +378,25 @@ export const useCognito = () => {
             reject(err);
           },
           mfaRequired: (challengeName: any, challengeParameters: any) => {
-            console.log('需要 MFA 驗證', challengeName, challengeParameters);
-            setMfaType('SMS_MFA');
-            setMfaRequired(true);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('cognito_mfa_required', 'true');
-              localStorage.setItem('cognito_mfa_type', 'SMS_MFA');
-            }
-            resolve({ session: null, mfaSetupRequired: false }); // 不是錯誤，但沒有會話
+            // 此流程不應觸發 mfaRequired，視為異常情況或交由上層處理
+            console.warn('在 completeNewPassword 流程中收到 mfaRequired 挑戰');
+            resolve({ session: null, mfaSetupRequired: false }); 
           },
           totpRequired: (challengeName: any, challengeParameters: any) => {
-            console.log('需要 TOTP 驗證', challengeName, challengeParameters);
-            setMfaType('SOFTWARE_TOKEN_MFA');
-            setMfaRequired(true);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('cognito_mfa_required', 'true');
-              localStorage.setItem('cognito_mfa_type', 'SOFTWARE_TOKEN_MFA');
-            }
-            resolve({ session: null, mfaSetupRequired: false }); // 不是錯誤，但沒有會話
+            // 此流程不應觸發 totpRequired
+            console.warn('在 completeNewPassword 流程中收到 totpRequired 挑戰');
+            resolve({ session: null, mfaSetupRequired: false });
           },
           mfaSetup: (challengeName: any, challengeParameters: any) => {
             console.log('需要設置 MFA', challengeName, challengeParameters);
-            // 關鍵修改：標記為需要MFA設置
-            setMfaType('SOFTWARE_TOKEN_MFA');
-            setMfaRequired(true);
-            if (typeof window !== 'undefined') {
-              // 確保MFA狀態正確儲存
-              localStorage.setItem('cognito_mfa_required', 'true');
-              localStorage.setItem('cognito_mfa_type', 'SOFTWARE_TOKEN_MFA');
-              // 重要：明確標記為首次登入且處於MFA設置階段
-              localStorage.setItem('cognito_first_login', 'true');
-              localStorage.setItem('cognito_setup_step', 'mfa');
-              localStorage.setItem('cognito_mfa_setup_required', 'true');
-            }
-            resolve({ session: null, mfaSetupRequired: true }); // 不是錯誤，但沒有會話
+            // 關鍵修改：只回報需要 MFA 設置
+            resolve({ session: null, mfaSetupRequired: true });
           }
         });
       });
 
       // 挑戰成功後，更新狀態
-      setNewPasswordRequired(false);
+      setMfaRequired(false);
 
       // 如果有會話，表示整個流程已完成
       console.log('新密碼設置完成，並獲得有效會話');
@@ -504,7 +410,7 @@ export const useCognito = () => {
         return { success: true, mfaSetupRequired: true };
       }
       
-      // 其他沒有 session 的情況（例如，僅需要MFA驗證）
+      // 其他沒有 session 的情況
       return { success: true };
 
     } catch (err) {
@@ -519,21 +425,6 @@ export const useCognito = () => {
           cognitoError.message.includes('TOTP') ||
           cognitoError.message.includes('多因素認證'))) {
         console.log('發現MFA相關錯誤，這可能表示密碼已設置成功但需要設置MFA');
-        
-        // 標記為需要MFA設置
-        setMfaRequired(true);
-        setMfaType('SOFTWARE_TOKEN_MFA');
-        
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('cognito_mfa_required', 'true');
-          localStorage.setItem('cognito_mfa_type', 'SOFTWARE_TOKEN_MFA');
-          // 明確標記為首次登入且處於MFA設置階段
-          localStorage.setItem('cognito_first_login', 'true');
-          localStorage.setItem('cognito_setup_step', 'mfa');
-          localStorage.setItem('cognito_mfa_setup_required', 'true');
-          // 清除新密碼標記
-          localStorage.removeItem('cognito_new_password_required');
-        }
         
         // 返回成功，讓路由邏輯處理MFA設置
         return { success: true, mfaSetupRequired: true };
@@ -569,7 +460,7 @@ export const useCognito = () => {
     // 清除當前用戶狀態
     setCurrentCognitoUser(null);
     setUserAttributes(null);
-    setNewPasswordRequired(false);
+    setMfaRequired(false);
     
     // 清除需要新密碼的標記
     if (typeof window !== 'undefined') {
@@ -1089,7 +980,5 @@ export const useCognito = () => {
     disableMfa,
     mfaSecret,
     mfaSecretQRCode,
-    // 添加 newPasswordRequired 狀態
-    newPasswordRequired
   };
 }; 
