@@ -15,8 +15,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { 
     isAuthenticated, 
     loading, 
-    newPasswordRequired, 
-    isMfaSetupRequired
+    newPasswordRequired
   } = useAuth();
   const router = useRouter();
 
@@ -51,7 +50,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     isAuthenticated,
     loading,
     newPasswordRequired,
-    isMfaSetupRequired,
     router.pathname
   ]);
 

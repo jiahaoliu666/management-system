@@ -4,8 +4,7 @@ import {
   CognitoUser,
   AuthenticationDetails,
   CognitoUserSession,
-  CognitoUserAttribute,
-  MFAOption
+  CognitoUserAttribute
 } from 'amazon-cognito-identity-js';
 import { cognitoConfig } from '@/lib/config/cognito';
 import { showError, showSuccess, mapCognitoErrorToMessage } from '@/utils/notification';
@@ -78,10 +77,6 @@ export const useCognito = () => {
     session?: CognitoUserSession; 
     newPasswordRequired?: boolean;
     user?: CognitoUser;
-    mfaRequired?: boolean;
-    mfaType?: string;
-    availableMfaTypes?: any[];
-    setupRequired?: boolean;
   }> => {
     setLoading(true);
     setError(null);
@@ -112,62 +107,25 @@ export const useCognito = () => {
       const result = await new Promise<any>((resolve, reject) => {
         cognitoUser.authenticateUser(authenticationDetails, {
           onSuccess: (session: CognitoUserSession) => {
-            resolve({ session, newPasswordRequired: false, mfaRequired: false, setupRequired: false });
+            resolve({ session, newPasswordRequired: false });
           },
           onFailure: (err: any) => {
-            reject({ ...err, setupRequired: false });
+            reject(err);
           },
           newPasswordRequired: (userAttributes: any, requiredAttributes: any) => {
             // 處理首次登入需要更改密碼的情況
             setUserAttributes(userAttributes);
-            resolve({ newPasswordRequired: true, user: cognitoUser, userAttributes, requiredAttributes, setupRequired: false });
-          },
-          mfaRequired: (challengeName: any, challengeParameters: any) => {
-            // 處理 SMS MFA 挑戰
-            resolve({ mfaRequired: true, mfaType: 'SMS_MFA', setupRequired: false, user: cognitoUser });
-          },
-          totpRequired: (challengeName: any, challengeParameters: any) => {
-            // 處理 TOTP MFA 挑戰
-            resolve({ mfaRequired: true, mfaType: 'SOFTWARE_TOKEN_MFA', setupRequired: false, user: cognitoUser });
-          },
-          selectMFAType: (challengeName: any, challengeParameters: any) => {
-            // 處理需要選擇 MFA 類型的情況
-            resolve({ 
-              mfaRequired: true, 
-              mfaType: 'SELECT_MFA_TYPE',
-              availableMfaTypes: challengeParameters.mfaOptions || [],
-              setupRequired: false,
-              user: cognitoUser
-            });
-          },
-          mfaSetup: (challengeName: any, challengeParameters: any) => {
-            // MFA 設置挑戰
-            resolve({ 
-              mfaRequired: false, 
-              setupRequired: true,
-              user: cognitoUser
-            });
+            resolve({ newPasswordRequired: true, user: cognitoUser, userAttributes, requiredAttributes });
           }
         });
       });
 
       if (result.newPasswordRequired) {
-        return { success: false, newPasswordRequired: true, user: result.user, setupRequired: false };
-      }
-
-      if (result.mfaRequired) {
-        return { 
-          success: false, 
-          mfaRequired: true, 
-          mfaType: result.mfaType,
-          availableMfaTypes: result.availableMfaTypes,
-          setupRequired: false,
-          user: result.user
-        };
+        return { success: false, newPasswordRequired: true, user: result.user };
       }
 
       showSuccess('登入成功');
-      return { success: true, session: result.session, setupRequired: false };
+      return { success: true, session: result.session };
     } catch (err) {
       const cognitoError = err as CognitoError;
       const message = (err as Error).message || String(err);
@@ -201,7 +159,7 @@ export const useCognito = () => {
 
       setError(errorMessage);
       showError(mapCognitoErrorToMessage(cognitoError.code, message));
-      return { success: false, setupRequired: false };
+      return { success: false };
     } finally {
       setLoading(false);
     }

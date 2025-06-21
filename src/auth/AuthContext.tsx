@@ -29,26 +29,21 @@ type AuthContextType = {
   isAuthenticated: boolean;
   user: CognitoUser | null;
   login: (username: string, password: string) => Promise<void>;
-  confirmNewPassword: (username: string, verificationCode: string, newPassword: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
   error: string | null;
   getToken: () => Promise<string | null>;
   newPasswordRequired: boolean;
   cancelNewPasswordChallenge: () => void;
-  // MFA 相關已移除
-  // 安全設置進度相關
   isFirstLogin: boolean;
   setIsFirstLogin: (isFirst: boolean) => void;
-  currentSetupStep: 'password' | 'mfa' | 'complete';
-  setCurrentSetupStep: (step: 'password' | 'mfa' | 'complete') => void;
-  isMfaSetupRequired: boolean;
-  setIsMfaSetupRequired: (required: boolean) => void;
+  currentSetupStep: 'password' | 'complete';
+  setCurrentSetupStep: (step: 'password' | 'complete') => void;
   completeSetup: () => void;
   clearAllCredentials: () => void;
-  isMfaVerified: boolean;
   email: string;
   setEmail: React.Dispatch<React.SetStateAction<string>>;
+  completeNewPassword: (newPassword: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,7 +62,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<CognitoUser | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [challengeUser, setChallengeUser] = useState<CognitoUser | null>(null);
-  const [isMfaSetupRequired, setIsMfaSetupRequired] = useState<boolean>(false);
   const [newPasswordRequired, setNewPasswordRequired] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -78,23 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     return false;
   });
-  const [currentSetupStep, setCurrentSetupStep] = useState<'password' | 'mfa' | 'complete'>('password');
-  
-  // 新增一個MFA已啟用的狀態，緩存MFA狀態避免頻繁API調用
-  const [isMfaEnabled, setIsMfaEnabled] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('cognito_mfa_enabled') === 'true';
-    }
-    return false;
-  });
-  
-  // 在 AuthProvider 組件內添加新的狀態
-  const [isMfaVerified, setIsMfaVerified] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('cognito_mfa_verified') === 'true';
-    }
-    return false;
-  });
+  const [currentSetupStep, setCurrentSetupStep] = useState<'password' | 'complete'>('password');
   
   const [email, setEmail] = useState<string>(() => {
     if (typeof window !== 'undefined') {
@@ -123,8 +101,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setChallengeUser(null);
     setNewPasswordRequired(false);
-    setIsMfaSetupRequired(false);
-    setIsMfaVerified(false);
+    setIsFirstLogin(false);
+    setCurrentSetupStep('password');
     setEmail('');
     
     clearAllCognitoLocalStorage();
@@ -135,9 +113,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('cognito_first_login', isFirstLogin.toString());
       localStorage.setItem('cognito_setup_step', currentSetupStep);
-      localStorage.setItem('cognito_mfa_setup_required', isMfaSetupRequired.toString());
     }
-  }, [isFirstLogin, currentSetupStep, isMfaSetupRequired]);
+  }, [isFirstLogin, currentSetupStep]);
 
   // 保存令牌到 localStorage
   const saveTokenToStorage = async (session: CognitoUserSession) => {
@@ -206,14 +183,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const handleLogin = async (username: string, password: string): Promise<void> => {
     setAuthLoading(true);
     setError(null);
-    
-    // 每次登入都是一個全新的流程，清除所有先前的挑戰狀態
     clearAllCredentials();
-
     try {
       const result = await signIn(username, password);
-
-      // 情況 1: 登入成功，沒有任何挑戰
       if (result.success && result.session) {
         await saveTokenToStorage(result.session);
         const currentUser = getCurrentUser();
@@ -229,28 +201,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         return;
       }
-
-      // 情況 2: 需要設定新密碼
       if (result.newPasswordRequired && result.user) {
         setChallengeUser(result.user);
         setNewPasswordRequired(true);
         return;
       }
-
-      // 情況 3: 需要 MFA 驗證
-      if (result.mfaRequired && result.user) {
-        setChallengeUser(result.user);
-        setIsMfaSetupRequired(true);
-        return;
-      }
-      
-      // 情況 4: 登入成功，但需要強制設定 MFA
-      if (result.setupRequired && result.user) {
-        setChallengeUser(result.user);
-        setIsMfaSetupRequired(true); // 直接進入 MFA 設定流程
-        return;
-      }
-      
       // 其他失敗情況已由 useCognito 處理 (showError)
     } catch (error) {
       console.error('Login error in AuthContext:', error);
@@ -308,16 +263,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // 同步更新 AuthContext 的狀態
     setIsFirstLogin(false);
     setCurrentSetupStep('password');
-    setIsMfaSetupRequired(false);
     setNewPasswordRequired(false);
     setChallengeUser(null);
   }, [cognitoCancelNewPasswordChallenge]);
+
+  // 新增 handleCompleteNewPassword
+  const handleCompleteNewPassword = async (newPassword: string): Promise<void> => {
+    if (!challengeUser) {
+      showError('會話已過期，請重新登入');
+      clearAllCredentials();
+      router.push('/login');
+      return;
+    }
+    setAuthLoading(true);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        challengeUser.completeNewPasswordChallenge(newPassword, {}, {
+          onSuccess: async () => {
+            setNewPasswordRequired(false);
+            setChallengeUser(null);
+            showSuccess('密碼設定成功，請重新登入！');
+            router.push('/login');
+            resolve();
+          },
+          onFailure: (err) => {
+            showError(err.message || '設置新密碼時發生錯誤');
+            clearAllCredentials();
+            router.push('/login');
+            reject(err);
+          }
+        });
+      });
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   const memoizedValue = useMemo(() => ({
     isAuthenticated,
     user,
     login: handleLogin,
-    confirmNewPassword,
     logout: handleLogout,
     loading,
     error: error || cognitoError,
@@ -328,18 +313,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsFirstLogin,
     currentSetupStep,
     setCurrentSetupStep,
-    isMfaSetupRequired,
-    setIsMfaSetupRequired,
     completeSetup,
     clearAllCredentials,
-    isMfaVerified,
     email,
-    setEmail
+    setEmail,
+    completeNewPassword: handleCompleteNewPassword
   }), [
-    isAuthenticated, user, handleLogin, confirmNewPassword, handleLogout,
+    isAuthenticated, user, handleLogin, handleLogout,
     loading, error, cognitoError, handleGetToken, newPasswordRequired,
     handleCancelNewPasswordChallenge, isFirstLogin, currentSetupStep,
-    isMfaSetupRequired, completeSetup, clearAllCredentials, isMfaVerified, email
+    completeSetup, clearAllCredentials, email
   ]);
 
   return (

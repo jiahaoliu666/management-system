@@ -6,7 +6,7 @@ import { showError } from '@/utils/notification';
 export default function Login() {
   const { 
     login, 
-    confirmNewPassword,
+    completeNewPassword,
     newPasswordRequired,
     loading: authLoading,
   } = useAuth();
@@ -20,10 +20,6 @@ export default function Login() {
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
-  // MFA 設定
-  const [mfaQr, setMfaQr] = useState('');
-  const [totpCode, setTotpCode] = useState('');
-  const [mfaSetupLoading, setMfaSetupLoading] = useState(false);
 
   // 密碼規則
   const passwordRules = [
@@ -73,11 +69,11 @@ export default function Login() {
       return;
     }
     setLoading(true);
-    await confirmNewPassword(username, '', newPassword);
+    await completeNewPassword(newPassword);
     setLoading(false);
   };
 
-  const combinedLoading = loading || authLoading || mfaSetupLoading;
+  const combinedLoading = loading || authLoading;
 
   const renderContent = () => {
     // 1. 新密碼設定
