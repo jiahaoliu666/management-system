@@ -4,6 +4,27 @@ import { useCognito, MFAType } from '@/lib/hooks/useCognito';
 import { showError, showInfo, showSuccess } from '@/utils/notification';
 import { useRouter } from 'next/router';
 
+const clearAllCognitoLocalStorage = () => {
+  if (typeof window === 'undefined') return;
+  
+  const keysToRemove = [
+    // Session tokens
+    'cognito_id_token', 'cognito_access_token', 'cognito_refresh_token',
+    // User state
+    'cognito_username', 'cognito_password', 'cognito_email',
+    // Challenge/Flow state
+    'cognito_new_password_required', 'cognito_mfa_required', 'cognito_mfa_type',
+    'cognito_mfa_options', 'cognito_mfa_verified', 'cognito_challenge_session',
+    // First login setup flow state
+    'cognito_first_login', 'cognito_setup_step', 'cognito_mfa_setup_required',
+    'cognito_mfa_enabled',
+    // Session validation
+    'cognito_session_valid', 'cognito_last_session_time'
+  ];
+  
+  keysToRemove.forEach(key => localStorage.removeItem(key));
+};
+
 type AuthContextType = {
   isAuthenticated: boolean;
   user: CognitoUser | null;
@@ -15,7 +36,7 @@ type AuthContextType = {
     availableMfaTypes?: any[];
     needsMfaSetup: boolean;
   }>;
-  completeNewPassword: (newPassword: string) => Promise<boolean>;
+  completeNewPassword: (newPassword: string) => Promise<{ success: boolean; mfaSetupRequired?: boolean }>;
   logout: () => void;
   loading: boolean;
   error: string | null;
@@ -73,6 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<CognitoUser | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [challengeUser, setChallengeUser] = useState<CognitoUser | null>(null);
   
   // 首次登入與安全設置進度相關狀態
   const [isFirstLogin, setIsFirstLogin] = useState<boolean>(() => {
@@ -155,19 +177,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated(false);
     setUser(null);
     setIsMfaVerified(false); // 重置 MFA 驗證狀態
+    setEmail('');
     
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('cognito_id_token');
-      localStorage.removeItem('cognito_access_token');
-      localStorage.removeItem('cognito_refresh_token');
-      localStorage.removeItem('cognito_new_password_required');
-      localStorage.removeItem('cognito_mfa_required');
-      localStorage.removeItem('cognito_mfa_type');
-      localStorage.removeItem('cognito_mfa_options');
-      localStorage.removeItem('cognito_username');
-      localStorage.removeItem('cognito_password');
-      localStorage.removeItem('cognito_mfa_verified'); // 清除 MFA 驗證狀態
-    }
+    clearAllCognitoLocalStorage();
   }, []);
 
   // 更新安全設置進度
@@ -255,6 +267,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       // 在開始新的登入前，清除所有可能存在的狀態
       clearAllCredentials();
+      setChallengeUser(null);
 
       const result = await signIn(username, password);
       
@@ -267,7 +280,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.setItem('cognito_mfa_options', JSON.stringify(result.availableMfaTypes));
           }
           localStorage.setItem('cognito_username', username);
-          localStorage.setItem('cognito_password', password);
         }
         return { 
           success: false, 
@@ -279,20 +291,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (result.newPasswordRequired) {
+        // 保存需要處理挑戰的 user 物件
+        if (result.user) {
+          setChallengeUser(result.user);
+        }
         // 標記為首次登入，需要設置新密碼
         setIsFirstLogin(true);
         setCurrentSetupStep('password');
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('cognito_first_login', 'true');
-          localStorage.setItem('cognito_setup_step', 'password');
-          localStorage.setItem('cognito_new_password_required', 'true');
-          localStorage.setItem('cognito_username', username);
-          localStorage.setItem('cognito_password', password);
-        }
+        // 不再需要保存這麼多本地狀態，由 React state 管理
         return { success: false, newPasswordRequired: true, needsMfaSetup: false };
       }
       
-      if (result.success && result.session) {
+      // 新增：如果登入不成功，且不是其他需要處理的流程，直接返回結果
+      // 這樣可以確保底層 (useCognito) 顯示的錯誤能夠讓 UI 知道登入已終止
+      if (!result.success) {
+        return { ...result, success: false, needsMfaSetup: false };
+      }
+      
+      if (result.session) {
         // 保存令牌
         await saveTokenToStorage(result.session);
         
@@ -535,13 +551,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // 完成新密碼設置函數
-  const handleCompleteNewPassword = async (newPassword: string): Promise<boolean> => {
+  const handleCompleteNewPassword = async (newPassword: string): Promise<{ success: boolean; mfaSetupRequired?: boolean }> => {
+    if (!challengeUser) {
+      showError('會話已過期，請重新登入');
+      // 清理狀態並導向登入頁
+      clearAllCredentials();
+      router.push('/login');
+      return { success: false };
+    }
+
     try {
       console.log('AuthContext: 開始處理完成新密碼設置...');
-      const result = await cognitoCompleteNewPassword(newPassword);
+      const result = await cognitoCompleteNewPassword(challengeUser, newPassword);
       
       if (result.success) {
         console.log('AuthContext: 新密碼設置成功！');
+        setChallengeUser(null); // 清除挑戰狀態
         
         // 如果有會話，保存令牌
         if (result.session) {
@@ -557,20 +582,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         
         // 清除需要新密碼的標記
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('cognito_new_password_required');
-          localStorage.removeItem('cognito_password');
-          localStorage.removeItem('cognito_first_login');
-          localStorage.removeItem('cognito_setup_step');
-          localStorage.removeItem('cognito_mfa_setup_required');
+        // 現在由 React state 管理，登出時會自動清理
+        
+        // 如果不需要設置 MFA，直接跳轉到首頁
+        if (!result.mfaSetupRequired) {
+          setTimeout(() => {
+            router.push('/');
+          }, 1000);
         }
         
-        // 直接跳轉到首頁
-        setTimeout(() => {
-          router.push('/');
-        }, 1000);
-        
-        return true;
+        return { success: true, mfaSetupRequired: result.mfaSetupRequired };
       }
       
       // 如果設置失敗，但沒有拋出錯誤，顯示通用錯誤訊息
@@ -584,9 +605,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         router.push('/login');
       }, 1500);
       
-      return false;
+      return { success: false };
     } catch (error) {
       console.error('AuthContext: 完成新密碼過程中發生錯誤:', error);
+      setChallengeUser(null); // 清除挑戰狀態
       
       // 如果錯誤包含 Session 相關的錯誤，顯示更有指導性的錯誤訊息
       if (error instanceof Error && (error.message.includes('Session') || error.message.includes('會話'))) {
@@ -604,7 +626,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         showError('設置新密碼時發生錯誤: ' + (error instanceof Error ? error.message : '未知錯誤'));
       }
       
-      return false;
+      return { success: false };
     } finally {
       setAuthLoading(false);
     }
@@ -618,20 +640,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsMfaVerified(false); // 重置 MFA 驗證狀態
     setEmail('');
     
-    // 清除所有存儲的狀態
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('cognito_id_token');
-      localStorage.removeItem('cognito_access_token');
-      localStorage.removeItem('cognito_refresh_token');
-      localStorage.removeItem('cognito_new_password_required');
-      localStorage.removeItem('cognito_mfa_required');
-      localStorage.removeItem('cognito_mfa_type');
-      localStorage.removeItem('cognito_mfa_options');
-      localStorage.removeItem('cognito_username');
-      localStorage.removeItem('cognito_password');
-      localStorage.removeItem('cognito_mfa_verified'); // 清除 MFA 驗證狀態
-      localStorage.removeItem('cognito_email');
-    }
+    clearAllCognitoLocalStorage();
+
     // 調用 Cognito 的登出函數
     signOut();
   }, [signOut]);

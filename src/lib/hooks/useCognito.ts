@@ -104,6 +104,7 @@ export const useCognito = () => {
     success: boolean; 
     session?: CognitoUserSession; 
     newPasswordRequired?: boolean;
+    user?: CognitoUser;
     mfaRequired?: boolean;
     mfaType?: MFAType;
     availableMfaTypes?: any[];
@@ -174,7 +175,7 @@ export const useCognito = () => {
               }));
             }
             
-            resolve({ newPasswordRequired: true, userAttributes, requiredAttributes, setupRequired: false });
+            resolve({ newPasswordRequired: true, user: cognitoUser, userAttributes, requiredAttributes, setupRequired: false });
           },
           mfaRequired: (challengeName: any, challengeParameters: any) => {
             // 處理 SMS MFA 挑戰
@@ -256,7 +257,7 @@ export const useCognito = () => {
       });
 
       if (result.newPasswordRequired) {
-        return { success: false, newPasswordRequired: true, setupRequired: false };
+        return { success: false, newPasswordRequired: true, user: result.user, setupRequired: false };
       }
 
       if (result.mfaRequired) {
@@ -433,34 +434,28 @@ export const useCognito = () => {
   }, [currentCognitoUser, clearMfaState]);
 
   // 完成新密碼設置
-  const completeNewPassword = useCallback(async (newPassword: string): Promise<{ success: boolean; session?: CognitoUserSession }> => {
+  const completeNewPassword = useCallback(async (userToComplete: CognitoUser, newPassword: string): Promise<{ success: boolean; session?: CognitoUserSession; mfaSetupRequired?: boolean }> => {
     setLoading(true);
     setError(null);
 
     try {
-      // 嘗試使用儲存的用戶信息和密碼重新進行身份驗證
-      // 這樣可以獲得一個有效的會話狀態
-      const username = localStorage.getItem('cognito_username');
-      const password = localStorage.getItem('cognito_password');
-      let userToComplete = currentCognitoUser;
-
-      if (!username || !userToComplete) {
-        console.error('無法完成密碼設置：會話已過期或用戶資訊缺失');
+      if (!userToComplete) {
+        console.error('無法完成密碼設置：缺少 CognitoUser 物件');
         throw new Error('會話已過期，請重新登入後再設置新密碼');
       }
 
-      console.log('準備設置新密碼，用戶名:', username);
+      console.log('準備設置新密碼，用戶名:', userToComplete.getUsername());
 
       // 設置新密碼
       console.log('開始完成新密碼設置...');
-      const session = await new Promise<CognitoUserSession | null>((resolve, reject) => {
+      const result = await new Promise<{ session: CognitoUserSession | null, mfaSetupRequired?: boolean }>((resolve, reject) => {
         // 過濾不需要的屬性，以避免 Cognito API 的錯誤
         const filteredAttributes: any = {};
         
-        userToComplete!.completeNewPasswordChallenge(newPassword, filteredAttributes, {
+        userToComplete.completeNewPasswordChallenge(newPassword, filteredAttributes, {
           onSuccess: (session: CognitoUserSession) => {
             console.log('新密碼設置成功！');
-            resolve(session);
+            resolve({ session, mfaSetupRequired: false });
           },
           onFailure: (err: any) => {
             console.error('新密碼設置失敗:', err);
@@ -474,7 +469,7 @@ export const useCognito = () => {
               localStorage.setItem('cognito_mfa_required', 'true');
               localStorage.setItem('cognito_mfa_type', 'SMS_MFA');
             }
-            resolve(null); // 不是錯誤，但沒有會話
+            resolve({ session: null, mfaSetupRequired: false }); // 不是錯誤，但沒有會話
           },
           totpRequired: (challengeName: any, challengeParameters: any) => {
             console.log('需要 TOTP 驗證', challengeName, challengeParameters);
@@ -484,7 +479,7 @@ export const useCognito = () => {
               localStorage.setItem('cognito_mfa_required', 'true');
               localStorage.setItem('cognito_mfa_type', 'SOFTWARE_TOKEN_MFA');
             }
-            resolve(null); // 不是錯誤，但沒有會話
+            resolve({ session: null, mfaSetupRequired: false }); // 不是錯誤，但沒有會話
           },
           mfaSetup: (challengeName: any, challengeParameters: any) => {
             console.log('需要設置 MFA', challengeName, challengeParameters);
@@ -500,44 +495,26 @@ export const useCognito = () => {
               localStorage.setItem('cognito_setup_step', 'mfa');
               localStorage.setItem('cognito_mfa_setup_required', 'true');
             }
-            resolve(null); // 不是錯誤，但沒有會話
+            resolve({ session: null, mfaSetupRequired: true }); // 不是錯誤，但沒有會話
           }
         });
       });
 
-      // 清除需要新密碼的標記，因為密碼已設置
-      if (typeof window !== 'undefined' && session) {
-        localStorage.removeItem('cognito_new_password_required');
-        localStorage.removeItem('cognito_username');
-        localStorage.removeItem('cognito_auth_details');
-        localStorage.removeItem('cognito_challenge_session');
-      }
-      // 如果是 MFA_SETUP 挑戰，什麼都不清除，讓 CognitoUser 實例保留
-
-      // 處理沒有會話但需要MFA的情況
-      if (!session) {
-        // MFA_SETUP 挑戰時，主動將 CognitoUser 實例（帶 authenticationFlowType）存回 localStorage，並存密碼
-        if (typeof window !== 'undefined' && userToComplete) {
-          localStorage.setItem('cognito_username', userToComplete.getUsername());
-          localStorage.setItem('cognito_auth_details', JSON.stringify({ username: userToComplete.getUsername() }));
-          // 保存 authenticationFlowType 以便 mfa-setup 還原
-          localStorage.setItem('cognito_challenge_session', JSON.stringify({
-            challengeName: 'NEW_PASSWORD_REQUIRED',
-            authenticationFlowType: userToComplete.getAuthenticationFlowType()
-          }));
-          // 新增：保存密碼，確保 associateSoftwareToken 能正確運作
-          if (password) {
-            localStorage.setItem('cognito_password', password);
-          }
-        }
-        console.log('密碼已成功設置，但需要進行MFA設置或驗證');
-        // 這種情況視為成功，讓路由邏輯處理後續MFA流程
-        return { success: true };
-      }
-
       // 如果有會話，表示整個流程已完成
       console.log('新密碼設置完成，並獲得有效會話');
-      return { success: true, session };
+      if (result.session) {
+        return { success: true, session: result.session };
+      }
+
+      // 如果需要 MFA 設置
+      if (result.mfaSetupRequired) {
+        console.log('密碼已成功設置，但需要進行MFA設置');
+        return { success: true, mfaSetupRequired: true };
+      }
+      
+      // 其他沒有 session 的情況（例如，僅需要MFA驗證）
+      return { success: true };
+
     } catch (err) {
       const cognitoError = err as CognitoError;
       let errorMessage = '設置新密碼過程發生錯誤';
@@ -567,7 +544,7 @@ export const useCognito = () => {
         }
         
         // 返回成功，讓路由邏輯處理MFA設置
-        return { success: true };
+        return { success: true, mfaSetupRequired: true };
       }
 
       setError(errorMessage);
@@ -576,7 +553,7 @@ export const useCognito = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentCognitoUser]);
+  }, []);
 
   // 登出
   const signOut = useCallback(() => {

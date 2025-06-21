@@ -1,27 +1,50 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { CognitoUserPool, CognitoUser, AuthenticationDetails } from 'amazon-cognito-identity-js';
 import { cognitoConfig } from '@/lib/config/cognito';
 import { showError, showSuccess, mapCognitoErrorToMessage } from '@/utils/notification';
 import { QRCodeSVG } from 'qrcode.react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/auth/AuthContext';
 
-const userPool = new CognitoUserPool({
-  UserPoolId: cognitoConfig.userPoolId,
-  ClientId: cognitoConfig.clientId
-});
+// 密碼強度驗證規則
+const passwordRules = [
+  { id: 'length', label: '至少 8 個字元', regex: /.{8,}/ },
+  { id: 'uppercase', label: '至少 1 個大寫字母', regex: /[A-Z]/ },
+  { id: 'lowercase', label: '至少 1 個小寫字母', regex: /[a-z]/ },
+  { id: 'number', label: '至少 1 個數字', regex: /[0-9]/ },
+  { id: 'special', label: '至少 1 個特殊符號', regex: /[!@#$%^&*(),.?":{}|<>]/ }
+];
+
+// 檢查密碼是否符合規則
+const checkPasswordRules = (password: string) => {
+  return passwordRules.map(rule => ({
+    ...rule,
+    satisfied: rule.regex.test(password)
+  }));
+};
+
+// 檢查密碼是否完全符合所有規則
+const isPasswordValid = (password: string) => {
+  return passwordRules.every(rule => rule.regex.test(password));
+};
 
 export default function Login() {
   const router = useRouter();
-  const { login, verifyMfaCode } = useAuth();
-  const [step, setStep] = useState<'login' | 'newPassword' | 'mfaSetup' | 'mfaVerify' | 'main'>('login');
+  const { 
+    login, 
+    verifyMfaCode, 
+    completeNewPassword, 
+    setupTotpMfa, 
+    verifyAndEnableTotpMfa, 
+    logout,
+    newPasswordRequired
+  } = useAuth();
+  const [step, setStep] = useState<'login' | 'newPassword' | 'mfaSetup' | 'mfaVerify'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
-  const [cognitoUser, setCognitoUser] = useState<CognitoUser | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [mfaSecret, setMfaSecret] = useState('');
@@ -30,49 +53,15 @@ export default function Login() {
   const [mfaCode, setMfaCode] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 密碼強度驗證規則
-  const passwordRules = [
-    { id: 'length', label: '至少 8 個字元', regex: /.{8,}/ },
-    { id: 'uppercase', label: '至少 1 個大寫字母', regex: /[A-Z]/ },
-    { id: 'lowercase', label: '至少 1 個小寫字母', regex: /[a-z]/ },
-    { id: 'number', label: '至少 1 個數字', regex: /[0-9]/ },
-    { id: 'special', label: '至少 1 個特殊符號', regex: /[!@#$%^&*(),.?":{}|<>]/ }
-  ];
-
-  // 檢查密碼是否符合規則
-  const checkPasswordRules = (password: string) => {
-    return passwordRules.map(rule => ({
-      ...rule,
-      satisfied: rule.regex.test(password)
-    }));
-  };
-
-  // 檢查密碼是否完全符合所有規則
-  const isPasswordValid = (password: string) => {
-    return passwordRules.every(rule => rule.regex.test(password));
-  };
-
   useEffect(() => {
-    const user = userPool.getCurrentUser();
-    if (user) {
-      user.getSession((err: any, session: any) => {
-        if (!err && session && session.isValid()) {
-          setCognitoUser(user);
-          setStep('main');
-        } else {
-          setStep('login');
-        }
-      });
+    // 根據來自 AuthContext 的權威狀態來決定當前步驟
+    if (newPasswordRequired) {
+      setStep('newPassword');
     } else {
+      // 如果不是 newPassword 流程，確保是乾淨的登入狀態
       setStep('login');
     }
-  }, []);
-
-  useEffect(() => {
-    if (step === 'main') {
-      router.replace('/');
-    }
-  }, [step, router]);
+  }, [newPasswordRequired]);
 
   useEffect(() => {
     if (step === 'mfaVerify') {
@@ -87,11 +76,18 @@ export default function Login() {
     try {
       const result = await login(username, password);
       if (result.success) {
-        router.replace('/');
+        if (result.needsMfaSetup) {
+          setStep('mfaSetup');
+          setLoading(false);
+        } else {
+          router.replace('/');
+        }
       } else if (result.newPasswordRequired) {
         setStep('newPassword');
+        setLoading(false);
       } else if (result.mfaRequired) {
         setStep('mfaVerify');
+        setLoading(false);
       } else {
         setLoading(false);
       }
@@ -101,108 +97,72 @@ export default function Login() {
   };
 
   // 設置新密碼流程
-  const handleCompleteNewPassword = (e: React.FormEvent) => {
+  const handleSetNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cognitoUser) return;
     if (!isPasswordValid(newPassword) || newPassword !== confirmNewPassword) {
       showError('密碼不符合安全要求，請檢查是否滿足所有條件');
       return;
     }
     setLoading(true);
-    cognitoUser.completeNewPasswordChallenge(newPassword, {}, {
-      onSuccess: () => {
-        showSuccess('密碼已成功更新！');
-        router.push('/');
-        setLoading(false);
-      },
-      onFailure: (err: any) => {
-        const code = (err && typeof err === 'object' && 'code' in err) ? (err as any).code : '';
-        const message = (err && typeof err === 'object' && 'message' in err) ? (err as any).message : '';
-        showError(mapCognitoErrorToMessage(code, message) || '設置新密碼失敗');
-        setLoading(false);
-      },
-      mfaSetup: () => {
+    const result = await completeNewPassword(newPassword);
+    if (result.success) {
+      if (result.mfaSetupRequired) {
         setStep('mfaSetup');
-        setLoading(false);
       }
-    });
+      // 成功後的跳轉由 AuthContext 處理
+    }
+    setLoading(false);
   };
 
   // MFA 設定流程
-  const handleSetupTotp = () => {
-    if (!cognitoUser) return;
+  const handleSetupTotp = async () => {
     setLoading(true);
-    cognitoUser.associateSoftwareToken({
-      associateSecretCode: (secret: string) => {
-        setMfaSecret(secret);
-        const qr = `otpauth://totp/${encodeURIComponent(cognitoConfig.appName)}:${encodeURIComponent(username)}?secret=${secret}&issuer=${encodeURIComponent(cognitoConfig.appName)}`;
-        setMfaQr(qr);
-        setLoading(false);
-      },
-      onFailure: (err: any) => {
-        const code = (err && typeof err === 'object' && 'code' in err) ? (err as any).code : '';
-        const message = (err && typeof err === 'object' && 'message' in err) ? (err as any).message : '';
-        showError('無法產生 QRCode: ' + (mapCognitoErrorToMessage(code, message) || message || '未知錯誤'));
-        setLoading(false);
-      }
-    });
+    const result = await setupTotpMfa();
+    if (result.success && result.qrCodeUrl) {
+      setMfaQr(result.qrCodeUrl);
+    } else {
+      showError('無法設定驗證器 App，請稍後再試');
+    }
+    setLoading(false);
   };
 
-  const handleVerifyTotp = () => {
-    if (!cognitoUser) return;
+  const handleVerifyTotp = async () => {
     setLoading(true);
-    cognitoUser.verifySoftwareToken(totpCode, 'My TOTP device', {
-      onSuccess: () => {
-        // 設定 TOTP 為首選 MFA
-        cognitoUser.setUserMfaPreference(null, { Enabled: true, PreferredMfa: true }, (err: any) => {
-          if (err) {
-            showError('啟用 TOTP MFA 失敗: ' + err.message);
-            setLoading(false);
-            return;
-          }
-          showSuccess('MFA 設置成功，您現在可以登入');
-          router.push('/');
-          setLoading(false);
-        });
-      },
-      onFailure: (err: any) => {
-        const code = (err && typeof err === 'object' && 'code' in err) ? (err as any).code : '';
-        const message = (err && typeof err === 'object' && 'message' in err) ? (err as any).message : '';
-        showError('驗證失敗：' + (mapCognitoErrorToMessage(code, message) || message || '未知錯誤'));
-        setLoading(false);
-      }
-    });
+    const success = await verifyAndEnableTotpMfa(totpCode);
+    if (success) {
+      showSuccess('MFA 設置成功！正在將您導向首頁...');
+      setTimeout(() => router.push('/'), 1000);
+    } else {
+      showError('驗證失敗，請檢查驗證碼是否正確');
+    }
+    setLoading(false);
   };
 
-  const handleVerifyMfa = async () => {
+  const handleVerifyMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
-    try {
-      const ok = await verifyMfaCode(mfaCode);
-      if (ok) {
-        router.replace('/');
-      } else {
-        setLoading(false);
-      }
-    } catch (err) {
+    const ok = await verifyMfaCode(mfaCode);
+    if (ok) {
+      router.replace('/');
+    } else {
       setLoading(false);
     }
   };
 
   const handleLogout = () => {
-    const user = userPool.getCurrentUser();
-    if (user) user.signOut();
+    logout();
     setStep('login');
     setUsername('');
     setPassword('');
-    setCognitoUser(null);
   };
 
   // 自動產生 QRCode 的副作用
   useEffect(() => {
-    if (step === 'mfaSetup' && !mfaQr && cognitoUser) {
+    if (step === 'mfaSetup' && !mfaQr) {
       handleSetupTotp();
     }
-  }, [step, mfaQr, cognitoUser]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, mfaQr]);
 
   // step-based UI
   return (
@@ -219,7 +179,7 @@ export default function Login() {
                 <>
                   <div className="text-center mb-8">
                     <div className="mb-1">
-                      <img src="/logo.png" alt="Hilton Logo" className="w-32 h-20 object-contain mx-auto" />
+                      <img src="/logo.png" alt="MetaAge Logo" className="w-50 h-28 object-contain mx-auto" />
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-1">歡迎回來</h1>
                     <p className="text-gray-600">請登入您的帳號</p>
@@ -315,7 +275,7 @@ export default function Login() {
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">設置新密碼</h1>
                     <p className="text-gray-600">請設置一個安全的新密碼</p>
                   </div>
-                  <form onSubmit={handleCompleteNewPassword} className="space-y-6">
+                  <form onSubmit={handleSetNewPassword} className="space-y-6">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">
                         新密碼
@@ -492,7 +452,7 @@ export default function Login() {
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">MFA 驗證</h1>
                     <p className="text-gray-600">請輸入驗證器 App 中的驗證碼</p>
                   </div>
-                  <div className="space-y-6">
+                  <form onSubmit={handleVerifyMfa} className="space-y-6">
                     <div>
                       <input
                         type="text"
@@ -505,7 +465,6 @@ export default function Login() {
                       />
                     </div>
                     <button
-                      type="button"
                       onClick={handleVerifyMfa}
                       disabled={!mfaCode || loading}
                       className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -520,27 +479,7 @@ export default function Login() {
                         </div>
                       ) : '送出驗證碼'}
                     </button>
-                  </div>
-                </>
-              )}
-
-              {step === 'main' && (
-                <>
-                  <div className="text-center mb-8">
-                    <div className="mb-4">
-                      <svg className="w-16 h-16 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">登入成功</h1>
-                    <p className="text-gray-600">歡迎使用 Hilton AppStream</p>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-3 px-4 rounded-xl font-medium hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200"
-                  >
-                    登出
-                  </button>
+                  </form>
                 </>
               )}
             </div>
