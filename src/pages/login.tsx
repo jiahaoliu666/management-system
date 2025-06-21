@@ -208,8 +208,8 @@ export default function Login() {
   return (
     <>
       <Head>
-        <title>MetaAge 登入系統</title>
-        <meta name="description" content="MetaAge 登入系統" />
+        <title>MetaAge 登入頁面</title>
+        <meta name="description" content="MetaAge 登入頁面" />
       </Head>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
