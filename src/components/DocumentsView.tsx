@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { 
   Grid, 
   List, 
-  Search, 
-  Filter, 
   FileText, 
   Star, 
   Share2, 
@@ -24,15 +22,12 @@ interface DocumentsViewProps {
 
 const DocumentsView: React.FC<DocumentsViewProps> = ({ documents, onDocumentClick }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         doc.category.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTags = selectedTags.length === 0 || 
                        selectedTags.every(tag => doc.tags.includes(tag));
-    return matchesSearch && matchesTags;
+    return matchesTags;
   });
 
   const allTags = Array.from(new Set(documents.flatMap(doc => doc.tags)));
@@ -48,23 +43,7 @@ const DocumentsView: React.FC<DocumentsViewProps> = ({ documents, onDocumentClic
   return (
     <div className="flex-1 flex flex-col">
       {/* 工具欄 */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="搜尋文件..."
-              className="pl-12 pr-6 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-96 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 text-sm dark:text-slate-200"
-            />
-          </div>
-          <button className="flex items-center px-4 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
-            <Filter className="mr-2 h-4 w-4" />
-            篩選
-          </button>
-        </div>
+      <div className="flex items-center justify-end mb-8">
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setViewMode('grid')}

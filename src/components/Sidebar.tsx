@@ -204,7 +204,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               }`}
             >
               <Users className="mr-3 h-5 w-5" />
-              團隊協作
+              團隊成員
             </button>
           </>
         )}
