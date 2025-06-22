@@ -60,7 +60,7 @@ const Dashboard: React.FC<DashboardProps> = ({ recentDocuments, recentActivities
       bgColor: 'bg-indigo-50 dark:bg-indigo-900/30'
     },
     {
-      title: '總團隊成員數',
+      title: '團隊成員數',
       value: '8',
       icon: Users,
       color: 'text-indigo-600 dark:text-indigo-400',
@@ -80,59 +80,53 @@ const Dashboard: React.FC<DashboardProps> = ({ recentDocuments, recentActivities
         {/* 我的最愛 */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center">
-            <Star className="h-5 w-5 text-yellow-400 mr-2" />
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">我的最愛</h2>
+            <div className="w-6 flex-shrink-0 flex items-center justify-center">
+              <Star className="h-5 w-5 text-yellow-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white ml-2">我的最愛</h2>
           </div>
           <div className="divide-y divide-slate-200 dark:divide-slate-700">
             {/* 靜態範例資料 */}
-            <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
-              <div>
+            <div className="px-6 py-4 flex items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
+              <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                <Star className="h-5 w-5 text-yellow-400" />
+              </div>
+              <div className="ml-2">
                 <h3 className="text-sm font-medium text-slate-900 dark:text-white">API 設計規範</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">技術文檔 • 王工程師 • 2024-03-18</p>
               </div>
-              <Star className="h-5 w-5 text-yellow-400" />
             </div>
-            <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
-              <div>
+            <div className="px-6 py-4 flex items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
+              <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                <Star className="h-5 w-5 text-yellow-400" />
+              </div>
+              <div className="ml-2">
                 <h3 className="text-sm font-medium text-slate-900 dark:text-white">UI 設計手冊</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">設計文檔 • 李設計師 • 2024-03-15</p>
               </div>
-              <Star className="h-5 w-5 text-yellow-400" />
             </div>
           </div>
         </div>
 
         {/* 最近文件 */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">最近文件</h2>
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center">
+            <div className="w-6 flex-shrink-0 flex items-center justify-center">
+              <File className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+            </div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white ml-2">最近文件</h2>
           </div>
           <div className="divide-y divide-slate-200 dark:divide-slate-700">
             {recentDocuments.map((doc) => (
-              <div key={doc.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3">
-                    <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg">
-                      <File className="h-5 w-5 text-slate-600 dark:text-slate-300" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-slate-900 dark:text-white">{doc.title}</h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        {doc.category} • {doc.author} • {doc.lastModified}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                      <Share2 className="h-4 w-4" />
-                    </button>
-                    <button className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+              <div key={doc.id} className="px-6 py-4 flex items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
+                <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                  <File className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+                </div>
+                <div className="ml-2">
+                  <h3 className="text-sm font-medium text-slate-900 dark:text-white">{doc.title}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {doc.category} • {doc.author} • {doc.lastModified}
+                  </p>
                 </div>
               </div>
             ))}
