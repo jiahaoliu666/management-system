@@ -13,14 +13,16 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
     const { email, user, userName, setUserName, profile, setProfile, fetchAndSetUserAttributes } = useAuth();
     const [displayName, setDisplayName] = useState('');
     const [name, setName] = useState('');
+    const [localProfile, setLocalProfile] = useState(''); // local only
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
       if (isOpen) {
         setDisplayName(userName || (email ? email.split('@')[0] : ''));
         setName(userName || (email ? email.split('@')[0] : ''));
+        setLocalProfile(profile || '');
       }
-    }, [isOpen, userName, email]);
+    }, [isOpen, userName, email, profile]);
 
     // 儲存姓名與職位名稱到 Cognito
     const handleSave = async () => {
@@ -31,7 +33,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       setLoading(true);
       user.updateAttributes([
         { Name: 'name', Value: name },
-        { Name: 'profile', Value: profile }
+        { Name: 'profile', Value: localProfile }
       ], (err, result) => {
         setLoading(false);
         if (err) {
@@ -39,6 +41,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
           return;
         }
         showSuccess('個人資料已成功更新');
+        setProfile(localProfile); // 只在儲存時才同步 context
         fetchAndSetUserAttributes(user);
         onClose();
       });
@@ -73,7 +76,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     </div>
                     <div>
                         <label htmlFor="profile-title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">職位名稱</label>
-                        <input id="profile-title" type="text" value={profile} onChange={e => setProfile(e.target.value)} placeholder="請輸入您的職位" className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700/50 transition-all duration-200 text-sm dark:text-slate-200"/>
+                        <input id="profile-title" type="text" value={localProfile} onChange={e => setLocalProfile(e.target.value)} placeholder="請輸入您的職位" className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700/50 transition-all duration-200 text-sm dark:text-slate-200"/>
                     </div>
                 </div>
 
