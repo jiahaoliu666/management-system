@@ -101,6 +101,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const router = useRouter();
 
+  const fetchAndSetUserEmail = useCallback((cognitoUser: CognitoUser) => {
+    cognitoUser.getUserAttributes((err, attributes) => {
+      if (err) {
+        console.error('從 Cognito 獲取用戶屬性時出錯:', err);
+        return;
+      }
+      if (attributes) {
+        const emailAttr = attributes.find(attr => attr.getName() === 'email');
+        if (emailAttr) {
+          const userEmail = emailAttr.getValue();
+          setEmail(userEmail);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('cognito_email', userEmail);
+          }
+        }
+      }
+    });
+  }, [setEmail]);
+
   // 清除所有憑證的函數
   const clearAllCredentials = useCallback(() => {
     setIsAuthenticated(false);
@@ -149,7 +168,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const currentUser = getCurrentUser();
         if (currentUser) {
-          const session = await getCurrentSession();
+          // 直接在 currentUser 實例上調用 getSession，以確保 session 狀態被正確附加
+          const session = await new Promise<CognitoUserSession | null>((resolve) => {
+            currentUser.getSession((err: Error | null, result: CognitoUserSession | null) => {
+              if (err) {
+                // getSession 在 session 過期或無效時會拋出錯誤，這裡將其視為非錯誤情況
+                return resolve(null); 
+              }
+              resolve(result);
+            });
+          });
+
           if (session && session.isValid()) {
             // 保存令牌
             await saveTokenToStorage(session);
@@ -157,17 +186,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(currentUser);
             // 檢查 email 狀態，若為空則主動撈取
             if (!email) {
-              currentUser.getUserAttributes((err: any, attributes: any) => {
-                if (!err && attributes) {
-                  const emailAttr = attributes.find((attr: any) => attr.getName() === 'email');
-                  if (emailAttr) {
-                    setEmail(emailAttr.getValue());
-                    if (typeof window !== 'undefined') {
-                      localStorage.setItem('cognito_email', emailAttr.getValue());
-                    }
-                  }
-                }
-              });
+              fetchAndSetUserEmail(currentUser);
             }
           } else {
             // 如果會話無效，則只清理憑證，不觸發登出或重定向
@@ -183,7 +202,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     checkAuthStatus();
-  }, [clearAllCredentials, email, getCurrentUser, getCurrentSession]);
+  }, [clearAllCredentials, email, getCurrentUser, fetchAndSetUserEmail]);
 
   // 登入函數
   const handleLogin = async (username: string, password: string): Promise<void> => {
@@ -198,12 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentUser);
         setIsAuthenticated(true);
         if (currentUser) {
-           currentUser.getUserAttributes((err: any, attributes: any) => {
-              if (!err && attributes) {
-                const emailAttr = attributes.find((attr: any) => attr.getName() === 'email');
-                if (emailAttr) setEmail(emailAttr.getValue());
-              }
-            });
+           fetchAndSetUserEmail(currentUser);
         }
         return;
       }
@@ -329,12 +343,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     clearAllCredentials,
     email,
     setEmail,
-    completeNewPassword: handleCompleteNewPassword
+    completeNewPassword: handleCompleteNewPassword,
+    fetchAndSetUserEmail
   }), [
     isAuthenticated, user, handleLogin, handleLogout,
     loading, error, cognitoError, handleGetToken, newPasswordRequired,
     handleCancelNewPasswordChallenge, isFirstLogin, currentSetupStep,
-    completeSetup, clearAllCredentials, email
+    completeSetup, clearAllCredentials, email, fetchAndSetUserEmail
   ]);
 
   return (

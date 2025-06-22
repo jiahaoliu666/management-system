@@ -84,7 +84,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           onProfileClick={() => setShowProfileModal(true)}
           onSettingsClick={() => setShowSettingsModal(true)}
           onNotificationSettingsClick={() => setShowNotificationSettingsModal(true)}
-          onLogout={logout}
           recentActivities={recentActivities}
         />
         <main className="flex-1 min-h-0 h-full flex flex-col px-4 md:px-8 py-4 md:py-8 w-full max-w-7xl mx-auto">
