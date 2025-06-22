@@ -77,6 +77,31 @@ const Dashboard: React.FC<DashboardProps> = ({ recentDocuments, recentActivities
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* 我的最愛 */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center">
+            <Star className="h-5 w-5 text-yellow-400 mr-2" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">我的最愛</h2>
+          </div>
+          <div className="divide-y divide-slate-200 dark:divide-slate-700">
+            {/* 靜態範例資料 */}
+            <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
+              <div>
+                <h3 className="text-sm font-medium text-slate-900 dark:text-white">API 設計規範</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">技術文檔 • 王工程師 • 2024-03-18</p>
+              </div>
+              <Star className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
+              <div>
+                <h3 className="text-sm font-medium text-slate-900 dark:text-white">UI 設計手冊</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">設計文檔 • 李設計師 • 2024-03-15</p>
+              </div>
+              <Star className="h-5 w-5 text-yellow-400" />
+            </div>
+          </div>
+        </div>
+
         {/* 最近文件 */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
@@ -107,36 +132,6 @@ const Dashboard: React.FC<DashboardProps> = ({ recentDocuments, recentActivities
                     <button className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400">
                       <Trash2 className="h-4 w-4" />
                     </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 最近活動 */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">最近活動</h2>
-          </div>
-          <div className="divide-y divide-slate-200 dark:divide-slate-700">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
-                <div className="flex items-start space-x-3">
-                  <div className={`p-2 rounded-lg ${activity.iconBg}`}>
-                    <activity.icon className={`h-5 w-5 ${activity.iconColor}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-900 dark:text-slate-100">
-                      <span className="font-medium">{activity.user}</span>{' '}
-                      {activity.action}
-                    </p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                      {activity.target}
-                    </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                      {activity.time}
-                    </p>
                   </div>
                 </div>
               </div>

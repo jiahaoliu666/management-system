@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { 
   Home as HomeIcon,
   BookOpen,
@@ -143,9 +144,9 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-6 border-b border-slate-100">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <div className="flex items-center">
-              <img src="/logo.png" alt="技術文件系統" className="h-8 w-auto" />
-            </div>
+            <Link href="/" className="flex items-center">
+              <img src="/logo.png" alt="文件系統" className="h-8 w-auto" />
+            </Link>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
