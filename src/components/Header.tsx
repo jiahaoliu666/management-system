@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { 
   Search, 
   Filter, 
@@ -45,6 +45,24 @@ const Header: React.FC<HeaderProps> = ({
   onNotificationSettingsClick,
   onLogout,
 }) => {
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu, setShowUserMenu]);
+
   return (
     <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -124,7 +142,7 @@ const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
-          <div className="relative">
+          <div className="relative" ref={userMenuRef}>
             <button 
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center space-x-3 pl-4 border-l border-slate-200 dark:border-slate-700"

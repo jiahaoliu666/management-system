@@ -8,12 +8,14 @@ import {
   Edit,
   Trash2,
   Star,
-  Share2
+  Share2,
+  Download,
+  MessageSquare
 } from 'lucide-react';
 import { StatCardProps, Activity, Document } from '@/types';
 import { LucideIcon } from 'lucide-react';
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, trend, color, bgColor }) => {
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, bgColor }) => {
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
       <div className="flex items-center justify-between">
@@ -25,14 +27,6 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, trend, co
           <Icon className={`h-6 w-6 ${color}`} />
         </div>
       </div>
-      {trend && (
-        <div className="mt-4">
-          <span className={`text-sm font-medium ${trend.startsWith('+') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-            {trend}
-          </span>
-          <span className="text-sm text-slate-500 dark:text-slate-400 ml-2">vs 上週</span>
-        </div>
-      )}
     </div>
   );
 };
@@ -48,31 +42,27 @@ const Dashboard: React.FC<DashboardProps> = ({ recentDocuments, recentActivities
       title: '總文件數',
       value: '1,234',
       icon: FileText,
-      trend: '+12%',
       color: 'text-indigo-600 dark:text-indigo-400',
       bgColor: 'bg-indigo-50 dark:bg-indigo-900/30'
     },
     {
-      title: '本週更新',
+      title: '總目錄數',
+      value: '5',
+      icon: File,
+      color: 'text-indigo-600 dark:text-indigo-400',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-900/30'
+    },
+    {
+      title: '本週新增文件',
       value: '42',
       icon: Clock,
-      trend: '+8%',
       color: 'text-indigo-600 dark:text-indigo-400',
       bgColor: 'bg-indigo-50 dark:bg-indigo-900/30'
     },
     {
-      title: '待審核',
-      value: '15',
-      icon: AlertCircle,
-      trend: '-3%',
-      color: 'text-indigo-600 dark:text-indigo-400',
-      bgColor: 'bg-indigo-50 dark:bg-indigo-900/30'
-    },
-    {
-      title: '活躍用戶',
-      value: '89',
+      title: '總團隊成員數',
+      value: '8',
       icon: Users,
-      trend: '+5%',
       color: 'text-indigo-600 dark:text-indigo-400',
       bgColor: 'bg-indigo-50 dark:bg-indigo-900/30'
     }
