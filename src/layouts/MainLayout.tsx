@@ -49,7 +49,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} />;
+        return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} teamMemberCount={cognitoUsers.length} />;
       case 'documents':
         return <DocumentsView documents={recentDocuments} onDocumentClick={() => {}} />;
       case 'editor':
@@ -57,7 +57,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       case 'team':
         return <TeamView members={cognitoUsers} activities={teamActivities} loading={usersLoading} />;
       default:
-        return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} />;
+        return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} teamMemberCount={cognitoUsers.length} />;
     }
   };
 

@@ -34,9 +34,10 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, bg
 interface DashboardProps {
   recentDocuments: Document[];
   recentActivities: Activity[];
+  teamMemberCount?: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ recentDocuments, recentActivities }) => {
+const Dashboard: React.FC<DashboardProps> = ({ recentDocuments, recentActivities, teamMemberCount = 0 }) => {
   const stats = [
     {
       title: '總文件數',
@@ -61,7 +62,7 @@ const Dashboard: React.FC<DashboardProps> = ({ recentDocuments, recentActivities
     },
     {
       title: '團隊成員數',
-      value: '8',
+      value: teamMemberCount.toString(),
       icon: Users,
       color: 'text-indigo-600 dark:text-indigo-400',
       bgColor: 'bg-indigo-50 dark:bg-indigo-900/30'
