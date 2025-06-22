@@ -1,15 +1,50 @@
 ├── src/
-│   ├── components/        
+│   ├── auth/              # 身份驗證相關邏輯
+│   │   ├── AuthContext.tsx    # 全局身份驗證狀態管理
+│   │   └── ProtectedRoute.tsx # 受保護路由組件
 │   │
-│   ├── pages/               
-│   │   └── index.tsx        # 首頁
+│   ├── components/        #  UI 組件
+│   │   ├── Dashboard.tsx      # 儀表板
+│   │   ├── DocumentsView.tsx  # 文件管理
+│   │   ├── EditorView.tsx     # 文件編輯器視圖
+│   │   ├── Header.tsx         # 頁面頂部
+│   │   ├── Sidebar.tsx        # 側邊導航欄
+│   │   ├── TeamView.tsx       # 團隊成員
+│   │   └── modals/          # 彈出視窗組件
+│   │       ├── ModalBase.tsx               # 基礎彈出視窗
+│   │       ├── ProfileModal.tsx            # 個人資料彈出視窗
+│   │       ├── SettingsModal.tsx           # 設定彈出視窗
+│   │       └── NotificationSettingsModal.tsx # 通知設定彈出視窗
 │   │
-│   ├── styles/              # 全域與自訂 CSS
-│   │   └── globals.css
+│   ├── layouts/           # 頁面佈局組件
+│   │   └── MainLayout.tsx     # 主要應用佈局
 │   │
-│   ├── utils/               # 工具函式
+│   ├── lib/               # 核心邏輯或第三方庫封裝
+│   │   ├── api/             # API 請求相關
+│   │   │   └── apiClient.ts   # Axios API 客戶端實例
+│   │   ├── config/          # 配置文件
+│   │   │   └── cognito.ts     # AWS Cognito 服務配置
+│   │   └── hooks/           # 自定義 React Hooks
+│   │       ├── useCognito.ts    # Cognito 身份驗證 Hook
+│   │       └── useSecurityMonitor.ts # 用戶活動安全監控 Hook
 │   │
-│   └── types/               # TypeScript 型別定義
+│   ├── pages/             # 應用頁面
+│   │   ├── _app.tsx         # Next.js 應用根組件
+│   │   ├── 404.tsx          # 404 錯誤頁面
+│   │   ├── index.tsx        # 首頁
+│   │   └── login.tsx        # 登入頁面
+│   │
+│   ├── styles/            # 樣式文件
+│   │   ├── globals.css      # 全局 CSS 樣式
+│   │   └── toast.css        # Toast 通知的樣式
+│   │
+│   ├── types/             # TypeScript 型別定義
+│   │   └── index.ts         # 全局型別定義
+│   │
+│   └── utils/             # 工具函式
+│       ├── constants.ts     # 應用程序常數
+│       └── notification.ts  # 通知顯示工具
+│
 ------------------------------------
 請幫我優化當前專案的 UI 樣式設計，要求具備良好的用戶體驗和專業視覺效果，包括：色彩搭配、排版佈局、元件間距、響應式設計等方面的改進，同時確保 CSS/樣式代碼結構清晰、可維護性高，並遵循現代前端開發最佳實踐
 
@@ -32,30 +67,7 @@
 ，並依照最佳實踐和官方建議做法，並且直接幫我修改即可，不需要詢問
 ------------------------------------
 
-
-
 haoder7416@gmail.com
 
-
-
-------------------------------------
-要能看到誰正在編輯
-添加AI
-要有共編功能
-查看變更紀錄
-使用者頭像和jira看到誰在線
-儲存密碼要加密
-文章恢復前一版 
-文章備份
-添加外部連結
-文字編輯器
-建立表單
-更新時間
-用戶要可以調整分隔線寬度
-顯示所有伺服器
-貼文篩選：最近更新 最近新增
-不需要傳送訊息
-通知設定：新貼文
-拖曳伺服器、貼文順序
 ------------------
 

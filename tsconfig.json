@@ -26,3 +26,4 @@
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }
+// Forcing a re-read of the tsconfig file to address module resolution issues.

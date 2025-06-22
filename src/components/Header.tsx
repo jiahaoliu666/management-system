@@ -24,6 +24,10 @@ interface HeaderProps {
   showUserMenu: boolean;
   setShowUserMenu: (value: boolean) => void;
   recentActivities: Activity[];
+  onProfileClick: () => void;
+  onSettingsClick: () => void;
+  onNotificationSettingsClick: () => void;
+  onLogout: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -35,7 +39,11 @@ const Header: React.FC<HeaderProps> = ({
   setShowNotifications,
   showUserMenu,
   setShowUserMenu,
-  recentActivities
+  recentActivities,
+  onProfileClick,
+  onSettingsClick,
+  onNotificationSettingsClick,
+  onLogout,
 }) => {
   return (
     <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-4 shadow-sm">
@@ -136,21 +144,21 @@ const Header: React.FC<HeaderProps> = ({
                   <p className="text-xs text-slate-500 dark:text-slate-400">system@example.com</p>
                 </div>
                 <div className="py-1">
-                  <button className="w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-left transition-colors duration-200">
+                  <button onClick={onProfileClick} className="w-full flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-left transition-colors duration-200">
                     <User className="h-4 w-4 inline-block mr-2" />
                     個人資料
                   </button>
-                  <button className="w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-left transition-colors duration-200">
+                  <button onClick={onSettingsClick} className="w-full flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-left transition-colors duration-200">
                     <Settings className="h-4 w-4 inline-block mr-2" />
                     設定
                   </button>
-                  <button className="w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-left transition-colors duration-200">
+                  <button onClick={onNotificationSettingsClick} className="w-full flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-left transition-colors duration-200">
                     <Bell className="h-4 w-4 inline-block mr-2" />
                     通知設定
                   </button>
                 </div>
                 <div className="py-1 border-t border-slate-100 dark:border-slate-700">
-                  <button className="w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 text-left transition-colors duration-200">
+                  <button onClick={onLogout} className="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 text-left transition-colors duration-200">
                     登出
                   </button>
                 </div>
