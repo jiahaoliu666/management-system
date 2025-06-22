@@ -11,6 +11,7 @@ import ProfileModal from '../components/modals/ProfileModal';
 import SettingsModal from '../components/modals/SettingsModal';
 import NotificationSettingsModal from '../components/modals/NotificationSettingsModal';
 import { useAuth } from '../auth/AuthContext';
+import { useCognitoUsers } from '@/lib/hooks/useCognitoUsers';
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -38,6 +39,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNotificationSettingsModal, setShowNotificationSettingsModal] = useState(false);
   const { logout } = useAuth();
+  const { users: cognitoUsers, loading: usersLoading } = useCognitoUsers();
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -53,7 +55,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       case 'editor':
         return <EditorView onSave={() => {}} onPublish={() => {}} onPreview={() => {}} />;
       case 'team':
-        return <TeamView members={teamMembers} activities={teamActivities} />;
+        return <TeamView members={cognitoUsers} activities={teamActivities} loading={usersLoading} />;
       default:
         return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} />;
     }

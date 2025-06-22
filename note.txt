@@ -22,10 +22,12 @@
 │   ├── lib/               # 核心邏輯或第三方庫封裝
 │   │   ├── api/             # API 請求相關
 │   │   │   └── apiClient.ts   # Axios API 客戶端實例
+│   │   │   └── cognito-users.ts # Cognito 獲取用戶清單 API
 │   │   ├── config/          # 配置文件
 │   │   │   └── cognito.ts     # AWS Cognito 服務配置
 │   │   └── hooks/           # 自定義 React Hooks
 │   │       ├── useCognito.ts    # Cognito 身份驗證 Hook
+│   │       ├── useCognitoUsers.ts # 獲取 Cognito 用戶清單的 Hook
 │   │       └── useSecurityMonitor.ts # 用戶活動安全監控 Hook
 │   │
 │   ├── pages/             # 應用頁面
