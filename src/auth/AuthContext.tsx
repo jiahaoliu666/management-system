@@ -49,7 +49,12 @@ type AuthContextType = {
   clearAllCredentials: () => void;
   email: string;
   setEmail: React.Dispatch<React.SetStateAction<string>>;
+  userName: string;
+  setUserName: React.Dispatch<React.SetStateAction<string>>;
+  profile: string;
+  setProfile: React.Dispatch<React.SetStateAction<string>>;
   completeNewPassword: (newPassword: string) => Promise<void>;
+  fetchAndSetUserAttributes: (cognitoUser: CognitoUser) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -86,6 +91,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     return '';
   });
+  const [userName, setUserName] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('cognito_name') || '';
+    }
+    return '';
+  });
+  const [profile, setProfile] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('cognito_profile') || '';
+    }
+    return '';
+  });
   
   const {
     signIn,
@@ -101,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const router = useRouter();
 
-  const fetchAndSetUserEmail = useCallback((cognitoUser: CognitoUser) => {
+  const fetchAndSetUserAttributes = useCallback((cognitoUser: CognitoUser) => {
     cognitoUser.getUserAttributes((err, attributes) => {
       if (err) {
         console.error('從 Cognito 獲取用戶屬性時出錯:', err);
@@ -116,9 +133,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.setItem('cognito_email', userEmail);
           }
         }
+        const nameAttr = attributes.find(attr => attr.getName() === 'name');
+        if (nameAttr) {
+          const userNameVal = nameAttr.getValue();
+          setUserName(userNameVal);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('cognito_name', userNameVal);
+          }
+        }
+        const profileAttr = attributes.find(attr => attr.getName() === 'profile');
+        if (profileAttr) {
+          const profileVal = profileAttr.getValue();
+          setProfile(profileVal);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('cognito_profile', profileVal);
+          }
+        } else {
+          setProfile('');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('cognito_profile');
+          }
+        }
       }
     });
-  }, [setEmail]);
+  }, [setEmail, setUserName, setProfile]);
 
   // 清除所有憑證的函數
   const clearAllCredentials = useCallback(() => {
@@ -129,6 +167,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsFirstLogin(false);
     setCurrentSetupStep('password');
     setEmail('');
+    setUserName('');
+    setProfile('');
     
     clearAllCognitoLocalStorage();
   }, []);
@@ -184,10 +224,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             await saveTokenToStorage(session);
             setIsAuthenticated(true);
             setUser(currentUser);
-            // 檢查 email 狀態，若為空則主動撈取
-            if (!email) {
-              fetchAndSetUserEmail(currentUser);
-            }
+            // 每次都主動同步 Cognito user attributes
+            fetchAndSetUserAttributes(currentUser);
           } else {
             // 如果會話無效，則只清理憑證，不觸發登出或重定向
             clearAllCredentials();
@@ -202,7 +240,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     checkAuthStatus();
-  }, [clearAllCredentials, email, getCurrentUser, fetchAndSetUserEmail]);
+  }, [clearAllCredentials, email, getCurrentUser, fetchAndSetUserAttributes]);
 
   // 登入函數
   const handleLogin = async (username: string, password: string): Promise<void> => {
@@ -217,7 +255,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentUser);
         setIsAuthenticated(true);
         if (currentUser) {
-           fetchAndSetUserEmail(currentUser);
+           fetchAndSetUserAttributes(currentUser);
         }
         return;
       }
@@ -305,6 +343,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsAuthenticated(false);
             setUser(null);
             setEmail('');
+            setUserName('');
+            setProfile('');
             clearAllCognitoLocalStorage();
             showSuccess('密碼設定成功，請重新登入！');
             router.push('/login').then(() => {
@@ -343,13 +383,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     clearAllCredentials,
     email,
     setEmail,
+    userName,
+    setUserName,
+    profile,
+    setProfile,
     completeNewPassword: handleCompleteNewPassword,
-    fetchAndSetUserEmail
+    fetchAndSetUserAttributes
   }), [
     isAuthenticated, user, handleLogin, handleLogout,
     loading, error, cognitoError, handleGetToken, newPasswordRequired,
     handleCancelNewPasswordChallenge, isFirstLogin, currentSetupStep,
-    completeSetup, clearAllCredentials, email, fetchAndSetUserEmail
+    completeSetup, clearAllCredentials, email, userName, profile, fetchAndSetUserAttributes
   ]);
 
   return (
