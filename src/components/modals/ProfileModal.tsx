@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ModalBase from './ModalBase';
 import { User, Mail, Shield, Camera, Key } from 'lucide-react';
+import { useAuth } from '@/auth/AuthContext';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -8,7 +9,14 @@ interface ProfileModalProps {
 }
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
-    const [name, setName] = useState('張工程師');
+    const { email } = useAuth();
+    const [name, setName] = useState('');
+
+    useEffect(() => {
+      if (isOpen && email) {
+        setName(email.split('@')[0]);
+      }
+    }, [isOpen, email]);
     
     return (
         <ModalBase isOpen={isOpen} onClose={onClose} title="個人資料" size="md">
@@ -23,8 +31,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                             <Camera className="h-4 w-4" />
                         </button>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">張工程師</h3>
-                    <p className="text-slate-500 dark:text-slate-400">system@example.com</p>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{name}</h3>
+                    <p className="text-slate-500 dark:text-slate-400">{email || '...'}</p>
                 </div>
 
                 {/* Personal Information Form */}
@@ -35,7 +43,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                     </div>
                     <div>
                         <label htmlFor="profile-email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">電子郵件</label>
-                         <input id="profile-email" type="email" value="system@example.com" disabled className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"/>
+                         <input id="profile-email" type="email" value={email || ''} disabled className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"/>
                     </div>
                 </div>
 
