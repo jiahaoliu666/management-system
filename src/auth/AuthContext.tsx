@@ -255,7 +255,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentUser);
         setIsAuthenticated(true);
         if (currentUser) {
-           fetchAndSetUserAttributes(currentUser);
+          // 先確保 session 有效再抓 user attributes
+          currentUser.getSession((err: Error | null, session: import('amazon-cognito-identity-js').CognitoUserSession | null) => {
+            if (!err && session && session.isValid()) {
+              fetchAndSetUserAttributes(currentUser);
+            }
+          });
         }
         return;
       }
