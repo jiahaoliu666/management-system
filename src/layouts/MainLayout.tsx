@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, MessageSquare, CheckCircle2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
@@ -27,10 +27,37 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   teamMembers,
   teamActivities,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [expandedFolders, setExpandedFolders] = useState<{ [key: string]: boolean }>({});
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ms_isCollapsed') === 'true';
+    }
+    return false;
+  });
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ms_isDarkMode') === 'true';
+    }
+    return false;
+  });
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ms_activeTab') || 'dashboard';
+    }
+    return 'dashboard';
+  });
+  const [expandedFolders, setExpandedFolders] = useState<{ [key: string]: boolean }>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('ms_expandedFolders');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {
+          return {};
+        }
+      }
+    }
+    return {};
+  });
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -41,9 +68,26 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const { logout } = useAuth();
   const { users: cognitoUsers, loading: usersLoading } = useCognitoUsers();
 
+  useEffect(() => {
+    localStorage.setItem('ms_isCollapsed', isCollapsed.toString());
+  }, [isCollapsed]);
+  useEffect(() => {
+    localStorage.setItem('ms_isDarkMode', isDarkMode.toString());
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+  useEffect(() => {
+    localStorage.setItem('ms_activeTab', activeTab);
+  }, [activeTab]);
+  useEffect(() => {
+    localStorage.setItem('ms_expandedFolders', JSON.stringify(expandedFolders));
+  }, [expandedFolders]);
+
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
+    setIsDarkMode((prev) => !prev);
   };
 
   const renderContent = () => {

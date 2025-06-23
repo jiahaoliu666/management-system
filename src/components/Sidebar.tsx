@@ -144,8 +144,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-6 border-b border-slate-100">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <Link href="/" className="flex items-center">
-              <img src="/logo.png" alt="文件系統" className="h-8 w-auto" />
+            <Link href="/" className="flex items-center" onClick={() => setActiveTab('dashboard')}>
+              <img src="/logo.png" alt="文件系統" className="h-8 w-auto cursor-pointer" />
             </Link>
           )}
           <button
