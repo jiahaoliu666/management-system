@@ -9,11 +9,19 @@ import {
 import { cognitoConfig } from '@/lib/config/cognito';
 import { showError, showSuccess, mapCognitoErrorToMessage } from '@/utils/notification';
 
-// 創建用戶池實例
-const userPool = new CognitoUserPool({
-  UserPoolId: cognitoConfig.userPoolId,
-  ClientId: cognitoConfig.clientId
-});
+// 創建用戶池實例（安全化處理）
+let userPool: CognitoUserPool | null = null;
+if (cognitoConfig.userPoolId && cognitoConfig.clientId) {
+  userPool = new CognitoUserPool({
+    UserPoolId: cognitoConfig.userPoolId,
+    ClientId: cognitoConfig.clientId
+  });
+} else {
+  if (typeof window !== 'undefined') {
+    // 僅於瀏覽器端顯示警告，避免 SSR 報錯
+    console.warn('Cognito 配置缺失：UserPoolId 或 ClientId 未設置，Cognito 功能將無法使用。');
+  }
+}
 
 type CognitoError = {
   code: string;
@@ -31,6 +39,12 @@ export const useCognito = () => {
 
   // 檢查用戶認證狀態
   const checkAuthStatus = useCallback(async () => {
+    if (!userPool) {
+      setUser(null);
+      setIsAuthenticated(false);
+      setCurrentCognitoUser(null);
+      return;
+    }
     try {
       const currentUser = userPool.getCurrentUser();
       if (currentUser) {
@@ -80,6 +94,12 @@ export const useCognito = () => {
   }> => {
     setLoading(true);
     setError(null);
+    if (!userPool) {
+      setError('環境變數尚未配置完成，請通知系統管理員');
+      showError('環境變數尚未配置完成，請通知系統管理員');
+      setLoading(false);
+      return { success: false };
+    }
     
     // 清理所有本地流程控制標記
     if (typeof window !== 'undefined') {
@@ -167,6 +187,7 @@ export const useCognito = () => {
 
   // 登出
   const signOut = useCallback(() => {
+    if (!userPool) return;
     const currentUser = userPool.getCurrentUser();
     if (currentUser) {
       currentUser.signOut();
@@ -198,6 +219,7 @@ export const useCognito = () => {
 
   // 獲取當前會話
   const getCurrentSession = useCallback(async (): Promise<CognitoUserSession | null> => {
+    if (!userPool) return null;
     const currentUser = userPool.getCurrentUser();
     if (!currentUser) return null;
 
@@ -225,7 +247,7 @@ export const useCognito = () => {
 
   // 獲取當前用戶
   const getCurrentUser = useCallback(() => {
-    return userPool.getCurrentUser();
+    return userPool?.getCurrentUser() || null;
   }, []);
 
   // 獲取JWT令牌
@@ -248,6 +270,13 @@ export const useCognito = () => {
   ): Promise<{ success: boolean; result?: any }> => {
     setLoading(true);
     setError(null);
+
+    if (!userPool) {
+      setError('環境變數尚未配置完成，請通知系統管理員');
+      showError('環境變數尚未配置完成，請通知系統管理員');
+      setLoading(false);
+      return { success: false };
+    }
 
     try {
       const attributeList = [
@@ -303,6 +332,13 @@ export const useCognito = () => {
     setLoading(true);
     setError(null);
 
+    if (!userPool) {
+      setError('環境變數尚未配置完成，請通知系統管理員');
+      showError('環境變數尚未配置完成，請通知系統管理員');
+      setLoading(false);
+      return false;
+    }
+
     try {
       const cognitoUser = new CognitoUser({
         Username: username,
@@ -344,6 +380,13 @@ export const useCognito = () => {
   ): Promise<boolean> => {
     setLoading(true);
     setError(null);
+
+    if (!userPool) {
+      setError('環境變數尚未配置完成，請通知系統管理員');
+      showError('環境變數尚未配置完成，請通知系統管理員');
+      setLoading(false);
+      return false;
+    }
 
     try {
       const cognitoUser = new CognitoUser({
