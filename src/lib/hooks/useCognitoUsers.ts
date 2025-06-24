@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 export function useCognitoUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // 從 localStorage 取得 idToken
+  const fetchUsers = useCallback(() => {
+    setLoading(true);
     const idToken = localStorage.getItem('cognito_id_token');
     if (!idToken) {
       setUsers([]);
@@ -23,5 +23,9 @@ export function useCognitoUsers() {
       .finally(() => setLoading(false));
   }, []);
 
-  return { users, loading };
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  return { users, loading, refetch: fetchUsers };
 } 

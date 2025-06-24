@@ -66,7 +66,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNotificationSettingsModal, setShowNotificationSettingsModal] = useState(false);
   const { logout } = useAuth();
-  const { users: cognitoUsers, loading: usersLoading } = useCognitoUsers();
+  const { users: cognitoUsers, loading: usersLoading, refetch } = useCognitoUsers();
 
   useEffect(() => {
     localStorage.setItem('ms_isCollapsed', isCollapsed.toString());
@@ -99,7 +99,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       case 'editor':
         return <EditorView onSave={() => {}} onPublish={() => {}} onPreview={() => {}} />;
       case 'team':
-        return <TeamView members={cognitoUsers} activities={teamActivities} loading={usersLoading} />;
+        return <TeamView members={cognitoUsers} activities={teamActivities} loading={usersLoading} refetch={refetch} />;
       default:
         return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} teamMemberCount={cognitoUsers.length} />;
     }

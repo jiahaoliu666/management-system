@@ -8,11 +8,12 @@ interface TeamViewProps {
   members: CognitoUser[]; // 使用新的類型定義
   activities: any[]; // 不再使用
   loading?: boolean;
+  refetch: () => void;
 }
 
 const PAGE_SIZE = 10;
 
-const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
+const TeamView: React.FC<TeamViewProps> = ({ members, loading, refetch }) => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('recent-desc');
@@ -145,7 +146,7 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
         showSuccess('成員已刪除');
         setDeleteModalOpen(false);
         setDeleteTarget(null);
-        window.location.reload(); // 或呼叫刷新 users 的函數
+        refetch(); // 重新拉取成員列表
       } else {
         showError(data.error || '刪除失敗');
       }
@@ -201,8 +202,8 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
                 value={sort}
                 onChange={e => setSort(e.target.value)}
               >
-                <option value="recent-desc">最近加入由近至遠</option>
-                <option value="recent-asc">最近加入由遠至近</option>
+                <option value="recent-desc">加入日期由近至遠</option>
+                <option value="recent-asc">加入日期由遠至近</option>
                 <option value="status">依照狀態進行排序</option>
               </select>
               <button
@@ -438,6 +439,7 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
                     showSuccess('邀請已發送！');
                     setInviteOpen(false);
                     setInviteEmail('');
+                    refetch(); // 重新拉取成員列表
                   } else {
                     showError(data.error || '邀請失敗');
                   }
