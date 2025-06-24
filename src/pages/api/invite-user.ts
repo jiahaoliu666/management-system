@@ -33,8 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { Name: 'email_verified', Value: 'true' },
         { Name: 'birthdate', Value: today }, // 設置加入日期為當前日期
       ],
-      DesiredDeliveryMediums: ['EMAIL'],
-      MessageAction: 'SUPPRESS', // 改成 'SUPPRESS' 讓你可以自訂信件內容，若要 Cognito 寄預設信請移除此行
+      DesiredDeliveryMediums: ['EMAIL'], // 讓 Cognito 發送邀請信
+      // MessageAction: 'SUPPRESS', // 移除此行，啟用預設郵件發送
       ForceAliasCreation: false,
     });
     const data = await client.send(command);
