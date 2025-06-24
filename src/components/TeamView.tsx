@@ -15,7 +15,8 @@ const PAGE_SIZE = 10;
 const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('recent');
+  const [sort, setSort] = useState('recent-desc');
+  const [profileFilter, setProfileFilter] = useState('');
   
   // 邀請成員 modal 狀態
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -28,48 +29,70 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
   const [deleteInput, setDeleteInput] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // 獲取所有職位名稱選項
+  const profileOptions = useMemo(() => {
+    const profiles = new Set<string>();
+    members.forEach(member => {
+      const profile = member.Attributes?.find((a: any) => a.Name === 'profile')?.Value;
+      if (profile && profile !== '尚未填寫') {
+        profiles.add(profile);
+      }
+    });
+    return Array.from(profiles).sort();
+  }, [members]);
+
   // 即時搜尋和過濾邏輯
   const filteredMembers = useMemo(() => {
-    if (!search.trim()) {
-      return members;
+    let filtered = members;
+    
+    // 搜尋過濾
+    if (search.trim()) {
+      const searchTerm = search.toLowerCase().trim();
+      filtered = filtered.filter(member => {
+        const nameAttr = member.Attributes?.find((a: any) => a.Name === 'name')?.Value || '';
+        const emailAttr = member.Attributes?.find((a: any) => a.Name === 'email')?.Value || '';
+        
+        // 處理姓名顯示邏輯
+        let displayName = nameAttr;
+        if (!displayName && emailAttr) {
+          displayName = emailAttr.split('@')[0];
+        }
+        
+        // 不區分大小寫的模糊搜尋
+        return displayName.toLowerCase().includes(searchTerm) || 
+               emailAttr.toLowerCase().includes(searchTerm);
+      });
     }
     
-    const searchTerm = search.toLowerCase().trim();
+    // 職位名稱過濾
+    if (profileFilter) {
+      filtered = filtered.filter(member => {
+        const profile = member.Attributes?.find((a: any) => a.Name === 'profile')?.Value || '尚未填寫';
+        return profile === profileFilter;
+      });
+    }
     
-    return members.filter(member => {
-      const nameAttr = member.Attributes?.find((a: any) => a.Name === 'name')?.Value || '';
-      const emailAttr = member.Attributes?.find((a: any) => a.Name === 'email')?.Value || '';
-      
-      // 處理姓名顯示邏輯
-      let displayName = nameAttr;
-      if (!displayName && emailAttr) {
-        displayName = emailAttr.split('@')[0];
-      }
-      
-      // 不區分大小寫的模糊搜尋
-      return displayName.toLowerCase().includes(searchTerm) || 
-             emailAttr.toLowerCase().includes(searchTerm);
-    });
-  }, [members, search]);
+    return filtered;
+  }, [members, search, profileFilter]);
 
   // 排序邏輯
   const sortedMembers = useMemo(() => {
     const sorted = [...filteredMembers];
     
     switch (sort) {
-      case 'name':
+      case 'recent-desc':
+        // 最近加入由近至遠（預設）
         return sorted.sort((a, b) => {
-          const nameA = a.Attributes?.find((attr: any) => attr.Name === 'name')?.Value || 
-                       a.Attributes?.find((attr: any) => attr.Name === 'email')?.Value?.split('@')[0] || '';
-          const nameB = b.Attributes?.find((attr: any) => attr.Name === 'name')?.Value || 
-                       b.Attributes?.find((attr: any) => attr.Name === 'email')?.Value?.split('@')[0] || '';
-          return nameA.localeCompare(nameB, 'zh-TW');
+          const dateA = a.Attributes?.find((attr: any) => attr.Name === 'birthdate')?.Value || a.UserCreateDate || '';
+          const dateB = b.Attributes?.find((attr: any) => attr.Name === 'birthdate')?.Value || b.UserCreateDate || '';
+          return new Date(dateB).getTime() - new Date(dateA).getTime();
         });
-      case 'email':
+      case 'recent-asc':
+        // 最近加入由遠至近
         return sorted.sort((a, b) => {
-          const emailA = a.Attributes?.find((attr: any) => attr.Name === 'email')?.Value || '';
-          const emailB = b.Attributes?.find((attr: any) => attr.Name === 'email')?.Value || '';
-          return emailA.localeCompare(emailB);
+          const dateA = a.Attributes?.find((attr: any) => attr.Name === 'birthdate')?.Value || a.UserCreateDate || '';
+          const dateB = b.Attributes?.find((attr: any) => attr.Name === 'birthdate')?.Value || b.UserCreateDate || '';
+          return new Date(dateA).getTime() - new Date(dateB).getTime();
         });
       case 'status':
         return sorted.sort((a, b) => {
@@ -77,14 +100,8 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
           const statusB = b.UserStatus || '';
           return statusA.localeCompare(statusB);
         });
-      case 'recent':
       default:
-        // 按加入日期排序（最近的在前）
-        return sorted.sort((a, b) => {
-          const dateA = a.Attributes?.find((attr: any) => attr.Name === 'birthdate')?.Value || a.UserCreateDate || '';
-          const dateB = b.Attributes?.find((attr: any) => attr.Name === 'birthdate')?.Value || b.UserCreateDate || '';
-          return new Date(dateB).getTime() - new Date(dateA).getTime();
-        });
+        return sorted;
     }
   }, [filteredMembers, sort]);
 
@@ -92,10 +109,10 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
   const totalPages = Math.ceil(sortedMembers.length / PAGE_SIZE) || 1;
   const pagedMembers = sortedMembers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // 當搜尋或排序改變時，重置到第一頁
+  // 當搜尋、排序或篩選改變時，重置到第一頁
   React.useEffect(() => {
     setPage(1);
-  }, [search, sort]);
+  }, [search, sort, profileFilter]);
 
   // 高亮搜尋結果的函數
   const highlightSearchTerm = (text: string, searchTerm: string) => {
@@ -171,13 +188,22 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
               </div>
               <select
                 className="w-full md:w-48 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                value={profileFilter}
+                onChange={e => setProfileFilter(e.target.value)}
+              >
+                <option value="">所有職位</option>
+                {profileOptions.map(profile => (
+                  <option key={profile} value={profile}>{profile}</option>
+                ))}
+              </select>
+              <select
+                className="w-full md:w-48 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                 value={sort}
                 onChange={e => setSort(e.target.value)}
               >
-                <option value="recent">最近加入</option>
-                <option value="name">名稱排序</option>
-                <option value="email">信箱排序</option>
-                <option value="status">狀態排序</option>
+                <option value="recent-desc">最近加入由近至遠</option>
+                <option value="recent-asc">最近加入由遠至近</option>
+                <option value="status">依照狀態進行排序</option>
               </select>
               <button
                 className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition disabled:opacity-50"
@@ -191,9 +217,12 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
           
           {/* 統計區塊：預設顯示總成員數，搜尋時顯示搜尋結果統計 */}
           <div className="px-8 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
-            {search.trim() ? (
+            {search.trim() || profileFilter ? (
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                搜尋「{search}」找到 {filteredMembers.length} 個結果（共 {members.length} 個成員）
+                {search.trim() && `搜尋「${search}」`}
+                {search.trim() && profileFilter && ' 且 '}
+                {profileFilter && `職位「${profileFilter}」`}
+                {` 找到 ${filteredMembers.length} 個結果（共 ${members.length} 個成員）`}
               </p>
             ) : (
               <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -219,7 +248,7 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
                 {pagedMembers.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500 text-sm border-2 border-slate-200 dark:border-slate-700">
-                      {search.trim() ? '沒有找到符合搜尋條件的成員' : '暫無成員'}
+                      {search.trim() || profileFilter ? '沒有找到符合條件的成員' : '暫無成員'}
                     </td>
                   </tr>
                 ) : (
@@ -369,7 +398,7 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
             </button>
             <span className="text-xs text-slate-500 dark:text-slate-400 select-none">
               第 {page} / {totalPages} 頁
-              {search.trim() && `（共 ${filteredMembers.length} 個結果）`}
+              {(search.trim() || profileFilter) && `（共 ${filteredMembers.length} 個結果）`}
             </span>
             <button
               className="px-4 py-1.5 rounded-full border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium text-sm transition hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50"
