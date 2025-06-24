@@ -208,4 +208,37 @@ export const getStatusText = (status: string) => {
 };
 
 export const USER = 'user';
-export const TEAM = 'team'; 
+export const TEAM = 'team';
+
+/**
+ * 格式化日期為本地化格式
+ * @param dateString 日期字符串（YYYY-MM-DD 格式或 ISO 格式）
+ * @returns 格式化後的日期字符串
+ */
+export const formatJoinDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return '-';
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return dateString; // 如果無法解析，返回原始值
+    }
+    
+    return date.toLocaleDateString('zh-TW', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  } catch (error) {
+    console.error('日期格式化錯誤:', error);
+    return dateString; // 如果出錯，返回原始值
+  }
+};
+
+/**
+ * 獲取當前日期，格式為 YYYY-MM-DD
+ * @returns 當前日期字符串
+ */
+export const getCurrentDateString = (): string => {
+  return new Date().toISOString().split('T')[0];
+}; 

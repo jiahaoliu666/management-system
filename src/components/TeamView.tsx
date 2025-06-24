@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { User, CheckCircle2, XCircle } from 'lucide-react';
-import { TeamMember } from '@/types';
+import { TeamMember, CognitoUser } from '@/types';
 import { showSuccess, showError } from '@/utils/notification';
+import { formatJoinDate } from '@/utils/constants';
 
 interface TeamViewProps {
-  members: any[]; // Cognito user list
+  members: CognitoUser[]; // 使用新的類型定義
   activities: any[]; // 不再使用
   loading?: boolean;
 }
@@ -116,7 +117,7 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
                   pagedMembers.map((member, idx) => {
                     const nameAttr = member.Attributes?.find((a: any) => a.Name === 'name')?.Value;
                     const emailAttr = member.Attributes?.find((a: any) => a.Name === 'email')?.Value;
-                    let name = nameAttr;
+                    let name = nameAttr || '';
                     if (!name) {
                       if (emailAttr && typeof emailAttr === 'string') {
                         name = emailAttr.split('@')[0];
@@ -202,15 +203,18 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading }) => {
                           );
                       }
                     }
-                    const joined = member.UserCreateDate ? new Date(member.UserCreateDate).toLocaleDateString() : '-';
+                    // 優先使用 birthdate 作為加入日期，如果沒有則使用 UserCreateDate
+                    const birthdateAttr = member.Attributes?.find((a: any) => a.Name === 'birthdate')?.Value;
+                    const joined = formatJoinDate(birthdateAttr || member.UserCreateDate);
+                    
                     // 刪除成員功能
                     const openDeleteModal = () => {
-                      setDeleteTarget({ name, email: emailAttr, username: member.Username });
+                      setDeleteTarget({ name, email: emailAttr || '', username: member.Username });
                       setDeleteInput('');
                       setDeleteModalOpen(true);
                     };
                     return (
-                      <tr key={member.Username || member.id} className="border-2 border-slate-200 dark:border-slate-700">
+                      <tr key={member.Username} className="border-2 border-slate-200 dark:border-slate-700">
                         <td className="px-6 py-4 text-center text-xs text-slate-500 dark:text-slate-400 align-middle border-r-2 border-slate-200 dark:border-slate-700">{(page - 1) * PAGE_SIZE + idx + 1}</td>
                         <td className="px-6 py-4 text-center whitespace-nowrap flex items-center justify-center space-x-3 align-middle min-w-[180px] border-r-2 border-slate-200 dark:border-slate-700">
                           <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mr-3 shadow">

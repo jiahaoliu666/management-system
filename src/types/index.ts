@@ -145,4 +145,25 @@ export interface TeamActivity {
   time: string;
   participants?: string[];
   status?: 'pending' | 'completed' | 'in-progress';
+}
+
+// Cognito 用戶相關類型定義
+export interface CognitoUserAttribute {
+  Name: string;
+  Value: string;
+}
+
+export interface CognitoUser {
+  Username: string;
+  Attributes?: CognitoUserAttribute[];
+  UserCreateDate?: string;
+  UserLastModifiedDate?: string;
+  Enabled?: boolean;
+  UserStatus?: string;
+}
+
+export interface CognitoUserListResponse {
+  users: CognitoUser[];
+  loading: boolean;
+  error?: string;
 } 
