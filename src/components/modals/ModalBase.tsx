@@ -1,6 +1,5 @@
-import React, { useEffect, ReactNode } from 'react';
+import React, { useEffect, ReactNode, useRef } from 'react';
 import { X } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 
 interface ModalBaseProps {
   isOpen: boolean;
@@ -21,6 +20,8 @@ const sizeClasses = {
 };
 
 const ModalBase: React.FC<ModalBaseProps> = ({ isOpen, onClose, title, children, size = '2xl' }) => {
+  const modalContentRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -28,9 +29,16 @@ const ModalBase: React.FC<ModalBaseProps> = ({ isOpen, onClose, title, children,
       }
     };
 
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalContentRef.current && !modalContentRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       document.addEventListener('keydown', handleEscape);
+      document.addEventListener('mousedown', handleClickOutside);
     } else {
       document.body.style.overflow = 'auto';
     }
@@ -38,44 +46,34 @@ const ModalBase: React.FC<ModalBaseProps> = ({ isOpen, onClose, title, children,
     return () => {
       document.body.style.overflow = 'auto';
       document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
 
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.95, y: -20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.95, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full ${sizeClasses[size]} transform transition-all relative flex flex-col`}
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-y-auto" onClick={onClose}>
+      <div
+        ref={modalContentRef}
+        className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full ${sizeClasses[size]} relative flex flex-col my-4 sm:my-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)]`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white line-clamp-1">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 -m-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            aria-label="關閉"
           >
-            <div className="p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>
-              <button
-                onClick={onClose}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto flex-grow">
-              {children}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-4 sm:p-6 overflow-y-auto flex-grow scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent">
+          {children}
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -86,6 +86,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     localStorage.setItem('ms_expandedFolders', JSON.stringify(expandedFolders));
   }, [expandedFolders]);
 
+  const closeAllPopups = () => {
+    setShowNotifications(false);
+    setShowUserMenu(false);
+    setShowProfileModal(false);
+    setShowSettingsModal(false);
+    setShowNotificationSettingsModal(false);
+  };
+
   const toggleTheme = () => {
     setIsDarkMode((prev) => !prev);
   };
@@ -127,9 +135,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           setShowNotifications={setShowNotifications}
           showUserMenu={showUserMenu}
           setShowUserMenu={setShowUserMenu}
-          onProfileClick={() => setShowProfileModal(true)}
-          onSettingsClick={() => setShowSettingsModal(true)}
-          onNotificationSettingsClick={() => setShowNotificationSettingsModal(true)}
+          onProfileClick={() => { closeAllPopups(); setShowProfileModal(true); }}
+          onSettingsClick={() => { closeAllPopups(); setShowSettingsModal(true); }}
+          onNotificationSettingsClick={() => { closeAllPopups(); setShowNotificationSettingsModal(true); }}
           recentActivities={recentActivities}
         />
         <main className="flex-1 min-h-0 h-full flex flex-col px-4 md:px-8 py-4 md:py-8 w-full max-w-7xl mx-auto">

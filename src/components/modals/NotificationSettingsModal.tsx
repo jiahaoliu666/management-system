@@ -50,6 +50,8 @@ const NotificationSettingsModal: React.FC<NotificationSettingsModalProps> = ({ i
     { id: 'teamActivities', title: '團隊動態', description: '關於您團隊的重要公告或活動', icon: Users, category: 'teamActivities' as const },
   ];
 
+  if (!isOpen) return null;
+
   return (
     <ModalBase isOpen={isOpen} onClose={onClose} title="通知設定" size="lg">
       <div className="space-y-6">

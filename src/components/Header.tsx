@@ -46,24 +46,24 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const { email, userName, logout, profile } = useAuth();
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   const displayEmail = profile || email || '...';
 
   useEffect(() => {
-    if (!showUserMenu) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(event.target as Node)
-      ) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showUserMenu, setShowUserMenu]);
+  }, [setShowUserMenu, setShowNotifications]);
 
   return (
     <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-4 shadow-sm">
@@ -100,7 +100,7 @@ const Header: React.FC<HeaderProps> = ({
           >
             {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
-          <div className="relative">
+          <div className="relative" ref={notificationsRef}>
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200"
