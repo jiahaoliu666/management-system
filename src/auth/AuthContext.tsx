@@ -55,6 +55,7 @@ type AuthContextType = {
   setProfile: React.Dispatch<React.SetStateAction<string>>;
   completeNewPassword: (newPassword: string) => Promise<void>;
   fetchAndSetUserAttributes: (cognitoUser: CognitoUser) => void;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -113,7 +114,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     confirmNewPassword,
     loading: cognitoLoading,
     error: cognitoError,
-    cancelNewPasswordChallenge: cognitoCancelNewPasswordChallenge
+    cancelNewPasswordChallenge: cognitoCancelNewPasswordChallenge,
+    changePassword
   } = useCognito();
 
   const router = useRouter();
@@ -370,6 +372,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const handleChangePassword = async (oldPassword: string, newPassword: string) => {
+    return await changePassword(oldPassword, newPassword);
+  };
+
   const memoizedValue = useMemo(() => ({
     isAuthenticated,
     user,
@@ -393,12 +399,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     profile,
     setProfile,
     completeNewPassword: handleCompleteNewPassword,
-    fetchAndSetUserAttributes
+    fetchAndSetUserAttributes,
+    changePassword: handleChangePassword
   }), [
     isAuthenticated, user, handleLogin, handleLogout,
     loading, error, cognitoError, handleGetToken, newPasswordRequired,
     handleCancelNewPasswordChallenge, isFirstLogin, currentSetupStep,
-    completeSetup, clearAllCredentials, email, userName, profile, fetchAndSetUserAttributes
+    completeSetup, clearAllCredentials, email, userName, profile, fetchAndSetUserAttributes, handleChangePassword
   ]);
 
   return (

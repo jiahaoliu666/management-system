@@ -421,6 +421,44 @@ export const useCognito = () => {
     }
   }, []);
 
+  // 更改密碼
+  const changePassword = useCallback(async (
+    oldPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    setLoading(true);
+    setError(null);
+    if (!userPool) {
+      setError('環境變數尚未配置完成，請通知系統管理員');
+      setLoading(false);
+      return { success: false, error: '環境變數尚未配置完成，請通知系統管理員' };
+    }
+    try {
+      const currentUser = userPool.getCurrentUser();
+      if (!currentUser) {
+        setError('找不到登入用戶，請重新登入');
+        setLoading(false);
+        return { success: false, error: '找不到登入用戶，請重新登入' };
+      }
+      await new Promise<void>((resolve, reject) => {
+        currentUser.changePassword(oldPassword, newPassword, (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+      return { success: true };
+    } catch (err: any) {
+      const message = err?.message || '密碼變更失敗';
+      setError(message);
+      return { success: false, error: message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     user,
     isAuthenticated,
@@ -435,5 +473,6 @@ export const useCognito = () => {
     getCurrentUser,
     getCurrentSession,
     getJwtToken,
+    changePassword,
   };
 }; 
