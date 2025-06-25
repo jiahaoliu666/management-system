@@ -9,27 +9,18 @@ interface TeamViewProps {
   activities: any[]; // 不再使用
   loading?: boolean;
   refetch: () => void;
+  onInviteClick: () => void;
+  onDeleteClick: (user: CognitoUser) => void;
 }
 
 const PAGE_SIZE = 10;
 
-const TeamView: React.FC<TeamViewProps> = ({ members, loading, refetch }) => {
+const TeamView: React.FC<TeamViewProps> = ({ members, loading, refetch, onInviteClick, onDeleteClick }) => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('recent-desc');
   const [profileFilter, setProfileFilter] = useState('');
   
-  // 邀請成員 modal 狀態
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteLoading, setInviteLoading] = useState(false);
-
-  // 刪除成員 modal 狀態
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{name: string, email: string, username: string} | null>(null);
-  const [deleteInput, setDeleteInput] = useState('');
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
   // 獲取所有職位名稱選項
   const profileOptions = useMemo(() => {
     const profiles = new Set<string>();
@@ -131,32 +122,6 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading, refetch }) => {
     );
   };
 
-  // 刪除成員功能（modal 專用）
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    try {
-      const res = await fetch('/api/delete-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: deleteTarget.username }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        showSuccess('成員已刪除');
-        setDeleteModalOpen(false);
-        setDeleteTarget(null);
-        refetch(); // 重新拉取成員列表
-      } else {
-        showError(data.error || '刪除失敗');
-      }
-    } catch (err) {
-      showError('刪除失敗，請稍後再試');
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
   if (loading) {
     return <div className="p-8 text-center text-slate-500">載入中...</div>;
   }
@@ -208,7 +173,7 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading, refetch }) => {
               </select>
               <button
                 className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition disabled:opacity-50"
-                onClick={() => setInviteOpen(true)}
+                onClick={onInviteClick}
                 type="button"
               >
                 邀請成員
@@ -348,9 +313,7 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading, refetch }) => {
                     
                     // 刪除成員功能
                     const openDeleteModal = () => {
-                      setDeleteTarget({ name, email: emailAttr || '', username: member.Username });
-                      setDeleteInput('');
-                      setDeleteModalOpen(true);
+                      onDeleteClick(member);
                     };
                     return (
                       <tr key={member.Username} className="border-2 border-slate-200 dark:border-slate-700">
@@ -411,99 +374,6 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading, refetch }) => {
           </div>
         </div>
       </div>
-      {/* 邀請成員 Modal */}
-      {inviteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 w-full max-w-md relative">
-            <button
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              onClick={() => setInviteOpen(false)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-            <h3 className="text-xl font-bold mb-6 text-slate-900 dark:text-white">邀請新成員</h3>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setInviteLoading(true);
-                try {
-                  const res = await fetch('/api/invite-user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      email: inviteEmail,
-                    }),
-                  });
-                  const data = await res.json();
-                  if (res.ok) {
-                    showSuccess('邀請已發送！');
-                    setInviteOpen(false);
-                    setInviteEmail('');
-                    refetch(); // 重新拉取成員列表
-                  } else {
-                    showError(data.error || '邀請失敗');
-                  }
-                } catch (err) {
-                  showError('邀請失敗，請稍後再試');
-                } finally {
-                  setInviteLoading(false);
-                }
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-200">電子郵件</label>
-                <input
-                  type="email"
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  value={inviteEmail}
-                  onChange={e => setInviteEmail(e.target.value)}
-                  required
-                  disabled={inviteLoading}
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition disabled:opacity-50 mt-2"
-                disabled={inviteLoading || !inviteEmail}
-              >
-                {inviteLoading ? '邀請中...' : '發送邀請'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* 刪除成員確認 Modal */}
-      {deleteModalOpen && deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 w-full max-w-md relative">
-            <button
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              onClick={() => setDeleteModalOpen(false)}
-              disabled={deleteLoading}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-            <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">確認刪除成員</h3>
-            <p className="mb-4 text-slate-700 dark:text-slate-200 text-sm">您即將刪除成員：<span className="font-bold text-red-600">{deleteTarget.name}</span>（{deleteTarget.email}）<br/>此操作無法復原。請輸入成員名稱 <span className="font-bold">{deleteTarget.name}</span> 以確認。</p>
-            <input
-              type="text"
-              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-400 mb-4"
-              placeholder="請輸入成員名稱以確認刪除"
-              value={deleteInput}
-              onChange={e => setDeleteInput(e.target.value)}
-              disabled={deleteLoading}
-            />
-            <button
-              className="w-full py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition disabled:opacity-50"
-              onClick={handleDelete}
-              disabled={deleteLoading || deleteInput !== deleteTarget.name}
-            >
-              {deleteLoading ? '刪除中...' : '確認刪除'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

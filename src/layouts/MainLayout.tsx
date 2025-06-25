@@ -6,10 +6,12 @@ import Dashboard from '../components/Dashboard';
 import DocumentsView from '../components/DocumentsView';
 import EditorView from '../components/EditorView';
 import TeamView from '../components/TeamView';
-import { Activity, Document, TeamMember, TeamActivity } from '../types';
+import { Activity, Document, TeamMember, TeamActivity, CognitoUser } from '../types';
 import ProfileModal from '../components/modals/ProfileModal';
 import SettingsModal from '../components/modals/SettingsModal';
 import NotificationSettingsModal from '../components/modals/NotificationSettingsModal';
+import InviteMemberModal from '@/components/modals/InviteMemberModal';
+import DeleteMemberModal from '@/components/modals/DeleteMemberModal';
 import { useAuth } from '../auth/AuthContext';
 import { useCognitoUsers } from '@/lib/hooks/useCognitoUsers';
 
@@ -65,6 +67,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNotificationSettingsModal, setShowNotificationSettingsModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTargetUser, setDeleteTargetUser] = useState<CognitoUser | null>(null);
   const { logout } = useAuth();
   const { users: cognitoUsers, loading: usersLoading, refetch } = useCognitoUsers();
 
@@ -92,6 +97,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     setShowProfileModal(false);
     setShowSettingsModal(false);
     setShowNotificationSettingsModal(false);
+    setShowInviteModal(false);
+    setShowDeleteModal(false);
+    setDeleteTargetUser(null);
   };
 
   const toggleTheme = () => {
@@ -107,7 +115,21 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       case 'editor':
         return <EditorView onSave={() => {}} onPublish={() => {}} onPreview={() => {}} />;
       case 'team':
-        return <TeamView members={cognitoUsers} activities={teamActivities} loading={usersLoading} refetch={refetch} />;
+        return <TeamView 
+          members={cognitoUsers} 
+          activities={teamActivities} 
+          loading={usersLoading} 
+          refetch={refetch}
+          onInviteClick={() => {
+            closeAllPopups();
+            setShowInviteModal(true);
+          }}
+          onDeleteClick={(user) => {
+            closeAllPopups();
+            setDeleteTargetUser(user);
+            setShowDeleteModal(true);
+          }}
+        />;
       default:
         return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} teamMemberCount={cognitoUsers.length} />;
     }
@@ -158,6 +180,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       <NotificationSettingsModal
         isOpen={showNotificationSettingsModal}
         onClose={() => setShowNotificationSettingsModal(false)}
+      />
+
+      <InviteMemberModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        refetch={refetch}
+      />
+
+      <DeleteMemberModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteTargetUser(null);
+        }}
+        refetch={refetch}
+        user={deleteTargetUser}
       />
     </div>
   );
