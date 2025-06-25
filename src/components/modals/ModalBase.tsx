@@ -16,7 +16,7 @@ const sizeClasses = {
   xl: 'max-w-xl',
   '2xl': 'max-w-2xl',
   '3xl': 'max-w-3xl',
-  '4xl': 'max-w-4xl',
+  '4xl': 'max-w-4xl xl:max-w-[900px] 2xl:max-w-[1100px]',
 };
 
 const ModalBase: React.FC<ModalBaseProps> = ({ isOpen, onClose, title, children, size = '2xl' }) => {
@@ -56,7 +56,7 @@ const ModalBase: React.FC<ModalBaseProps> = ({ isOpen, onClose, title, children,
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-y-auto" onClick={onClose}>
       <div
         ref={modalContentRef}
-        className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full ${sizeClasses[size]} relative flex flex-col my-4 sm:my-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)]`}
+        className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full ${sizeClasses[size]} relative flex flex-col my-4 sm:my-8 max-h-[80vh]`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0">

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import ModalBase from './ModalBase';
-import { User, Palette, Shield, Bell, LogIn } from 'lucide-react';
+import { User, Palette, Shield, Bell, LogIn, Key } from 'lucide-react';
+import { useAuth } from '@/auth/AuthContext';
+import { showSuccess } from '@/utils/notification';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     { id: 'appearance', label: '外觀', icon: Palette },
     { id: 'security', label: '安全性', icon: Shield },
     { id: 'sessions', label: '登入活動', icon: LogIn },
+    { id: 'change-password', label: '變更密碼', icon: Key },
   ];
 
   const renderContent = () => {
@@ -98,6 +101,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
         );
+      case 'change-password':
+        return <ChangePasswordForm />;
       default:
         return null;
     }
@@ -132,4 +137,101 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   );
 };
 
-export default SettingsModal; 
+export default SettingsModal;
+
+// 變更密碼表單元件（inline）
+const ChangePasswordForm: React.FC = () => {
+  const { changePassword } = useAuth();
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess(false);
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setError('請完整填寫所有欄位');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('新密碼與確認新密碼不一致');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('新密碼長度至少需 8 字元');
+      return;
+    }
+    setLoading(true);
+    const result = await changePassword(oldPassword, newPassword);
+    setLoading(false);
+    if (result.success) {
+      setSuccess(true);
+      showSuccess('密碼已成功變更');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => {
+        setSuccess(false);
+      }, 1500);
+    } else {
+      setError(result.error || '密碼變更失敗');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6 px-2 py-2 max-w-lg mx-auto">
+      <div className="space-y-2">
+        <label className="block text-base font-semibold text-slate-700 dark:text-slate-200">目前密碼</label>
+        <input
+          type="password"
+          placeholder="請輸入目前密碼"
+          value={oldPassword}
+          onChange={e => setOldPassword(e.target.value)}
+          className="w-full px-4 py-3 text-base border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700/50 transition-all duration-200 dark:text-slate-200 placeholder:text-slate-400"
+          autoComplete="current-password"
+          disabled={loading}
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="block text-base font-semibold text-slate-700 dark:text-slate-200">新密碼</label>
+        <input
+          type="password"
+          placeholder="請輸入新密碼"
+          value={newPassword}
+          onChange={e => setNewPassword(e.target.value)}
+          className="w-full px-4 py-3 text-base border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700/50 transition-all duration-200 dark:text-slate-200 placeholder:text-slate-400"
+          autoComplete="new-password"
+          disabled={loading}
+        />
+        <div className="text-xs text-slate-400 mt-1">密碼需至少 8 字元，建議包含大小寫字母與數字</div>
+      </div>
+      <div className="space-y-2">
+        <label className="block text-base font-semibold text-slate-700 dark:text-slate-200">確認新密碼</label>
+        <input
+          type="password"
+          placeholder="請再次輸入新密碼"
+          value={confirmPassword}
+          onChange={e => setConfirmPassword(e.target.value)}
+          className="w-full px-4 py-3 text-base border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700/50 transition-all duration-200 dark:text-slate-200 placeholder:text-slate-400"
+          autoComplete="new-password"
+          disabled={loading}
+        />
+      </div>
+      {error && <div className="text-xs text-red-500 mt-1">{error}</div>}
+      {success && <div className="text-xs text-green-600 mt-1">密碼變更成功！</div>}
+      <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50"
+        >
+          {loading ? '變更中...' : '儲存新密碼'}
+        </button>
+      </div>
+    </form>
+  );
+}; 
