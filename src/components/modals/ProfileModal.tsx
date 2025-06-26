@@ -8,9 +8,10 @@ import { CognitoUserAttribute } from 'amazon-cognito-identity-js';
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onProfileSaved?: () => void;
 }
 
-const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
+const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onProfileSaved }) => {
   const { email, user, userName, setUserName, profile, setProfile, fetchAndSetUserAttributes } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [name, setName] = useState('');
@@ -134,8 +135,21 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       setUserName(name);
       if (newAvatarUrl) {
         setAvatarUrl(newAvatarUrl);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cognito_picture', newAvatarUrl);
+        }
       }
       fetchAndSetUserAttributes(user);
+
+      if (onProfileSaved) {
+        onProfileSaved();
+      }
+
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
+      }
 
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);

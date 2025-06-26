@@ -170,6 +170,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       <ProfileModal 
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
+        onProfileSaved={refetch}
       />
 
       <SettingsModal

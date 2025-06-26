@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { 
   Search, 
   Filter, 
@@ -44,11 +44,45 @@ const Header: React.FC<HeaderProps> = ({
   onSettingsClick,
   onNotificationSettingsClick,
 }) => {
-  const { email, userName, logout, profile } = useAuth();
+  const { email, userName, logout, profile, user } = useAuth();
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   const displayEmail = profile || email || '...';
+
+  // Avatar 元件，參考 TeamView 實作
+  const Avatar = () => {
+    const [loaded, setLoaded] = useState(false);
+    const [error, setError] = useState(false);
+    let avatarUrl: string | null = null;
+    if (typeof window !== 'undefined') {
+      avatarUrl = localStorage.getItem('cognito_picture');
+    }
+    return (
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-white dark:bg-slate-800 overflow-hidden">
+        {avatarUrl && !error ? (
+          <>
+            {!loaded && (
+              <div className="w-full h-full flex items-center justify-center animate-pulse bg-slate-100 dark:bg-slate-700">
+                <User className="h-5 w-5 text-slate-300" />
+              </div>
+            )}
+            <img
+              key={avatarUrl}
+              src={avatarUrl}
+              alt="頭像"
+              className={`w-full h-full object-cover rounded-xl ${loaded ? '' : 'hidden'}`}
+              onLoad={() => setLoaded(true)}
+              onError={() => setError(true)}
+              draggable={false}
+            />
+          </>
+        ) : (
+          <User className="h-5 w-5 text-white bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl w-full h-full p-2" />
+        )}
+      </div>
+    );
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -149,9 +183,7 @@ const Header: React.FC<HeaderProps> = ({
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center space-x-3 pl-4 border-l border-slate-200 dark:border-slate-700"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <User className="h-5 w-5 text-white" />
-              </div>
+              <Avatar />
               <div className="text-left">
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{userName || '用戶'}</span>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{displayEmail}</p>

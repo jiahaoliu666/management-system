@@ -156,6 +156,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.removeItem('cognito_profile');
           }
         }
+        // 新增：同步 picture 到 localStorage
+        const pictureAttr = attributes.find(attr => attr.getName() === 'picture');
+        if (pictureAttr) {
+          const url = pictureAttr.getValue();
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('cognito_picture', url);
+          }
+        } else {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('cognito_picture');
+          }
+        }
       }
     });
   }, [setEmail, setUserName, setProfile]);

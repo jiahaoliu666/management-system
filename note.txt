@@ -99,18 +99,46 @@
 toast 不要擋到右上角的 profile 
 全局響應式頁面
 全局深/淺顏色切換
-CORS IP設定
+CORS IP 限定特定domain
 
 ------------------------------------進行中
 
-檔案只接受圖片格式
-儲存的前綴名稱改為 mail 而不是 sub 值
-上傳頭像後要把舊的移除
+現在我要優化 React ProfileModal 組件的頭像上傳功能：在現有的 AWS S3 上傳和 Cognito 更新基礎上，需要實現四個關鍵改進 -
+(1) 添加檔案類型驗證，僅允許圖片格式（jpg, png, gif 等），排除文檔類型；
+(2) 修改上傳檔案命名邏輯，將前綴從用戶 sub ID 改為 email，格式為 email_timestamp.extension；
+(3) 實現舊檔案清理機制，上傳新頭像時自動刪除 S3 中的舊頭像檔案；
+(4) 改變保存時機，將頭像上傳從即時改為延遲執行，只有當用戶點擊「儲存變更」按鈕時才真正提交到 S3 和 Cognito，並在成功後刷新 UI 頭像顯示而不重載整頁。
+再調整一下：
+修改上傳檔案命名邏輯，將前綴從用戶 sub ID 改為 email，格式為 email_timestamp.extension；
+這部分格式改為 email_上傳的時間，例如 test@gmail.com_202606261749 之類的
 
-點擊儲存變更才儲存頭像，並且當儲存後要自動刷新最新的頭像 但無需整頁reload
-header 和團隊成員裡的頭像也要改
+很好，目前上傳頭像的部分皆已實現，當成功儲存新頭像後，header.tsx 當中的
+<div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+<User className="h-5 w-5 text-white" />
+</div>
 
+要變更為上傳頭像的樣式，而不是模擬值
 
+除了 header.tsx 的頭像之外，TeamView.tsx 的也要變更為上傳頭像的樣式，而不是模擬值
+<div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mr-3 shadow">
+<User className="h-5 w-5 text-white" />
+</div>
+
+TeamView.tsx 的團隊成員頭像已成功實現，但 Header.tsx 用戶頭像區塊 尚未實現
+Header.tsx 用戶頭像區塊 還是未實現用戶頭像，這部分你可以參考TeamView.tsx 的團隊成員頭像是如何實現的
+Header.tsx 用戶頭像區塊和TeamView.tsx 的團隊成員頭像功能已經實現，幫我實現成功後刷新 UI 頭像顯示而不重載整頁
+Header.tsx 用戶頭像區塊能即時刷新了，但是TeamView.tsx 的團隊成員頭像 要手動刷新頁面才能
+
+Header.tsx（顯示用戶頭像）和 TeamView.tsx（顯示團隊成員頭像列表）。當用戶上傳或更新頭像後，
+我需要實現即時更新這兩個組件中的頭像顯示，而不需要重新加載整個頁面。
+請幫我實現頭像更新成功後的 UI 即時刷新機制，並且確認每次用戶屬性同步時（如登入、個人資料變更後），
+picture 會自動寫入 localStorage，同時用戶頭像會即時顯示正確圖片。
+
+現在遇到一個情況，當用戶成功儲存頭像後，Header.tsx（顯示用戶頭像）和 TeamView.tsx（顯示團隊成員頭像列表）。
+有時頭像更新儲存後 UI 能即時刷新，但有時又顯示舊的圖片，要等到手動刷新頁面才行 這部分幫我解決問題，同時遵循現代 Web 開發最佳實踐、官方最佳建議做法，並且直接幫我修改即可
+
+幫我把 UI 即時刷新的部分移除，改為當用戶成功儲存頭像後自動刷新頁面，不然現在遇到的情況是會一直無限載圖片的情況
+同時遵循現代 Web 開發最佳實踐、官方最佳建議做法，並且直接幫我修改即可
 
 ------------------------------------已完成
 現在我要實現 ProfileModal 組件的頭像上傳功能。當用戶點擊上傳頭像按鈕時，需要完成以下流程：
