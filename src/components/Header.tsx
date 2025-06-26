@@ -30,6 +30,41 @@ interface HeaderProps {
   onNotificationSettingsClick: () => void;
 }
 
+// Avatar 組件移到 Header 外部，並用 React.memo 包裹，避免每次 Header re-render 都重置 loaded 狀態
+const Avatar = React.memo(({ avatarUrl }: { avatarUrl: string | null }) => {
+  const [loaded, setLoaded] = useState(!avatarUrl); // 無頭像時預設 loaded
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setLoaded(!avatarUrl);
+    setError(false);
+  }, [avatarUrl]);
+
+  return (
+    <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-white dark:bg-slate-800 overflow-hidden">
+      {avatarUrl && !error ? (
+        <>
+          {!loaded && (
+            <div className="w-full h-full flex items-center justify-center animate-pulse bg-slate-100 dark:bg-slate-700">
+              <User className="h-5 w-5 text-slate-300" />
+            </div>
+          )}
+          <img
+            src={avatarUrl}
+            alt="頭像"
+            className={`w-full h-full object-cover rounded-xl ${loaded ? '' : 'hidden'}`}
+            onLoad={() => setLoaded(true)}
+            onError={() => setError(true)}
+            draggable={false}
+          />
+        </>
+      ) : (
+        <User className="h-5 w-5 text-white bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl w-full h-full p-2" />
+      )}
+    </div>
+  );
+});
+
 const Header: React.FC<HeaderProps> = ({
   isDarkMode,
   toggleTheme,
@@ -50,39 +85,10 @@ const Header: React.FC<HeaderProps> = ({
 
   const displayEmail = profile || email || '...';
 
-  // Avatar 元件，參考 TeamView 實作
-  const Avatar = () => {
-    const [loaded, setLoaded] = useState(false);
-    const [error, setError] = useState(false);
-    let avatarUrl: string | null = null;
-    if (typeof window !== 'undefined') {
-      avatarUrl = localStorage.getItem('cognito_picture');
-    }
-    return (
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-white dark:bg-slate-800 overflow-hidden">
-        {avatarUrl && !error ? (
-          <>
-            {!loaded && (
-              <div className="w-full h-full flex items-center justify-center animate-pulse bg-slate-100 dark:bg-slate-700">
-                <User className="h-5 w-5 text-slate-300" />
-              </div>
-            )}
-            <img
-              key={avatarUrl}
-              src={avatarUrl}
-              alt="頭像"
-              className={`w-full h-full object-cover rounded-xl ${loaded ? '' : 'hidden'}`}
-              onLoad={() => setLoaded(true)}
-              onError={() => setError(true)}
-              draggable={false}
-            />
-          </>
-        ) : (
-          <User className="h-5 w-5 text-white bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl w-full h-full p-2" />
-        )}
-      </div>
-    );
-  };
+  // 將 avatarUrl 狀態提升到 Header 層級，僅初始化時從 localStorage 取值
+  const [avatarUrl] = useState<string | null>(
+    typeof window !== 'undefined' ? localStorage.getItem('cognito_picture') : null
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -183,7 +189,7 @@ const Header: React.FC<HeaderProps> = ({
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center space-x-3 pl-4 border-l border-slate-200 dark:border-slate-700"
             >
-              <Avatar />
+              <Avatar avatarUrl={avatarUrl} />
               <div className="text-left">
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{userName || '用戶'}</span>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{displayEmail}</p>

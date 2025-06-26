@@ -137,18 +137,13 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onProfileS
         setAvatarUrl(newAvatarUrl);
         if (typeof window !== 'undefined') {
           localStorage.setItem('cognito_picture', newAvatarUrl);
+          window.location.reload();
         }
       }
       fetchAndSetUserAttributes(user);
 
       if (onProfileSaved) {
         onProfileSaved();
-      }
-
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          window.location.reload();
-        }, 300);
       }
 
       if (previewUrl) {
