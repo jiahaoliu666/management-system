@@ -42,18 +42,67 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     // 處理401未授權錯誤
     if (error.response?.status === 401) {
-      // 如果在瀏覽器端
+      // 發送一個全局事件，讓 AuthContext 處理
       if (typeof window !== 'undefined') {
-        // 清除認證信息
-        localStorage.removeItem('cognito_id_token');
-        
-        // 重定向到登入頁面
-        window.location.href = '/login';
+        window.dispatchEvent(new Event('cognito-unauthorized'));
       }
     }
-    
     return Promise.reject(error);
   }
 );
+
+// 取得 JWT token（從 localStorage）
+export function getJwtToken() {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('cognito_id_token');
+  }
+  return null;
+}
+
+// 目錄 API
+export const directoryApi = {
+  async list() {
+    const token = getJwtToken();
+    return apiClient.get('/api/folder', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+  async create(data: { id: string; name: string; parentId?: string }) {
+    const token = getJwtToken();
+    return apiClient.post('/api/folder', data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+  async update(data: { id: string; name: string }) {
+    const token = getJwtToken();
+    return apiClient.put('/api/folder', data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+  async remove(data: { id: string }) {
+    const token = getJwtToken();
+    return apiClient.delete('/api/folder', { data, headers: { Authorization: `Bearer ${token}` } });
+  }
+};
+
+// 文件 API
+export const fileApi = {
+  async create(data: { id: string; name: string; parentId?: string; s3Key: string; fileType?: string }) {
+    const token = getJwtToken();
+    return apiClient.post('/api/file', data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+  async update(data: { id: string; name: string }) {
+    const token = getJwtToken();
+    return apiClient.put('/api/file', data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+  async remove(data: { id: string; s3Key: string }) {
+    const token = getJwtToken();
+    return apiClient.delete('/api/file', { data, headers: { Authorization: `Bearer ${token}` } });
+  }
+};
 
 export default apiClient; 

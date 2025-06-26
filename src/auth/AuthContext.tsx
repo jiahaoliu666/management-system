@@ -420,6 +420,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     completeSetup, clearAllCredentials, email, userName, profile, fetchAndSetUserAttributes, handleChangePassword
   ]);
 
+  // 新增：監聽 cognito-unauthorized 事件，收到時自動登出
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      handleLogout();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('cognito-unauthorized', handleUnauthorized);
+      return () => {
+        window.removeEventListener('cognito-unauthorized', handleUnauthorized);
+      };
+    }
+  }, [handleLogout]);
+
   return (
     <AuthContext.Provider value={memoizedValue}>
       {children}

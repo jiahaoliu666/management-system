@@ -30,6 +30,7 @@
 │   │       ├── useCognito.ts    # Cognito 身份驗證 Hook
 │   │       ├── useCognitoUsers.ts # 獲取 Cognito 用戶清單的 Hook
 │   │       └── useSecurityMonitor.ts # 用戶活動安全監控 Hook
+│   │       └── useDirectoryTree.ts # 文件目錄 Hook
 │   │
 │   ├── pages/             # 應用頁面
 │   │   ├── _app.tsx         # Next.js 應用根組件
@@ -40,6 +41,8 @@
 │   │       └── invite-user.ts # 邀請成員 API
 │   │       └── delete-user.ts # 刪除成員 API
 │   │       └── cognito-users.ts # 獲取 Cognito 用戶清單 API
+│   │       └── folder.ts # 新增、修改、刪除目錄 API
+│   │       └── file.ts # 新增、修改、刪除文件 API
 │   │
 │   ├── styles/            # 樣式文件
 │   │   ├── globals.css      # 全局 CSS 樣式
@@ -80,19 +83,21 @@
 儲存、發布
 
 4. 團隊成員（TeamView）
-
+一次大量邀請成員
 
 5. 側邊欄（Sidebar）
 目錄樹（fileDirectoryTree）為實際目錄結構
 點擊分類/目錄後，觸發文件過濾或載入該分類下文件
 新增/刪除/重命名目錄等功能
 儲存密碼，並且目錄要上鎖、目錄上鎖要有密碼提示
+添加操作紀錄
 
 6. Header（Header.tsx）
 搜尋、篩選、通知、用戶選單
 搜尋欄位觸發後端搜尋 API
 篩選按鈕事件處理
 通知列表串接後端通知 API
+版本更新記錄
 
 7. 其他：
 toast 不要擋到右上角的 profile 
@@ -102,6 +107,14 @@ CORS IP 限定特定domain
 
 建立文件目錄 -> 文件編輯器 -> 文件管理 -> 儀表板 -> 通知
 ------------------------------------進行中
+同時遵循現代 Web 開發最佳實踐、官方最佳建議做法，並且直接幫我修改即可
+
+
+根據此專案需求和代碼，現在我要實現 文件目錄的功能，數據會儲存在AWS，那該如何實現？
+根據當前專案和代碼，先幫我實現新增/修改/刪除目錄或文件的功能
+前端的文件目錄不要使用模擬值，使用真實 AWS 的資料庫，同時遵循現代 Web 開發最佳實踐、官方最佳建議做法
+
+
 
 
 

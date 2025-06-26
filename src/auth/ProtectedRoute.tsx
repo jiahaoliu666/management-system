@@ -20,7 +20,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const router = useRouter();
 
   useEffect(() => {
-    if (loading) return; // 在 AuthContext 確定狀態前，不執行任何操作
+    // 僅在 loading=false 時才做跳轉判斷，避免無限跳轉
+    if (loading) return;
 
     const isPublicPage = publicPaths.includes(router.pathname);
 

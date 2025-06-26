@@ -13,6 +13,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { FileNode } from '@/types';
+import { useDirectoryTree } from '@/lib/hooks/useDirectoryTree';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -25,55 +26,6 @@ interface SidebarProps {
   setSelectedCategory: (value: string) => void;
 }
 
-const fileDirectoryTree: FileNode[] = [
-  {
-    id: 'root',
-    name: 'P400',
-    type: 'folder',
-    children: [
-      {
-        id: 'operation',
-        name: '維運團隊',
-        type: 'folder',
-        children: [
-          {
-            id: 'aws',
-            name: 'AWS',
-            type: 'folder',
-            children: []
-          },
-          {
-            id: 'azure',
-            name: 'Azure',
-            type: 'folder',
-            children: []
-          }
-        ]
-      },
-      {
-        id: 'development',
-        name: '開發部門',
-        type: 'folder',
-        count: 0,
-        children: [
-          {
-            id: 'frontend',
-            name: '前端',
-            type: 'folder',
-            children: []
-          },
-          {
-            id: 'backend',
-            name: '後端',
-            type: 'folder',
-            children: []
-          }
-        ]
-      }
-    ]
-  }
-];
-
 const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
   setIsCollapsed,
@@ -84,6 +36,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   selectedCategory,
   setSelectedCategory
 }) => {
+  const { tree, loading, error, refetch } = useDirectoryTree();
+
   const toggleFolder = (folderId: string) => {
     setExpandedFolders({
       ...expandedFolders,
@@ -263,12 +217,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               文件目錄
             </h3>
-            <button className="p-1 hover:bg-slate-100 rounded-md transition-colors duration-200">
+            <button className="p-1 hover:bg-slate-100 rounded-md transition-colors duration-200" onClick={refetch}>
               <MoreHorizontal className="h-4 w-4 text-slate-400" />
             </button>
           </div>
           <div className="space-y-1">
-            {renderDirectoryTree(fileDirectoryTree)}
+            {loading ? (
+              <div className="text-xs text-slate-400 px-2 py-2">載入中...</div>
+            ) : error ? (
+              <div className="text-xs text-red-500 px-2 py-2">{error}</div>
+            ) : (
+              renderDirectoryTree(tree)
+            )}
           </div>
         </div>
       )}
