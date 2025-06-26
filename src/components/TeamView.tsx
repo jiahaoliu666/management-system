@@ -15,6 +15,41 @@ interface TeamViewProps {
 
 const PAGE_SIZE = 10;
 
+// Avatar 組件移到 TeamView 外部，並用 React.memo 包裹，避免 TeamView re-render 造成所有頭像閃爍
+const Avatar = React.memo(({ user }: { user: CognitoUser }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+  let avatarUrl: string | null = null;
+  if (user.Attributes) {
+    const picAttr = user.Attributes.find(a => a.Name === 'picture');
+    if (picAttr && picAttr.Value) avatarUrl = picAttr.Value;
+  }
+  return (
+    <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow bg-white dark:bg-slate-800 overflow-hidden">
+      {avatarUrl && !error ? (
+        <>
+          {!loaded && (
+            <div className="w-full h-full flex items-center justify-center animate-pulse bg-slate-100 dark:bg-slate-700">
+              <User className="h-5 w-5 text-slate-300" />
+            </div>
+          )}
+          <img
+            key={avatarUrl}
+            src={avatarUrl}
+            alt="頭像"
+            className={`w-full h-full object-cover rounded-xl ${loaded ? '' : 'hidden'}`}
+            onLoad={() => setLoaded(true)}
+            onError={() => setError(true)}
+            draggable={false}
+          />
+        </>
+      ) : (
+        <User className="h-5 w-5 text-white bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl w-full h-full p-2" />
+      )}
+    </div>
+  );
+});
+
 const TeamView: React.FC<TeamViewProps> = ({ members, loading, refetch, onInviteClick, onDeleteClick }) => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -119,41 +154,6 @@ const TeamView: React.FC<TeamViewProps> = ({ members, loading, refetch, onInvite
           {part}
         </mark>
       ) : part
-    );
-  };
-
-  // 團隊成員頭像渲染元件
-  const Avatar = ({ user }: { user: CognitoUser }) => {
-    const [loaded, setLoaded] = useState(false);
-    const [error, setError] = useState(false);
-    let avatarUrl: string | null = null;
-    if (user.Attributes) {
-      const picAttr = user.Attributes.find(a => a.Name === 'picture');
-      if (picAttr && picAttr.Value) avatarUrl = picAttr.Value;
-    }
-    return (
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow bg-white dark:bg-slate-800 overflow-hidden">
-        {avatarUrl && !error ? (
-          <>
-            {!loaded && (
-              <div className="w-full h-full flex items-center justify-center animate-pulse bg-slate-100 dark:bg-slate-700">
-                <User className="h-5 w-5 text-slate-300" />
-              </div>
-            )}
-            <img
-              key={avatarUrl}
-              src={avatarUrl}
-              alt="頭像"
-              className={`w-full h-full object-cover rounded-xl ${loaded ? '' : 'hidden'}`}
-              onLoad={() => setLoaded(true)}
-              onError={() => setError(true)}
-              draggable={false}
-            />
-          </>
-        ) : (
-          <User className="h-5 w-5 text-white bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl w-full h-full p-2" />
-        )}
-      </div>
     );
   };
 
