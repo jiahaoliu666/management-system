@@ -93,8 +93,8 @@ const Dashboard: React.FC<DashboardProps> = ({ recentDocuments, recentActivities
                 <Star className="h-5 w-5 text-yellow-400" />
               </div>
               <div className="ml-2">
-                <h3 className="text-sm font-medium text-slate-900 dark:text-white">API 設計規範</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">技術文檔 • 王工程師 • 2024-03-18</p>
+                <h3 className="text-sm font-medium text-slate-900 dark:text-white">客戶進線流程</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">進線流程 • 王工程師 • 2024-03-18</p>
               </div>
             </div>
             <div className="px-6 py-4 flex items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200">
@@ -102,8 +102,8 @@ const Dashboard: React.FC<DashboardProps> = ({ recentDocuments, recentActivities
                 <Star className="h-5 w-5 text-yellow-400" />
               </div>
               <div className="ml-2">
-                <h3 className="text-sm font-medium text-slate-900 dark:text-white">UI 設計手冊</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">設計文檔 • 李設計師 • 2024-03-15</p>
+                <h3 className="text-sm font-medium text-slate-900 dark:text-white">Akamai SOP</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">操作手冊 • 李設計師 • 2024-03-15</p>
               </div>
             </div>
           </div>
