@@ -52,7 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const data = await client.send(cmd);
       res.status(200).json({ items: data.Items || [] });
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      console.error('DynamoDB Scan 失敗:', e);
+      res.status(500).json({ error: e.message, stack: e.stack, detail: e });
     }
     return;
   }
