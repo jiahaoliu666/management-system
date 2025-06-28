@@ -46,9 +46,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [modal, setModal] = useState<{ type: 'create' | 'rename' | 'delete'; nodeId: string | null } | null>(null);
   const [inputValue, setInputValue] = useState('');
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const directoryContainerRef = useRef<HTMLDivElement>(null);
 
   // 展開/收合狀態
   const [openFolders, setOpenFolders] = useState<{ [key: string]: boolean }>({});
+  
+  // 新增：hover效果控制
+  const [hoveredFolder, setHoveredFolder] = useState<string | null>(null);
 
   // 切換展開/收合
   const toggleOpen = (id: string) => {
@@ -69,6 +73,28 @@ const Sidebar: React.FC<SidebarProps> = ({
       document.removeEventListener('mousedown', handleClick);
     };
   }, [contextMenu]);
+
+  // 新增：點擊外部收縮所有資料夾
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (directoryContainerRef.current && !directoryContainerRef.current.contains(e.target as Node)) {
+        // 收縮所有資料夾，只保留頂層資料夾
+        const newOpenFolders: { [key: string]: boolean } = {};
+        tree.forEach(node => {
+          if (node.children && node.children.length > 0) {
+            newOpenFolders[node.id] = false;
+          }
+        });
+        setOpenFolders(newOpenFolders);
+        setHoveredFolder(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [tree]);
 
   // 右鍵事件
   const handleContextMenu = (e: React.MouseEvent, nodeId: string | null) => {
@@ -162,6 +188,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       const isOpen = openFolders[node.id] ?? true;
       const hasChildren = node.children && node.children.length > 0;
       const verticalMargin = level === 0 ? 'mb-3' : 'mb-1';
+      const isHovered = hoveredFolder === node.id;
+      
       return (
         <div
           key={node.id}
@@ -171,14 +199,20 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div
             className={`flex items-center py-2 px-2 rounded-xl transition-all duration-150 cursor-pointer select-none
               ${level === 0
-                ? 'bg-gradient-to-r from-indigo-50/80 to-white dark:from-indigo-900/30 dark:to-slate-900 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-indigo-100 hover:text-indigo-700 hover:shadow-sm dark:hover:bg-indigo-800'
-                : 'hover:bg-gradient-to-r hover:from-indigo-50 hover:to-indigo-100 hover:text-indigo-700 hover:shadow-sm dark:hover:bg-indigo-800'}
+                ? 'bg-gradient-to-r from-indigo-50/80 to-white dark:from-indigo-900/30 dark:to-slate-900'
+                : ''}
+              ${isHovered 
+                ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm dark:bg-indigo-800' 
+                : 'hover:bg-gradient-to-r hover:from-indigo-50 hover:to-indigo-100 hover:text-indigo-700 hover:shadow-sm dark:hover:bg-indigo-800'
+              }
               ${selectedCategory === node.id ? 'ring-2 ring-indigo-400 dark:ring-indigo-700' : ''}`}
             style={{ minHeight: 40 }}
             onClick={e => {
               if (hasChildren) toggleOpen(node.id);
               setSelectedCategory(node.id);
             }}
+            onMouseEnter={() => setHoveredFolder(node.id)}
+            onMouseLeave={() => setHoveredFolder(null)}
           >
             {hasChildren ? (
               <button
@@ -192,13 +226,33 @@ const Sidebar: React.FC<SidebarProps> = ({
             ) : (
               <span className="mr-5" />
             )}
-            <Folder
-              className={`h-5 w-5 mr-2 ${
-                level === 0
-                  ? 'text-indigo-500 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
-                  : 'text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
-              } transition-colors`}
-            />
+            {hasChildren ? (
+              isOpen ? (
+                <FolderOpen
+                  className={`h-5 w-5 mr-2 transition-all duration-200 ${
+                    level === 0
+                      ? 'text-indigo-500 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
+                      : 'text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
+                  } ${isHovered ? 'scale-110' : ''}`}
+                />
+              ) : (
+                <Folder
+                  className={`h-5 w-5 mr-2 transition-all duration-200 ${
+                    level === 0
+                      ? 'text-indigo-500 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
+                      : 'text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
+                  } ${isHovered ? 'scale-110' : ''}`}
+                />
+              )
+            ) : (
+              <Folder
+                className={`h-5 w-5 mr-2 transition-all duration-200 ${
+                  level === 0
+                    ? 'text-indigo-500 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
+                    : 'text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
+                } ${isHovered ? 'scale-110' : ''}`}
+              />
+            )}
             <span
               className="flex-1 truncate text-base font-medium text-slate-800 dark:text-slate-200 select-none"
               title={node.name}
@@ -336,6 +390,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* 文件目錄樹狀結構與空白區統一包成一個區塊，右鍵可呼叫 context menu */}
       {!isCollapsed && (
         <div 
+          ref={directoryContainerRef}
           className="flex-1 flex flex-col px-4 pb-6 min-h-0"
           onContextMenu={e => {
             // 確保整個區塊都能觸發右鍵選單
