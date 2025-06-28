@@ -53,10 +53,29 @@ const Sidebar: React.FC<SidebarProps> = ({
   
   // 新增：hover效果控制
   const [hoveredFolder, setHoveredFolder] = useState<string | null>(null);
+  
+  // 新增：全部展開/收縮狀態
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
 
   // 切換展開/收合
   const toggleOpen = (id: string) => {
     setOpenFolders(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // 新增：全部展開/收縮功能
+  const toggleAllFolders = () => {
+    const newOpenFolders: { [key: string]: boolean } = {};
+    const newIsAllExpanded = !isAllExpanded;
+    
+    // 只處理頂層資料夾
+    tree.forEach(node => {
+      if (node.children && node.children.length > 0) {
+        newOpenFolders[node.id] = newIsAllExpanded;
+      }
+    });
+    
+    setOpenFolders(newOpenFolders);
+    setIsAllExpanded(newIsAllExpanded);
   };
 
   // 關閉 context menu
@@ -73,28 +92,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       document.removeEventListener('mousedown', handleClick);
     };
   }, [contextMenu]);
-
-  // 新增：點擊外部收縮所有資料夾
-  React.useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (directoryContainerRef.current && !directoryContainerRef.current.contains(e.target as Node)) {
-        // 收縮所有資料夾，只保留頂層資料夾
-        const newOpenFolders: { [key: string]: boolean } = {};
-        tree.forEach(node => {
-          if (node.children && node.children.length > 0) {
-            newOpenFolders[node.id] = false;
-          }
-        });
-        setOpenFolders(newOpenFolders);
-        setHoveredFolder(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [tree]);
 
   // 右鍵事件
   const handleContextMenu = (e: React.MouseEvent, nodeId: string | null) => {
@@ -204,8 +201,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               ${isHovered 
                 ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm dark:bg-indigo-800' 
                 : 'hover:bg-gradient-to-r hover:from-indigo-50 hover:to-indigo-100 hover:text-indigo-700 hover:shadow-sm dark:hover:bg-indigo-800'
-              }
-              ${selectedCategory === node.id ? 'ring-2 ring-indigo-400 dark:ring-indigo-700' : ''}`}
+              }`}
             style={{ minHeight: 40 }}
             onClick={e => {
               if (hasChildren) toggleOpen(node.id);
@@ -233,7 +229,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     level === 0
                       ? 'text-indigo-500 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
                       : 'text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
-                  } ${isHovered ? 'scale-110' : ''}`}
+                  }`}
                 />
               ) : (
                 <Folder
@@ -241,7 +237,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     level === 0
                       ? 'text-indigo-500 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
                       : 'text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
-                  } ${isHovered ? 'scale-110' : ''}`}
+                  }`}
                 />
               )
             ) : (
@@ -250,7 +246,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   level === 0
                     ? 'text-indigo-500 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
                     : 'text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
-                } ${isHovered ? 'scale-110' : ''}`}
+                }`}
               />
             )}
             <span
@@ -401,8 +397,16 @@ const Sidebar: React.FC<SidebarProps> = ({
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               文件目錄
             </h3>
-            <button className="p-1 hover:bg-slate-100 rounded-md transition-colors duration-200" onClick={refetch}>
-              <MoreHorizontal className="h-4 w-4 text-slate-400" />
+            <button 
+              className="p-1 hover:bg-slate-100 rounded-md transition-colors duration-200" 
+              onClick={toggleAllFolders}
+              title={isAllExpanded ? '收縮資料夾' : '展開資料夾'}
+            >
+              {isAllExpanded ? (
+                <ChevronLeft className="h-4 w-4 text-slate-400" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-slate-400" />
+              )}
             </button>
           </div>
           <div
