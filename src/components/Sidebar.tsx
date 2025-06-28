@@ -47,6 +47,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [inputValue, setInputValue] = useState('');
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
+  // 展開/收合狀態
+  const [openFolders, setOpenFolders] = useState<{ [key: string]: boolean }>({});
+
+  // 切換展開/收合
+  const toggleOpen = (id: string) => {
+    setOpenFolders(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   // 關閉 context menu
   React.useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -129,44 +137,89 @@ const Sidebar: React.FC<SidebarProps> = ({
     });
   };
 
-  const renderDirectoryTree = (nodes: FileNode[], level = 0) => {
-    return nodes.map((node) => (
-      <div
-        key={node.id}
-        className={`flex items-center pl-${level * 4} py-1 group relative`}
-        onContextMenu={e => handleContextMenu(e, node.id)}
-      >
-        <Folder className="h-5 w-5 text-indigo-500 mr-2" />
-        <span className="text-slate-800 dark:text-slate-200 text-sm font-medium flex-1 truncate">{node.name}</span>
-        <button
-          className="ml-2 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
-          onClick={e => { e.stopPropagation(); openCreateModal(node.id); }}
-          title="新增子資料夾"
+  // 渲染樹狀結構（UI/UX 全面優化）
+  const renderDirectoryTree = (nodes: any[], level = 0) => {
+    return nodes.map(node => {
+      const isOpen = openFolders[node.id] ?? true;
+      const hasChildren = node.children && node.children.length > 0;
+      return (
+        <div
+          key={node.id}
+          className={`group relative flex flex-col${level > 0 ? ' ml-3 border-l border-slate-100 dark:border-slate-800 pl-4' : ''} mb-1`}
+          onContextMenu={e => handleContextMenu(e, node.id)}
         >
-          <FolderPlus className="h-4 w-4" />
-        </button>
-        <button
-          className="ml-1 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
-          onClick={e => { e.stopPropagation(); openRenameModal(node.id); }}
-          title="重新命名"
-        >
-          <Edit className="h-4 w-4" />
-        </button>
-        <button
-          className="ml-1 p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400"
-          onClick={e => { e.stopPropagation(); openDeleteModal(node.id); }}
-          title="刪除"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-        {/* 子節點 */}
-        {node.children && node.children.length > 0 && (
-          <div className="ml-4 border-l border-slate-200 dark:border-slate-700 pl-2">
-            {renderDirectoryTree(node.children, level + 1)}
+          <div
+            className={`flex items-center py-2 px-2 rounded-xl transition-all duration-150 cursor-pointer select-none ${
+              level === 0
+                ? 'bg-gradient-to-r from-indigo-50/80 to-white dark:from-indigo-900/30 dark:to-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-800'
+                : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+            } ${selectedCategory === node.id ? 'ring-2 ring-indigo-400 dark:ring-indigo-700' : ''}`}
+            style={{ minHeight: 40 }}
+            onClick={e => {
+              if (hasChildren) toggleOpen(node.id);
+              setSelectedCategory(node.id);
+            }}
+          >
+            {hasChildren ? (
+              <button
+                className="mr-1 p-1 rounded-full text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none hover:bg-indigo-100 dark:hover:bg-slate-700 transition"
+                onClick={e => { e.stopPropagation(); toggleOpen(node.id); }}
+                tabIndex={-1}
+                aria-label={isOpen ? '收合' : '展開'}
+              >
+                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+            ) : (
+              <span className="mr-5" />
+            )}
+            <Folder
+              className={`h-5 w-5 mr-2 ${
+                level === 0
+                  ? 'text-indigo-500 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
+                  : 'text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
+              } transition-colors`}
+            />
+            <span
+              className="flex-1 truncate text-base font-medium text-slate-800 dark:text-slate-200 select-none"
+              title={node.name}
+            >
+              {node.name}
+            </span>
+            <div className="flex items-center space-x-1 ml-2">
+              <button
+                className="p-1 rounded-full text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-slate-700 transition"
+                onClick={e => { e.stopPropagation(); openCreateModal(node.id); }}
+                title="新增子資料夾"
+                aria-label="新增子資料夾"
+              >
+                <FolderPlus className="h-4 w-4" />
+              </button>
+              <button
+                className="p-1 rounded-full text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-slate-700 transition"
+                onClick={e => { e.stopPropagation(); openRenameModal(node.id); }}
+                title="重新命名"
+                aria-label="重新命名"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+              <button
+                className="p-1 rounded-full text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition"
+                onClick={e => { e.stopPropagation(); openDeleteModal(node.id); }}
+                title="刪除"
+                aria-label="刪除"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-    ));
+          {hasChildren && isOpen && (
+            <div className="">
+              {renderDirectoryTree(node.children, level + 1)}
+            </div>
+          )}
+        </div>
+      );
+    });
   };
 
   return (
@@ -297,7 +350,15 @@ const Sidebar: React.FC<SidebarProps> = ({
               <MoreHorizontal className="h-4 w-4 text-slate-400" />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto px-2 py-2" onContextMenu={e => handleContextMenu(e, null)}>
+          <div
+            className="flex-1 overflow-y-auto px-2 py-2"
+            onContextMenu={e => {
+              if (e.target === e.currentTarget) {
+                handleContextMenu(e, null);
+              }
+            }}
+            style={{ minHeight: '200px' }}
+          >
             {loading ? (
               <div className="text-center text-slate-400 py-8">載入中...</div>
             ) : error ? (
