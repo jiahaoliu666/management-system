@@ -297,11 +297,23 @@ const Sidebar: React.FC<SidebarProps> = ({
               <MoreHorizontal className="h-4 w-4 text-slate-400" />
             </button>
           </div>
-          <div className="space-y-1">
+          <div className="flex-1 overflow-y-auto px-2 py-2" onContextMenu={e => handleContextMenu(e, null)}>
             {loading ? (
-              <div className="text-xs text-slate-400 px-2 py-2">載入中...</div>
+              <div className="text-center text-slate-400 py-8">載入中...</div>
             ) : error ? (
-              <div className="text-xs text-red-500 px-2 py-2">{error}</div>
+              <div className="text-center text-red-500 py-8">{error}</div>
+            ) : tree.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                <FolderPlus className="h-10 w-10 mb-3 text-indigo-300" />
+                <div className="mb-2 text-base">尚未建立任何資料夾</div>
+                <button
+                  className="mt-2 px-5 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition"
+                  onClick={() => openCreateModal(null)}
+                >
+                  <FolderPlus className="inline h-4 w-4 mr-2" /> 新增資料夾
+                </button>
+                <div className="mt-4 text-xs text-slate-400">（也可於空白區右鍵新增）</div>
+              </div>
             ) : (
               renderDirectoryTree(tree)
             )}
