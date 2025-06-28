@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { 
   Home as HomeIcon,
@@ -10,10 +10,15 @@ import {
   MoreHorizontal,
   Folder,
   FolderOpen,
-  ChevronDown
+  ChevronDown,
+  FolderPlus,
+  Trash2
 } from 'lucide-react';
 import { FileNode } from '@/types';
 import { useDirectoryTree } from '@/lib/hooks/useDirectoryTree';
+import ModalBase from './modals/ModalBase';
+import { showSuccess, showError } from '@/utils/notification';
+import { v4 as uuidv4 } from 'uuid';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -36,7 +41,86 @@ const Sidebar: React.FC<SidebarProps> = ({
   selectedCategory,
   setSelectedCategory
 }) => {
-  const { tree, loading, error, refetch } = useDirectoryTree();
+  const { tree, loading, error, create, update, remove, refetch } = useDirectoryTree();
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string | null } | null>(null);
+  const [modal, setModal] = useState<{ type: 'create' | 'rename' | 'delete'; nodeId: string | null } | null>(null);
+  const [inputValue, setInputValue] = useState('');
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  // 關閉 context menu
+  React.useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    if (contextMenu) {
+      document.addEventListener('mousedown', handleClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+    };
+  }, [contextMenu]);
+
+  // 右鍵事件
+  const handleContextMenu = (e: React.MouseEvent, nodeId: string | null) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, nodeId });
+  };
+
+  // Modal 操作
+  const openCreateModal = (parentId: string | null) => {
+    setInputValue('');
+    setModal({ type: 'create', nodeId: parentId });
+    setContextMenu(null);
+  };
+  const openRenameModal = (nodeId: string) => {
+    const node = findNodeById(tree, nodeId);
+    setInputValue(node?.name || '');
+    setModal({ type: 'rename', nodeId });
+    setContextMenu(null);
+  };
+  const openDeleteModal = (nodeId: string) => {
+    setModal({ type: 'delete', nodeId });
+    setContextMenu(null);
+  };
+  const closeModal = () => {
+    setModal(null);
+    setInputValue('');
+  };
+
+  // 輔助函數：尋找節點
+  function findNodeById(nodes: any[], id: string): any | undefined {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      if (node.children) {
+        const found = findNodeById(node.children, id);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  }
+
+  // Modal 提交
+  const handleModalSubmit = async () => {
+    try {
+      if (modal?.type === 'create') {
+        if (!inputValue.trim()) return showError('請輸入資料夾名稱');
+        await create({ id: uuidv4(), name: inputValue.trim(), parentId: modal.nodeId || undefined });
+        showSuccess('資料夾已建立');
+      } else if (modal?.type === 'rename' && modal.nodeId) {
+        if (!inputValue.trim()) return showError('請輸入新名稱');
+        await update({ id: modal.nodeId, name: inputValue.trim() });
+        showSuccess('資料夾已重新命名');
+      } else if (modal?.type === 'delete' && modal.nodeId) {
+        await remove({ id: modal.nodeId });
+        showSuccess('資料夾已刪除');
+      }
+      closeModal();
+    } catch (e: any) {
+      showError(e.message || '操作失敗');
+    }
+  };
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders({
@@ -47,45 +131,37 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const renderDirectoryTree = (nodes: FileNode[], level = 0) => {
     return nodes.map((node) => (
-      <div key={node.id} className={`${level > 0 ? 'ml-3' : ''}`}>
-        <div
-          className={`flex items-center py-2.5 px-3 text-sm hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 rounded-xl cursor-pointer transition-all duration-200 ease-in-out group ${
-            selectedCategory === node.id 
-              ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 border-r-3 border-indigo-500 shadow-sm' 
-              : ''
-          }`}
-          onClick={() => {
-            if (node.type === 'folder' && node.children) {
-              toggleFolder(node.id);
-            }
-            setSelectedCategory(node.id);
-          }}
+      <div
+        key={node.id}
+        className={`flex items-center pl-${level * 4} py-1 group relative`}
+        onContextMenu={e => handleContextMenu(e, node.id)}
+      >
+        <Folder className="h-5 w-5 text-indigo-500 mr-2" />
+        <span className="text-slate-800 dark:text-slate-200 text-sm font-medium flex-1 truncate">{node.name}</span>
+        <button
+          className="ml-2 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+          onClick={e => { e.stopPropagation(); openCreateModal(node.id); }}
+          title="新增子資料夾"
         >
-          <div className="flex items-center flex-1">
-            {node.children && node.children.length > 0 ? (
-              expandedFolders[node.id] ? (
-                <ChevronDown className="h-4 w-4 text-slate-400 mr-2 transition-transform duration-200" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-slate-400 mr-2 transition-transform duration-200" />
-              )
-            ) : (
-              <div className="w-6 mr-2"></div>
-            )}
-            {expandedFolders[node.id] ? (
-              <FolderOpen className="h-4 w-4 text-indigo-500 mr-3 transition-colors duration-200" />
-            ) : (
-              <Folder className="h-4 w-4 text-slate-500 mr-3 group-hover:text-indigo-500 transition-colors duration-200" />
-            )}
-            <span className="text-slate-700 font-medium">{node.name}</span>
-          </div>
-          {node.count !== undefined && (
-            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full font-medium">
-              {node.count}
-            </span>
-          )}
-        </div>
-        {node.children && expandedFolders[node.id] && (
-          <div className="ml-2 border-l border-slate-200 pl-1 mt-1">
+          <FolderPlus className="h-4 w-4" />
+        </button>
+        <button
+          className="ml-1 p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+          onClick={e => { e.stopPropagation(); openRenameModal(node.id); }}
+          title="重新命名"
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+        <button
+          className="ml-1 p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+          onClick={e => { e.stopPropagation(); openDeleteModal(node.id); }}
+          title="刪除"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+        {/* 子節點 */}
+        {node.children && node.children.length > 0 && (
+          <div className="ml-4 border-l border-slate-200 dark:border-slate-700 pl-2">
             {renderDirectoryTree(node.children, level + 1)}
           </div>
         )}
@@ -231,6 +307,64 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
         </div>
+      )}
+
+      {/* 右鍵選單 */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-2 min-w-[160px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button className="w-full px-4 py-2 text-left text-sm hover:bg-indigo-50 dark:hover:bg-slate-700" onClick={() => openCreateModal(contextMenu.nodeId)}>
+            <FolderPlus className="inline h-4 w-4 mr-2" /> 新增資料夾
+          </button>
+          {contextMenu.nodeId && (
+            <>
+              <button className="w-full px-4 py-2 text-left text-sm hover:bg-indigo-50 dark:hover:bg-slate-700" onClick={() => openRenameModal(contextMenu.nodeId!)}>
+                <Edit className="inline h-4 w-4 mr-2" /> 重新命名
+              </button>
+              <button className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/40" onClick={() => openDeleteModal(contextMenu.nodeId!)}>
+                <Trash2 className="inline h-4 w-4 mr-2" /> 刪除
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Modal 彈窗 */}
+      {modal && (
+        <ModalBase
+          isOpen={!!modal}
+          onClose={closeModal}
+          title={modal.type === 'create' ? '新增資料夾' : modal.type === 'rename' ? '重新命名資料夾' : '刪除資料夾'}
+          size="sm"
+        >
+          {modal.type === 'delete' ? (
+            <div className="space-y-6">
+              <p className="text-slate-700 dark:text-slate-200">確定要刪除此資料夾嗎？此操作無法復原。</p>
+              <div className="flex justify-end space-x-3">
+                <button onClick={closeModal} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600">取消</button>
+                <button onClick={handleModalSubmit} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg">刪除</button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={e => { e.preventDefault(); handleModalSubmit(); }} className="space-y-6">
+              <input
+                type="text"
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700/50 text-slate-900 dark:text-slate-200"
+                placeholder="請輸入資料夾名稱"
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                autoFocus
+              />
+              <div className="flex justify-end space-x-3">
+                <button onClick={closeModal} type="button" className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg border border-slate-300 dark:border-slate-600">取消</button>
+                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">{modal.type === 'create' ? '新增' : '儲存'}</button>
+              </div>
+            </form>
+          )}
+        </ModalBase>
       )}
     </div>
   );
