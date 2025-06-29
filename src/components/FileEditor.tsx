@@ -327,7 +327,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     setState({
       title: '',
       content: '',
-      category: '',
+      category: '文件',
       tags: [],
       isDirty: false,
       isSaving: false,
@@ -375,15 +375,21 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                   </div>
                 ) : (
                   <>
-                    {categories.map((category) => (
-                      <button
-                        key={category}
-                        onClick={() => handleCategorySelect(category)}
-                        className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600"
-                      >
-                        {category}
-                      </button>
-                    ))}
+                    {categories.length > 0 ? (
+                      categories.map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => handleCategorySelect(category)}
+                          className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                        >
+                          {category}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-center text-sm text-slate-500">
+                        暫無分類選項
+                      </div>
+                    )}
                     <div className="border-t border-slate-200 dark:border-slate-600 p-2">
                       <div className="flex space-x-2">
                         <input
@@ -396,7 +402,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                         />
                         <button
                           onClick={handleCustomCategory}
-                          className="px-2 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                          className="px-2 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
@@ -441,15 +447,21 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                   </div>
                 ) : (
                   <>
-                    {availableTags.filter(tag => !state.tags.includes(tag)).map((tag) => (
-                      <button
-                        key={tag}
-                        onClick={() => handleTagSelect(tag)}
-                        className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600"
-                      >
-                        {tag}
-                      </button>
-                    ))}
+                    {availableTags.filter(tag => !state.tags.includes(tag)).length > 0 ? (
+                      availableTags.filter(tag => !state.tags.includes(tag)).map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={() => handleTagSelect(tag)}
+                          className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                        >
+                          {tag}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-center text-sm text-slate-500">
+                        暫無可用標籤
+                      </div>
+                    )}
                     <div className="border-t border-slate-200 dark:border-slate-600 p-2">
                       <div className="flex space-x-2">
                         <input
@@ -462,7 +474,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                         />
                         <button
                           onClick={handleCustomTag}
-                          className="px-2 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                          className="px-2 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
                         >
                           <Plus className="h-3 w-3" />
                         </button>

@@ -83,6 +83,12 @@ export const categories = [
   }
 ];
 
+// 默認分類選項
+export const DEFAULT_CATEGORIES = ['文件', '檔案', '簡報'];
+
+// 默認標籤選項
+export const DEFAULT_TAGS = ['一般文件', '技術文件', 'SOP'];
+
 export const notificationTypes = [
   { type: 'mention', name: '提及', icon: AtSign, color: 'text-blue-500' },
   { type: 'comment', name: '評論', icon: MessageSquare, color: 'text-green-500' },

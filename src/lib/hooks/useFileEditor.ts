@@ -23,6 +23,9 @@ interface UseFileEditorOptions {
   onError?: (error: string) => void;
 }
 
+// 默認分類
+const DEFAULT_CATEGORY = '文件';
+
 export const useFileEditor = (options: UseFileEditorOptions = {}) => {
   const {
     documentId,
@@ -35,7 +38,7 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
     document: null,
     content: '',
     title: '',
-    category: '',
+    category: DEFAULT_CATEGORY,
     tags: [],
     isDirty: false,
     isSaving: false,
@@ -58,7 +61,7 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
         document: {
           id: data.id,
           title: data.name || '',
-          category: data.category || data.fileType || 'document',
+          category: data.category || data.fileType || DEFAULT_CATEGORY,
           subcategory: '',
           lastModified: data.updatedAt || data.createdAt || '',
           author: data.createdBy || '',
@@ -75,7 +78,7 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
         },
         content: data.content || '',
         title: data.name || '',
-        category: data.category || data.fileType || 'document',
+        category: data.category || data.fileType || DEFAULT_CATEGORY,
         tags: data.tags || [],
         isDirty: false,
         isLoading: false,
@@ -114,7 +117,8 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
           parentId: 'root',
           s3Key: `documents/${newId}.json`,
           fileType: 'document',
-          content: state.content
+          content: state.content,
+          category: state.category || DEFAULT_CATEGORY
         });
         
         // 重新載入文件以獲取完整資料

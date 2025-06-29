@@ -7,6 +7,12 @@ const region = process.env.AWS_REGION || process.env.NEXT_PUBLIC_COGNITO_REGION 
 const cognitoUserPoolId = process.env.COGNITO_USER_POOL_ID || process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || '';
 const cognitoClientId = process.env.COGNITO_CLIENT_ID || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '';
 
+// 默認分類選項
+const DEFAULT_CATEGORIES = ['文件', '檔案', '簡報'];
+
+// 默認標籤選項
+const DEFAULT_TAGS = ['一般文件', '技術文件', 'SOP'];
+
 const verifier = CognitoJwtVerifier.create({
   userPoolId: cognitoUserPoolId,
   tokenUse: 'id',
@@ -20,6 +26,14 @@ async function getUserIdFromToken(token: string) {
   } catch {
     return null;
   }
+}
+
+// 排序函數：確保指定項目在最前面
+function sortWithPriority<T>(items: T[], priorityItems: T[]): T[] {
+  const prioritySet = new Set(priorityItems);
+  const priority = items.filter(item => prioritySet.has(item));
+  const others = items.filter(item => !prioritySet.has(item)).sort();
+  return [...priority, ...others];
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -55,9 +69,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const items = data.Items || [];
 
       // 提取所有分類
-      const categories = new Set<string>();
+      const categories = new Set<string>(DEFAULT_CATEGORIES);
       // 提取所有標籤
-      const tags = new Set<string>();
+      const tags = new Set<string>(DEFAULT_TAGS);
 
       items.forEach(item => {
         // 提取分類
@@ -82,9 +96,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      // 轉換為數組並排序
-      const categoriesArray = Array.from(categories).sort();
-      const tagsArray = Array.from(tags).sort();
+      // 轉換為數組並按優先級排序
+      const categoriesArray = sortWithPriority(Array.from(categories), DEFAULT_CATEGORIES);
+      const tagsArray = sortWithPriority(Array.from(tags), DEFAULT_TAGS);
 
       res.status(200).json({
         categories: categoriesArray,
@@ -92,7 +106,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     } catch (e: any) {
       console.error('獲取選項失敗:', e);
-      res.status(500).json({ error: e.message });
+      // 即使資料庫查詢失敗，也返回默認選項
+      res.status(200).json({
+        categories: DEFAULT_CATEGORIES,
+        tags: DEFAULT_TAGS
+      });
     }
     return;
   }

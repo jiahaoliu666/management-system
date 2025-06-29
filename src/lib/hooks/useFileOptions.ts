@@ -6,10 +6,14 @@ interface FileOptions {
   tags: string[];
 }
 
+// 默認選項
+const DEFAULT_CATEGORIES = ['文件', '檔案', '簡報'];
+const DEFAULT_TAGS = ['一般文件', '技術文件', 'SOP'];
+
 export const useFileOptions = () => {
   const [options, setOptions] = useState<FileOptions>({
-    categories: [],
-    tags: []
+    categories: DEFAULT_CATEGORIES,
+    tags: DEFAULT_TAGS
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,10 +26,10 @@ export const useFileOptions = () => {
       setOptions(response.data);
     } catch (e: any) {
       setError(e.message || '獲取選項失敗');
-      // 如果獲取失敗，使用預設選項
+      // 如果獲取失敗，使用默認選項
       setOptions({
-        categories: ['document', 'code', 'note', 'report'],
-        tags: []
+        categories: DEFAULT_CATEGORIES,
+        tags: DEFAULT_TAGS
       });
     } finally {
       setLoading(false);
