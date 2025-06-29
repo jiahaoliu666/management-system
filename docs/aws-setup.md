@@ -1,23 +1,88 @@
 # AWS 設定指南
 
-本文檔說明如何設定 AWS 服務以支援文件編輯器功能。
+## 概述
 
-## 1. S3 儲存桶設定
+本專案使用 AWS 服務進行身份驗證、資料儲存和檔案管理。以下是完整的 AWS 設定步驟。
 
-### 1.1 創建 S3 儲存桶
+## 1. AWS Cognito 設定
 
-1. 登入 AWS Console
-2. 前往 S3 服務
-3. 點擊「創建儲存桶」
-4. 設定儲存桶名稱（例如：`my-documents-bucket`）
-5. 選擇區域（建議與應用程式相同區域）
-6. 設定權限：
-   - 取消勾選「封鎖所有公開存取」
-   - 啟用版本控制（可選，用於文件版本管理）
+### 1.1 創建 User Pool
 
-### 1.2 設定 CORS
+1. 登入 AWS Console，進入 Cognito 服務
+2. 點擊「Create user pool」
+3. 設定 User Pool 名稱：`metaage-management-system-users`
+4. 選擇「Cognito user pool sign-in options」
+5. 選擇「Email」作為用戶名
+6. 設定密碼政策：
+   - 最小長度：8
+   - 需要大寫字母：是
+   - 需要小寫字母：是
+   - 需要數字：是
+   - 需要特殊字符：是
+7. 設定 MFA：選擇「No MFA」
+8. 設定用戶帳戶恢復：選擇「Self-service recovery」
+9. 設定應用程式整合：
+   - 選擇「Public client」
+   - 應用程式名稱：`management-system-client`
+   - 允許 OAuth 流程：選擇「Authorization code grant」
+   - 允許的回調 URL：`http://localhost:3000/callback`
+   - 允許的登出 URL：`http://localhost:3000`
+10. 完成創建
 
-在 S3 儲存桶設定中添加以下 CORS 配置：
+### 1.2 獲取設定資訊
+
+- User Pool ID
+- Client ID
+- Region
+
+## 2. AWS DynamoDB 設定
+
+### 2.1 創建 Document Table
+
+```bash
+aws dynamodb create-table \
+  --table-name metaage-management-system-document \
+  --attribute-definitions \
+    AttributeName=PK,AttributeType=S \
+    AttributeName=SK,AttributeType=S \
+  --key-schema \
+    AttributeName=PK,KeyType=HASH \
+    AttributeName=SK,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --region ap-southeast-1
+```
+
+### 2.2 創建 Directory Table
+
+```bash
+aws dynamodb create-table \
+  --table-name metaage-management-system-directory \
+  --attribute-definitions \
+    AttributeName=PK,AttributeType=S \
+    AttributeName=SK,AttributeType=S \
+  --key-schema \
+    AttributeName=PK,KeyType=HASH \
+    AttributeName=SK,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --region ap-southeast-1
+```
+
+## 3. AWS S3 設定
+
+### 3.1 創建 S3 Bucket
+
+1. 登入 AWS Console，進入 S3 服務
+2. 點擊「Create bucket」
+3. Bucket 名稱：`metaage-management-system-documents`
+4. Region：選擇與其他服務相同的區域
+5. 設定權限：
+   - 取消勾選「Block all public access」
+   - 勾選「I acknowledge that the current settings might result in this bucket and the objects within becoming public」
+6. 完成創建
+
+### 3.2 設定 CORS 政策
+
+在 S3 Bucket 的「Permissions」標籤中，點擊「CORS configuration」並添加以下設定：
 
 ```json
 [
@@ -25,342 +90,174 @@
     "AllowedHeaders": ["*"],
     "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD"],
     "AllowedOrigins": ["http://localhost:3000", "https://your-domain.com"],
-    "ExposeHeaders": ["ETag"]
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
   }
 ]
 ```
 
-### 1.3 設定儲存桶政策
+### 3.3 設定 Bucket Policy
+
+在 S3 Bucket 的「Permissions」標籤中，點擊「Bucket policy」並添加以下政策：
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "AllowAuthenticatedUsers",
+      "Sid": "AllowCognitoUsers",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:user/YOUR_IAM_USER"
+        "Federated": "cognito-identity.amazonaws.com"
       },
       "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
-      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*"
+      "Resource": "arn:aws:s3:::metaage-management-system-documents/*",
+      "Condition": {
+        "StringEquals": {
+          "cognito-identity.amazonaws.com:aud": "your-identity-pool-id"
+        }
+      }
     }
   ]
 }
 ```
 
-## 2. DynamoDB 表格設定
+## 4. IAM 角色設定
 
-### 2.1 創建目錄表格 (metaage-management-system-directory)
+### 4.1 創建 Lambda 執行角色
 
-1. 前往 DynamoDB 服務
-2. 點擊「創建表格」
-3. 設定表格名稱：`metaage-management-system-directory`
-4. 主鍵設定：
-   - 分割鍵：`PK` (String)
-   - 排序鍵：`SK` (String)
-5. 設定容量：
-   - 選擇「按需」或「預設容量」
-   - 如果選擇預設容量，建議設定 5 個讀取容量單位和 5 個寫入容量單位
-
-### 2.2 創建文件表格 (metaage-management-system-document)
-
-1. 前往 DynamoDB 服務
-2. 點擊「創建表格」
-3. 設定表格名稱：`metaage-management-system-document`
-4. 主鍵設定：
-   - 分割鍵：`PK` (String)
-   - 排序鍵：`SK` (String)
-5. 設定容量：
-   - 選擇「按需」或「預設容量」
-   - 如果選擇預設容量，建議設定 5 個讀取容量單位和 5 個寫入容量單位
-
-### 2.3 表格結構
-
-#### 目錄表格 (metaage-management-system-directory)
-
-```json
-{
-  "PK": "dir#folder-id",
-  "SK": "dir#folder-id",
-  "name": "資料夾名稱",
-  "parentId": "parent-folder-id",
-  "type": "folder",
-  "createdBy": "user-id",
-  "createdAt": "2024-03-20T10:30:00Z",
-  "updatedAt": "2024-03-20T10:30:00Z"
-}
+```bash
+aws iam create-role \
+  --role-name ManagementSystemLambdaRole \
+  --assume-role-policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "lambda.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  }'
 ```
 
-#### 文件表格 (metaage-management-system-document)
+### 4.2 附加必要的政策
 
-```json
-{
-  "PK": "file#file-id",
-  "SK": "file#file-id",
-  "name": "文件名稱",
-  "parentId": "folder-id",
-  "s3Key": "documents/file-id.json",
-  "fileType": "document",
-  "type": "file",
-  "createdBy": "user-id",
-  "createdAt": "2024-03-20T10:30:00Z",
-  "updatedAt": "2024-03-20T10:30:00Z"
-}
+```bash
+# DynamoDB 政策
+aws iam attach-role-policy \
+  --role-name ManagementSystemLambdaRole \
+  --policy-arn arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+
+# S3 政策
+aws iam attach-role-policy \
+  --role-name ManagementSystemLambdaRole \
+  --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+# CloudWatch Logs 政策
+aws iam attach-role-policy \
+  --role-name ManagementSystemLambdaRole \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 ```
 
-## 3. IAM 角色和權限
+## 5. 環境變數設定
 
-### 3.1 創建 IAM 用戶
-
-1. 前往 IAM 服務
-2. 創建新用戶
-3. 附加以下政策：
-
-### 3.2 S3 政策
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:DeleteObject",
-        "s3:ListBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::YOUR_BUCKET_NAME",
-        "arn:aws:s3:::YOUR_BUCKET_NAME/*"
-      ]
-    }
-  ]
-}
-```
-
-### 3.3 DynamoDB 政策
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem",
-        "dynamodb:Query",
-        "dynamodb:Scan"
-      ],
-      "Resource": [
-        "arn:aws:dynamodb:REGION:ACCOUNT:table/metaage-management-system-directory",
-        "arn:aws:dynamodb:REGION:ACCOUNT:table/metaage-management-system-document"
-      ]
-    }
-  ]
-}
-```
-
-## 4. 環境變數設定
-
-在 `.env.local` 文件中添加以下變數：
+### 5.1 本地開發環境 (.env.local)
 
 ```env
-# AWS 設定
+# AWS 區域
 AWS_REGION=ap-southeast-1
+NEXT_PUBLIC_COGNITO_REGION=ap-southeast-1
+
+# Cognito 設定
+COGNITO_USER_POOL_ID=ap-southeast-1_xxxxxxxxx
+NEXT_PUBLIC_COGNITO_USER_POOL_ID=ap-southeast-1_xxxxxxxxx
+COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# DynamoDB 表名
+DOCUMENT_TABLE_NAME=metaage-management-system-document
+DIRECTORY_TABLE_NAME=metaage-management-system-directory
+
+# S3 Bucket
+DOCUMENTS_BUCKET_NAME=metaage-management-system-documents
+
+# AWS 憑證 (本地開發)
 AWS_ACCESS_KEY_ID=your-access-key
 AWS_SECRET_ACCESS_KEY=your-secret-key
-
-# DynamoDB 表格名稱
-DIRECTORY_TABLE_NAME=metaage-management-system-directory
-DOCUMENT_TABLE_NAME=metaage-management-system-document
-
-# S3
-DOCUMENTS_BUCKET_NAME=your-documents-bucket
-AVATAR_BUCKET_NAME=your-avatar-bucket
-
-# Cognito
-COGNITO_USER_POOL_ID=your-user-pool-id
-COGNITO_CLIENT_ID=your-client-id
-COGNITO_REGION=ap-southeast-1
-COGNITO_IDENTITY_POOL_ID=your-identity-pool-id
 ```
 
-## 5. 安全最佳實踐
+### 5.2 生產環境
 
-### 5.1 最小權限原則
+在部署平台（如 Vercel、Netlify 等）設定相同的環境變數，但不包含 AWS 憑證（使用 IAM 角色）。
 
-- 只授予應用程式所需的最小權限
-- 定期審查和更新 IAM 政策
+## 6. 檔案上傳功能
 
-### 5.2 資料加密
+### 6.1 功能概述
 
-- 啟用 S3 儲存桶的伺服器端加密
-- 啟用 DynamoDB 表格的加密
+- 支援拖拽上傳和點擊選擇
+- 自動驗證檔案類型和大小
+- 上傳到 S3 並返回公開 URL
+- 支援圖片、文件、PDF 等多種格式
+- 最大檔案大小：50MB
 
-### 5.3 監控和日誌
+### 6.2 支援的檔案類型
 
-- 啟用 CloudTrail 來追蹤 API 調用
-- 設定 CloudWatch 警報
-- 監控 S3 和 DynamoDB 的使用量
+- 圖片：JPEG, PNG, GIF, WebP
+- 文件：PDF, TXT, DOC, DOCX
+- 試算表：XLS, XLSX
+- 簡報：PPT, PPTX
 
-### 5.4 備份策略
+### 6.3 安全設定
 
-- 啟用 S3 版本控制
-- 設定 DynamoDB 點對點備份
-- 定期測試還原程序
+- 檔案類型驗證
+- 檔案大小限制
+- 用戶身份驗證
+- S3 存取控制
 
-## 6. 成本優化
+## 7. 部署檢查清單
 
-### 6.1 S3 成本優化
-
-- 使用適當的儲存類別
-- 設定生命週期政策
-- 監控資料傳輸成本
-
-### 6.2 DynamoDB 成本優化
-
-- 使用按需容量模式進行測試
-- 生產環境考慮使用預設容量
-- 監控讀寫容量使用量
-
-## 7. 故障排除
-
-### 7.1 常見問題
-
-1. **權限錯誤**
-
-   - 檢查 IAM 政策是否正確
-   - 確認環境變數是否設定正確
-
-2. **CORS 錯誤**
-
-   - 檢查 S3 儲存桶的 CORS 設定
-   - 確認允許的來源是否正確
-
-3. **連線超時**
-   - 檢查網路連線
-   - 確認 AWS 區域設定
-
-### 7.2 除錯工具
-
-- AWS CloudWatch Logs
-- AWS X-Ray
-- 瀏覽器開發者工具
-
-## 8. 部署檢查清單
-
-- [ ] S3 儲存桶已創建並設定正確的權限
-- [ ] DynamoDB 目錄表格已創建
-- [ ] DynamoDB 文件表格已創建
-- [ ] IAM 用戶已創建並附加正確的政策
+- [ ] Cognito User Pool 已創建並配置
+- [ ] DynamoDB 表已創建
+- [ ] S3 Bucket 已創建並設定 CORS
+- [ ] IAM 角色已創建並附加必要政策
 - [ ] 環境變數已正確設定
-- [ ] CORS 設定已完成
-- [ ] 已測試基本的 CRUD 操作
-- [ ] 監控和警報已設定
-- [ ] 備份策略已實施
+- [ ] 應用程式已測試檔案上傳功能
+- [ ] 安全性設定已檢查
 
-## 9. 測試和驗證
+## 8. 故障排除
 
-### 9.1 測試目錄操作
+### 8.1 常見問題
 
-使用 AWS CLI 或 DynamoDB Console 測試目錄表格：
+1. **CORS 錯誤**：檢查 S3 Bucket 的 CORS 設定
+2. **權限錯誤**：檢查 IAM 角色和政策
+3. **檔案上傳失敗**：檢查檔案大小和類型限制
+4. **身份驗證失敗**：檢查 Cognito 設定
 
-```bash
-# 創建測試目錄
-aws dynamodb put-item \
-  --table-name metaage-management-system-directory \
-  --item '{
-    "PK": {"S": "dir#test-folder-1"},
-    "SK": {"S": "dir#test-folder-1"},
-    "name": {"S": "測試資料夾"},
-    "parentId": {"S": "root"},
-    "type": {"S": "folder"},
-    "createdBy": {"S": "test-user"},
-    "createdAt": {"S": "2024-03-20T10:30:00Z"},
-    "updatedAt": {"S": "2024-03-20T10:30:00Z"}
-  }'
+### 8.2 日誌檢查
 
-# 查詢所有目錄
-aws dynamodb scan \
-  --table-name metaage-management-system-directory \
-  --filter-expression "#type = :folderType" \
-  --expression-attribute-names '{"#type": "type"}' \
-  --expression-attribute-values '{":folderType": {"S": "folder"}}'
-```
+- CloudWatch Logs
+- 瀏覽器開發者工具
+- 應用程式控制台輸出
 
-### 9.2 測試文件操作
+## 9. 成本優化
 
-測試文件表格：
+### 9.1 DynamoDB
 
-```bash
-# 創建測試文件
-aws dynamodb put-item \
-  --table-name metaage-management-system-document \
-  --item '{
-    "PK": {"S": "file#test-doc-1"},
-    "SK": {"S": "file#test-doc-1"},
-    "name": {"S": "測試文件"},
-    "parentId": {"S": "test-folder-1"},
-    "s3Key": {"S": "documents/test-doc-1.json"},
-    "fileType": {"S": "document"},
-    "type": {"S": "file"},
-    "createdBy": {"S": "test-user"},
-    "createdAt": {"S": "2024-03-20T10:30:00Z"},
-    "updatedAt": {"S": "2024-03-20T10:30:00Z"}
-  }'
+- 使用按需計費模式
+- 設定適當的讀寫容量
+- 使用 TTL 自動刪除過期資料
 
-# 查詢所有文件
-aws dynamodb scan \
-  --table-name metaage-management-system-document
-```
+### 9.2 S3
 
-### 9.3 應用程式測試
+- 使用 S3 Intelligent-Tiering
+- 設定生命週期政策
+- 定期清理未使用的檔案
 
-1. **啟動開發伺服器**
+### 9.3 監控
 
-   ```bash
-   npm run dev
-   ```
-
-2. **測試目錄功能**
-
-   - 登入應用程式
-   - 在側邊欄創建新資料夾
-   - 驗證資料夾出現在目錄樹中
-
-3. **測試文件功能**
-
-   - 點擊文件列表中的文件
-   - 驗證文件編輯器打開
-   - 編輯文件內容並儲存
-   - 驗證自動儲存功能
-
-4. **驗證資料儲存**
-   - 檢查 DynamoDB 表格中是否有新記錄
-   - 檢查 S3 儲存桶中是否有文件內容
-
-### 9.4 常見問題排查
-
-1. **權限錯誤**
-
-   - 檢查 IAM 政策是否包含兩個表格的權限
-   - 確認環境變數設定正確
-
-2. **表格不存在**
-
-   - 確認表格名稱正確
-   - 檢查表格是否在正確的區域
-
-3. **S3 存取錯誤**
-
-   - 檢查 S3 儲存桶權限
-   - 確認 CORS 設定正確
-
-4. **API 錯誤**
-   - 檢查 API 路由是否正確
-   - 確認 JWT 令牌是否有效
+- 設定 CloudWatch 警報
+- 監控 API 使用量
+- 追蹤成本趨勢

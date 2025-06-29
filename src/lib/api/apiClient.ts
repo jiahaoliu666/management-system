@@ -129,4 +129,28 @@ export const fileOptionsApi = {
   }
 };
 
+// 檔案上傳 API
+export const uploadApi = {
+  async uploadFile(file: File) {
+    const token = getJwtToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return apiClient.post('/api/upload-file', formData, {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+  
+  async deleteFile(s3Key: string) {
+    const token = getJwtToken();
+    return apiClient.delete('/api/upload-file', {
+      data: { s3Key },
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  }
+};
+
 export default apiClient; 

@@ -25,6 +25,7 @@ import { showSuccess, showError, showInfo } from '@/utils/notification';
 import { Document, Version } from '@/types';
 import { useFileEditor } from '@/lib/hooks/useFileEditor';
 import FolderSelector from './modals/FolderSelector';
+import RichTextEditor from './RichTextEditor';
 import { DEFAULT_CATEGORIES, DEFAULT_TAGS } from '@/utils/constants';
 
 interface FileEditorProps {
@@ -408,7 +409,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                           value={customCategory}
                           onChange={(e) => setCustomCategory(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleCustomCategory()}
-                          placeholder="添加分類"
+                          placeholder="添加新分類"
                           className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
                         <button
@@ -488,7 +489,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                           value={customTag}
                           onChange={(e) => setCustomTag(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleCustomTag()}
-                          placeholder="添加標籤"
+                          placeholder="添加新標籤"
                           className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
                         <button
@@ -535,14 +536,11 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       </div>
       {/* 第三列：編輯區域 */}
       <div className="flex-1 p-4">
-        <textarea
-          ref={textareaRef}
+        <RichTextEditor
           value={state.content}
-          onChange={(e) => handleContentChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="w-full h-full p-4 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          onChange={handleContentChange}
           placeholder="開始編寫您的文件..."
-          style={{ minHeight: '400px' }}
+          className="h-full"
         />
         {/* 按鈕區域 - 編輯區域內，textarea 後方，靠右，間距2px */}
         <div className="w-full flex justify-end mt-[12px] gap-3">
