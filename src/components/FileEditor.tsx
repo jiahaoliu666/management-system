@@ -15,9 +15,11 @@ import {
   Tag,
   MoreHorizontal,
   Folder,
-  ChevronDown
+  ChevronDown,
+  Plus
 } from 'lucide-react';
 import { useDirectoryTree } from '@/lib/hooks/useDirectoryTree';
+import { useFileOptions } from '@/lib/hooks/useFileOptions';
 import { fileApi } from '@/lib/api/apiClient';
 import { showSuccess, showError, showInfo } from '@/utils/notification';
 import { Document, Version } from '@/types';
@@ -72,6 +74,10 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
 
   const [showFolderSelector, setShowFolderSelector] = useState(false);
   const [newTag, setNewTag] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
+  const [customTag, setCustomTag] = useState('');
 
   const {
     document: documentData,
@@ -98,7 +104,10 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
   });
 
   const { tree: directoryTree } = useDirectoryTree();
+  const { categories, tags: availableTags, loading: optionsLoading } = useFileOptions();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+  const tagDropdownRef = useRef<HTMLDivElement>(null);
 
   // 自動調整文字區域高度
   const adjustTextareaHeight = useCallback(() => {
@@ -152,18 +161,56 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     updateCategory(newCategory);
   };
 
-  // 新增標籤
-  const handleAddTag = () => {
-    if (currentTag.trim() && !state.tags.includes(currentTag.trim())) {
-      handleTagsChange([...state.tags, currentTag.trim()]);
-      setCurrentTag('');
+  // 處理分類選擇
+  const handleCategorySelect = (selectedCategory: string) => {
+    handleCategoryChange(selectedCategory);
+    setShowCategoryDropdown(false);
+    setCustomCategory('');
+  };
+
+  // 處理自定義分類
+  const handleCustomCategory = () => {
+    if (customCategory.trim()) {
+      handleCategoryChange(customCategory.trim());
+      setShowCategoryDropdown(false);
+      setCustomCategory('');
     }
   };
 
-  // 移除標籤
-  const handleRemoveTag = (tagToRemove: string) => {
-    handleTagsChange(state.tags.filter(tag => tag !== tagToRemove));
+  // 處理標籤選擇
+  const handleTagSelect = (selectedTag: string) => {
+    if (!state.tags.includes(selectedTag)) {
+      handleTagsChange([...state.tags, selectedTag]);
+    }
+    setShowTagDropdown(false);
+    setCustomTag('');
   };
+
+  // 處理自定義標籤
+  const handleCustomTag = () => {
+    if (customTag.trim() && !state.tags.includes(customTag.trim())) {
+      handleTagsChange([...state.tags, customTag.trim()]);
+      setShowTagDropdown(false);
+      setCustomTag('');
+    }
+  };
+
+  // 點擊外部關閉下拉選單
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setShowCategoryDropdown(false);
+      }
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target as Node)) {
+        setShowTagDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // 處理鍵盤快捷鍵
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -236,7 +283,9 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           id: documentId,
           name: state.title,
           content: state.content,
-          parentId: state.selectedFolderId === 'root' ? undefined : state.selectedFolderId
+          parentId: state.selectedFolderId === 'root' ? undefined : state.selectedFolderId,
+          category: state.category,
+          tags: state.tags
         });
       } else {
         // 創建新文件
@@ -247,7 +296,9 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           parentId: state.selectedFolderId === 'root' ? undefined : state.selectedFolderId,
           s3Key: `documents/${newId}.json`,
           fileType: 'document',
-          content: state.content
+          content: state.content,
+          category: state.category,
+          tags: state.tags
         });
       }
       
@@ -257,6 +308,19 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       showError('儲存失敗');
       setState(prev => ({ ...prev, isSaving: false }));
     }
+  };
+
+  // 新增標籤
+  const handleAddTag = () => {
+    if (currentTag.trim() && !state.tags.includes(currentTag.trim())) {
+      handleTagsChange([...state.tags, currentTag.trim()]);
+      setCurrentTag('');
+    }
+  };
+
+  // 移除標籤
+  const handleRemoveTag = (tagToRemove: string) => {
+    handleTagsChange(state.tags.filter(tag => tag !== tagToRemove));
   };
 
   if (isLoading) {
@@ -287,28 +351,66 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
             />
           </div>
           
-          <div>
+          <div className="relative" ref={categoryDropdownRef}>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               分類
             </label>
-            <select
-              value={state.category}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              onKeyDown={handleKeyDown}
+            <button
+              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <option value="document">文件</option>
-              <option value="code">程式碼</option>
-              <option value="note">筆記</option>
-              <option value="report">報告</option>
-            </select>
+              <span className={state.category ? 'text-slate-900 dark:text-white' : 'text-slate-400'}>
+                {state.category || '選擇分類'}
+              </span>
+              <ChevronDown className="h-4 w-4" />
+            </button>
+            
+            {showCategoryDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {optionsLoading ? (
+                  <div className="p-3 text-center text-sm text-slate-500">
+                    載入中...
+                  </div>
+                ) : (
+                  <>
+                    {categories.map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => handleCategorySelect(category)}
+                        className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600"
+                      >
+                        {category}
+                      </button>
+                    ))}
+                    <div className="border-t border-slate-200 dark:border-slate-600 p-2">
+                      <div className="flex space-x-2">
+                        <input
+                          type="text"
+                          value={customCategory}
+                          onChange={(e) => setCustomCategory(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleCustomCategory()}
+                          placeholder="自定義分類"
+                          className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                        <button
+                          onClick={handleCustomCategory}
+                          className="px-2 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
           
-          <div>
+          <div className="relative" ref={tagDropdownRef}>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               標籤
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               {state.tags.map((tag, index) => (
                 <span
                   key={index}
@@ -323,16 +425,54 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                   </button>
                 </span>
               ))}
-              <input
-                type="text"
-                value={currentTag}
-                onChange={(e) => setCurrentTag(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                className="flex-1 min-w-0 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="新增標籤"
-                onKeyDown={handleKeyDown}
-              />
             </div>
+            <button
+              onClick={() => setShowTagDropdown(!showTagDropdown)}
+              className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <span className="text-slate-400">新增標籤</span>
+              <ChevronDown className="h-4 w-4" />
+            </button>
+            
+            {showTagDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {optionsLoading ? (
+                  <div className="p-3 text-center text-sm text-slate-500">
+                    載入中...
+                  </div>
+                ) : (
+                  <>
+                    {availableTags.filter(tag => !state.tags.includes(tag)).map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => handleTagSelect(tag)}
+                        className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                    <div className="border-t border-slate-200 dark:border-slate-600 p-2">
+                      <div className="flex space-x-2">
+                        <input
+                          type="text"
+                          value={customTag}
+                          onChange={(e) => setCustomTag(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleCustomTag()}
+                          placeholder="自定義標籤"
+                          className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                        <button
+                          onClick={handleCustomTag}
+                          className="px-2 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
           
           <div>

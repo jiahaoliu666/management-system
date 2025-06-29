@@ -117,7 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     // 新增文件 metadata + 內容到 S3
-    const { id, name, parentId, s3Key, fileType, content } = req.body;
+    const { id, name, parentId, s3Key, fileType, content, category, tags } = req.body;
     if (!id || !name) {
       res.status(400).json({ error: '缺少必要欄位' });
       return;
@@ -144,6 +144,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           parentId: { S: parentId || 'root' },
           s3Key: { S: s3Key || `documents/${id}.json` },
           fileType: { S: fileType || 'document' },
+          category: { S: category || fileType || 'document' },
+          tags: { SS: tags || [] },
           type: { S: 'file' },
           createdBy: { S: userId },
           createdAt: { S: new Date().toISOString() },
@@ -161,7 +163,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'PUT') {
     // 修改文件 metadata + 內容
-    const { id, name, content, parentId } = req.body;
+    const { id, name, content, parentId, category, tags } = req.body;
     if (!id || !name) {
       res.status(400).json({ error: '缺少必要欄位' });
       return;
@@ -208,6 +210,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         updateExpression += ', #parentId = :parentId';
         expressionAttributeNames['#parentId'] = 'parentId';
         expressionAttributeValues[':parentId'] = { S: parentId };
+      }
+
+      // 如果提供了 category，也更新它
+      if (category !== undefined) {
+        updateExpression += ', #category = :category';
+        expressionAttributeNames['#category'] = 'category';
+        expressionAttributeValues[':category'] = { S: category };
+      }
+
+      // 如果提供了 tags，也更新它
+      if (tags !== undefined) {
+        updateExpression += ', #tags = :tags';
+        expressionAttributeNames['#tags'] = 'tags';
+        expressionAttributeValues[':tags'] = { SS: tags };
       }
 
       const cmd = new UpdateItemCommand({

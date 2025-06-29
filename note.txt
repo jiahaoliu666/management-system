@@ -37,6 +37,7 @@
 │   │       ├── useCognitoUsers.ts # 獲取 Cognito 用戶清單的 Hook
 │   │       └── useSecurityMonitor.ts # 用戶活動安全監控 Hook
 │   │       └── useDirectoryTree.ts # 文件目錄 Hook
+│   │       └── useFileOptions.ts # 文件分類、標籤選項 Hook
 │   │
 │   ├── pages/             # 應用頁面
 │   │   ├── _app.tsx         # Next.js 應用根組件
@@ -49,6 +50,7 @@
 │   │       └── cognito-users.ts # 獲取 Cognito 用戶清單 API
 │   │       └── folder.ts # 新增、修改、刪除目錄 API
 │   │       └── file.ts # 新增、修改、刪除文件 API
+│   │       └── file-options.ts # 獲取文件編輯器的分類和標籤 API
 │   │
 │   ├── styles/            # 樣式文件
 │   │   ├── globals.css      # 全局 CSS 樣式
@@ -99,6 +101,7 @@
 directory 的 createdBy 值改為 mail 值，而不是 sub 值
 parentId 為何
 PK、SK值 為何
+文件目錄和頂層資料夾的間距在近一點
 
 6. Header（Header.tsx）
 搜尋、篩選、通知、用戶選單
@@ -119,8 +122,7 @@ CORS IP 限定特定domain
 建立文件目錄 (已完成) -> 文件編輯器 -> 文件管理 -> 儀表板 -> 通知
 ------------------------------------進行中
 
-
-
+調整選擇目標資料夾 的彈出視窗，當彈出視窗時 點擊視窗外要能隱藏視窗 不只點擊取消才能隱藏視窗
 
 
 ------------------------------------

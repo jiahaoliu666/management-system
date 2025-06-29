@@ -87,13 +87,13 @@ export const directoryApi = {
 
 // 文件 API
 export const fileApi = {
-  async create(data: { id: string; name: string; parentId?: string; s3Key: string; fileType?: string; content?: string }) {
+  async create(data: { id: string; name: string; parentId?: string; s3Key: string; fileType?: string; content?: string; category?: string; tags?: string[] }) {
     const token = getJwtToken();
     return apiClient.post('/api/file', data, {
       headers: { Authorization: `Bearer ${token}` }
     });
   },
-  async update(data: { id: string; name: string; content?: string; parentId?: string }) {
+  async update(data: { id: string; name: string; content?: string; parentId?: string; category?: string; tags?: string[] }) {
     const token = getJwtToken();
     return apiClient.put('/api/file', data, {
       headers: { Authorization: `Bearer ${token}` }
@@ -114,6 +114,16 @@ export const fileApi = {
     const params = parentId ? { parentId } : {};
     return apiClient.get('/api/file', {
       params,
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  }
+};
+
+// 文件選項 API
+export const fileOptionsApi = {
+  async getOptions() {
+    const token = getJwtToken();
+    return apiClient.get('/api/file-options', {
       headers: { Authorization: `Bearer ${token}` }
     });
   }
