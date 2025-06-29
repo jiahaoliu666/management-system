@@ -544,25 +544,25 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           placeholder="開始編寫您的文件..."
           style={{ minHeight: '400px' }}
         />
-      </div>
-      {/* 第四列：取消、儲存至資料夾按鈕 */}
-      <div className="p-4 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-700">
-        <button
-          onClick={handleReset}
-          className="flex items-center space-x-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shadow"
-          type="button"
-        >
-          <span>取消</span>
-        </button>
-        <button
-          onClick={handleSaveToFolder}
-          disabled={state.isSaving || !state.title.trim()}
-          className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
-          type="button"
-        >
-          <Save className="h-4 w-4" />
-          <span>儲存至資料夾</span>
-        </button>
+        {/* 按鈕區域 - 編輯區域內，textarea 後方，靠右，間距2px */}
+        <div className="w-full flex justify-end mt-[12px] gap-3">
+          <button
+            onClick={handleReset}
+            className="flex items-center space-x-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shadow"
+            type="button"
+          >
+            <span>取消</span>
+          </button>
+          <button
+            onClick={handleSaveToFolder}
+            disabled={state.isSaving || !state.title.trim()}
+            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
+            type="button"
+          >
+            <Save className="h-4 w-4" />
+            <span>儲存至資料夾</span>
+          </button>
+        </div>
       </div>
       {/* 資料夾選擇器 */}
       <FolderSelector
