@@ -25,6 +25,7 @@ import { showSuccess, showError, showInfo } from '@/utils/notification';
 import { Document, Version } from '@/types';
 import { useFileEditor } from '@/lib/hooks/useFileEditor';
 import FolderSelector from './modals/FolderSelector';
+import { DEFAULT_CATEGORIES, DEFAULT_TAGS } from '@/utils/constants';
 
 interface FileEditorProps {
   documentId?: string;
@@ -49,8 +50,8 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
   const [state, setState] = useState<EditorState>({
     title: '',
     content: '',
-    category: '',
-    tags: [],
+    category: DEFAULT_CATEGORIES[0],
+    tags: [DEFAULT_TAGS[0]],
     isDirty: false,
     isSaving: false,
     lastSaved: null,
@@ -327,8 +328,8 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     setState({
       title: '',
       content: '',
-      category: '文件',
-      tags: [],
+      category: DEFAULT_CATEGORIES[0],
+      tags: [DEFAULT_TAGS[0]],
       isDirty: false,
       isSaving: false,
       lastSaved: null,
@@ -397,7 +398,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                           value={customCategory}
                           onChange={(e) => setCustomCategory(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleCustomCategory()}
-                          placeholder="自定義分類"
+                          placeholder="添加分類"
                           className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
                         <button
@@ -415,30 +416,15 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           </div>
           <div className="flex-1 min-w-0 relative" ref={tagDropdownRef}>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">標籤</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {state.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-                >
-                  {tag}
-                  <button
-                    onClick={() => handleRemoveTag(tag)}
-                    className="ml-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
             <button
               onClick={() => setShowTagDropdown(!showTagDropdown)}
               className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <span className="text-slate-400">新增標籤</span>
+              <span className={state.tags.length > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}>
+                {state.tags.length > 0 ? state.tags.join('、') : '選擇標籤'}
+              </span>
               <ChevronDown className="h-4 w-4" />
             </button>
-            
             {showTagDropdown && (
               <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                 {optionsLoading ? (
@@ -447,20 +433,39 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                   </div>
                 ) : (
                   <>
+                    {/* 可選標籤列表 */}
                     {availableTags.filter(tag => !state.tags.includes(tag)).length > 0 ? (
-                      availableTags.filter(tag => !state.tags.includes(tag)).map((tag) => (
-                        <button
-                          key={tag}
-                          onClick={() => handleTagSelect(tag)}
-                          className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
-                        >
-                          {tag}
-                        </button>
-                      ))
-                    ) : (
-                      <div className="p-3 text-center text-sm text-slate-500">
-                        暫無可用標籤
+                      <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                        {availableTags.filter(tag => !state.tags.includes(tag)).map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleTagSelect(tag)}
+                            className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                          >
+                            {tag}
+                          </button>
+                        ))}
                       </div>
+                    ) : null}
+                    {/* 已選取標籤列表（button 樣式） */}
+                    {state.tags.length > 0 && (
+                      <div className="border-t border-slate-200 dark:border-slate-600">
+                        <div className="p-2 text-xs text-slate-500 dark:text-slate-400">已選取標籤</div>
+                        {state.tags.map((tag, index) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleRemoveTag(tag)}
+                            className="w-full text-left px-3 py-2 text-sm text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900 transition-colors flex justify-between items-center"
+                          >
+                            <span>{tag}</span>
+                            <span className="ml-2 text-indigo-400">×</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {/* 無可用標籤且無已選取標籤時顯示 */}
+                    {availableTags.filter(tag => !state.tags.includes(tag)).length === 0 && state.tags.length === 0 && (
+                      <div className="p-3 text-center text-sm text-slate-500">暫無可用標籤</div>
                     )}
                     <div className="border-t border-slate-200 dark:border-slate-600 p-2">
                       <div className="flex space-x-2">
@@ -469,7 +474,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                           value={customTag}
                           onChange={(e) => setCustomTag(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleCustomTag()}
-                          placeholder="自定義標籤"
+                          placeholder="添加標籤"
                           className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
                         <button
