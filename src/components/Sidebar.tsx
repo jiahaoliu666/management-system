@@ -195,9 +195,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
           <div
             className={`flex items-center py-2 px-2 rounded-xl transition-all duration-150 cursor-pointer select-none
-              ${level === 0
-                ? 'bg-gradient-to-r from-indigo-50/80 to-white dark:from-indigo-900/30 dark:to-slate-900'
-                : ''}
               ${isHovered 
                 ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm dark:bg-indigo-800' 
                 : 'hover:bg-gradient-to-r hover:from-indigo-50 hover:to-indigo-100 hover:text-indigo-700 hover:shadow-sm dark:hover:bg-indigo-800'
