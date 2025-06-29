@@ -270,72 +270,6 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg h-full flex flex-col">
-      {/* 工具列 */}
-      <div className="border-b border-slate-200 dark:border-slate-700 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4 flex-1">
-            {/* 資料夾選擇器 */}
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowFolderSelector(true)}
-                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-              >
-                <Folder className="h-4 w-4" />
-                <span className="truncate max-w-32">{state.selectedFolderName}</span>
-                <ChevronDown className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* 儲存狀態指示器 */}
-            <div className="flex items-center space-x-2 text-sm text-slate-500">
-              {state.isSaving && (
-                <div className="flex items-center space-x-1">
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600"></div>
-                  <span>儲存中...</span>
-                </div>
-              )}
-              {state.lastSaved && !state.isSaving && (
-                <span>上次儲存: {state.lastSaved.toLocaleTimeString()}</span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            {state.isDirty && (
-              <div className="flex items-center space-x-1 text-amber-600">
-                <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">未儲存</span>
-              </div>
-            )}
-            
-            <button
-              onClick={handleSaveToFolder}
-              disabled={state.isSaving || !state.title.trim()}
-              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors"
-            >
-              <Save className="h-4 w-4" />
-              <span>儲存至資料夾</span>
-            </button>
-            
-            <button
-              onClick={() => setShowSettings(true)}
-              className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              <Settings className="h-4 w-4" />
-            </button>
-            
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-              >
-                ×
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* 文件資訊 */}
       <div className="border-b border-slate-200 dark:border-slate-700 p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -403,26 +337,24 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              自動儲存
+              上傳至
             </label>
             <button
-              onClick={() => toggleAutoSave(!state.autoSaveEnabled)}
-              className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${
-                state.autoSaveEnabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'
-              }`}
+              onClick={() => setShowFolderSelector(true)}
+              className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <span
-                className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${
-                  state.autoSaveEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
+              <div className="flex items-center space-x-2">
+                <Folder className="h-4 w-4" />
+                <span className="truncate">{state.selectedFolderName}</span>
+              </div>
+              <ChevronDown className="h-4 w-4" />
             </button>
           </div>
         </div>
       </div>
 
       {/* 編輯區域 */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 relative">
         <textarea
           ref={textareaRef}
           value={state.content}
@@ -432,6 +364,18 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           placeholder="開始編寫您的文件..."
           style={{ minHeight: '400px' }}
         />
+        
+        {/* 儲存按鈕 - 右下角 */}
+        <div className="absolute bottom-6 right-6">
+          <button
+            onClick={handleSaveToFolder}
+            disabled={state.isSaving || !state.title.trim()}
+            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
+          >
+            <Save className="h-4 w-4" />
+            <span>儲存至資料夾</span>
+          </button>
+        </div>
       </div>
 
       {/* 設定模態框 */}
