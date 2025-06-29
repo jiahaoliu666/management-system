@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Folder, FolderOpen, ChevronRight, ChevronDown, Check } from 'lucide-react';
 import { useDirectoryTree } from '@/lib/hooks/useDirectoryTree';
 
@@ -24,6 +24,19 @@ const FolderSelector: React.FC<FolderSelectorProps> = ({
   const { tree, loading } = useDirectoryTree();
   const [expandedFolders, setExpandedFolders] = useState<{ [key: string]: boolean }>({});
   const [selectedFolderId, setSelectedFolderId] = useState<string>(currentFolderId || 'root');
+
+  // hooks 一定要在最上面
+  const modalRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose]);
 
   // 初始化展開狀態
   useEffect(() => {
@@ -131,7 +144,7 @@ const FolderSelector: React.FC<FolderSelectorProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+      <div ref={modalRef} className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
         {/* 標題 */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">

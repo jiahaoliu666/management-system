@@ -24,8 +24,7 @@ import { fileApi } from '@/lib/api/apiClient';
 import { showSuccess, showError, showInfo } from '@/utils/notification';
 import { Document, Version } from '@/types';
 import { useFileEditor } from '@/lib/hooks/useFileEditor';
-import FileEditorSettings from './FileEditorSettings';
-import FolderSelector from './FolderSelector';
+import FolderSelector from './modals/FolderSelector';
 
 interface FileEditorProps {
   documentId?: string;
@@ -323,6 +322,25 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     handleTagsChange(state.tags.filter(tag => tag !== tagToRemove));
   };
 
+  // 新增：重設所有欄位
+  const handleReset = () => {
+    setState({
+      title: '',
+      content: '',
+      category: '',
+      tags: [],
+      isDirty: false,
+      isSaving: false,
+      lastSaved: null,
+      autoSaveEnabled: true,
+      selectedFolderId: 'root',
+      selectedFolderName: '根目錄'
+    });
+    setCurrentTag('');
+    setCustomCategory('');
+    setCustomTag('');
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -334,27 +352,11 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg h-full flex flex-col">
-      {/* 文件資訊 */}
+      {/* 第一列：分類、標籤、上傳至 */}
       <div className="border-b border-slate-200 dark:border-slate-700 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              標題
-            </label>
-            <input
-              type="text"
-              value={state.title}
-              onChange={(e) => handleTitleChange(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="輸入文件標題"
-              onKeyDown={handleKeyDown}
-            />
-          </div>
-          
-          <div className="relative" ref={categoryDropdownRef}>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              分類
-            </label>
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 min-w-0 relative" ref={categoryDropdownRef}>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">分類</label>
             <button
               onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
               className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -405,11 +407,8 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               </div>
             )}
           </div>
-          
-          <div className="relative" ref={tagDropdownRef}>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              標籤
-            </label>
+          <div className="flex-1 min-w-0 relative" ref={tagDropdownRef}>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">標籤</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {state.tags.map((tag, index) => (
                 <span
@@ -474,11 +473,8 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               </div>
             )}
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              上傳至
-            </label>
+          <div className="flex-1 min-w-0">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">上傳至</label>
             <button
               onClick={() => setShowFolderSelector(true)}
               className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -492,9 +488,22 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           </div>
         </div>
       </div>
-
-      {/* 編輯區域 */}
-      <div className="flex-1 p-4 relative">
+      {/* 第二列：標題 */}
+      <div className="border-b border-slate-200 dark:border-slate-700 p-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">標題</label>
+          <input
+            type="text"
+            value={state.title}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="輸入文件標題"
+            onKeyDown={handleKeyDown}
+          />
+        </div>
+      </div>
+      {/* 第三列：編輯區域 */}
+      <div className="flex-1 p-4">
         <textarea
           ref={textareaRef}
           value={state.content}
@@ -504,40 +513,26 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           placeholder="開始編寫您的文件..."
           style={{ minHeight: '400px' }}
         />
-        
-        {/* 儲存按鈕 - 右下角 */}
-        <div className="absolute bottom-6 right-6">
-          <button
-            onClick={handleSaveToFolder}
-            disabled={state.isSaving || !state.title.trim()}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
-          >
-            <Save className="h-4 w-4" />
-            <span>儲存至資料夾</span>
-          </button>
-        </div>
       </div>
-
-      {/* 設定模態框 */}
-      <FileEditorSettings
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        settings={{
-          autoSave: state.autoSaveEnabled,
-          autoSaveInterval: 30000,
-          theme: 'auto',
-          fontSize: 14,
-          fontFamily: 'Inter',
-          lineHeight: 1.6,
-          showLineNumbers: false,
-          wordWrap: true,
-          spellCheck: true
-        }}
-        onSettingsChange={(settings) => {
-          toggleAutoSave(settings.autoSave);
-        }}
-      />
-
+      {/* 第四列：取消、儲存至資料夾按鈕 */}
+      <div className="p-4 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-700">
+        <button
+          onClick={handleReset}
+          className="flex items-center space-x-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shadow"
+          type="button"
+        >
+          <span>取消</span>
+        </button>
+        <button
+          onClick={handleSaveToFolder}
+          disabled={state.isSaving || !state.title.trim()}
+          className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
+          type="button"
+        >
+          <Save className="h-4 w-4" />
+          <span>儲存至資料夾</span>
+        </button>
+      </div>
       {/* 資料夾選擇器 */}
       <FolderSelector
         isOpen={showFolderSelector}

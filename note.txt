@@ -4,25 +4,21 @@
 │   │   └── ProtectedRoute.tsx # 受保護路由組件
 │   │
 │   ├── components/        #  UI 組件
-│   │   ├── Dashboard.tsx      # 儀表板
-│   │   ├── DocumentsView.tsx  # 文件管理
-│   │   ├── EditorView.tsx     # 文件編輯器視圖
 │   │   ├── Header.tsx         # 頁面頂部
 │   │   ├── Sidebar.tsx        # 側邊導航欄
-│   │   ├── TeamView.tsx       # 團隊成員
+│   │   ├── Dashboard.tsx      # 儀表板
+│   │   ├── DocumentsView.tsx  # 文件管理
 │   │   ├── FileEditor.tsx     # 文件編輯器
-│   │   ├── FileEditorSettings.tsx # 文件編輯器設定
-│   │   ├── FileVersionHistory.tsx # 文件版本歷史
-│   │   ├── FolderSelector.tsx # 文件目錄選擇器
-│   │   ├── FileView.tsx # 文件檢視彈出視窗
+│   │   ├── TeamView.tsx       # 團隊成員
 │   │   └── modals/          # 彈出視窗組件
 │   │       ├── ModalBase.tsx               # 基礎彈出視窗
 │   │       ├── ProfileModal.tsx            # 個人資料彈出視窗
 │   │       ├── SettingsModal.tsx           # 設定彈出視窗
-│   │       └── NotificationSettingsModal.tsx # 通知設定彈出視窗
-│   │       └── InviteMemberModal.tsx # 邀請成員彈出視窗
-│   │       └── DeleteMemberModal.tsx # 刪除成員彈出視窗
-
+│   │       ├── NotificationSettingsModal.tsx # 通知設定彈出視窗
+│   │       ├── InviteMemberModal.tsx # 邀請成員彈出視窗
+│   │       ├── DeleteMemberModal.tsx # 刪除成員彈出視窗
+│   │       └── FolderSelector.tsx # 文件目錄選擇器彈出視窗
+│   │
 │   │src/components/FileEditor.tsx
 │   ├── layouts/           # 頁面佈局組件
 │   │   └── MainLayout.tsx     # 主要應用佈局

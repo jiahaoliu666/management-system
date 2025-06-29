@@ -4,7 +4,6 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import Dashboard from '../components/Dashboard';
 import DocumentsView from '../components/DocumentsView';
-import EditorView from '../components/EditorView';
 import TeamView from '../components/TeamView';
 import { Activity, Document, TeamMember, TeamActivity, CognitoUser } from '../types';
 import ProfileModal from '../components/modals/ProfileModal';
@@ -15,7 +14,6 @@ import DeleteMemberModal from '@/components/modals/DeleteMemberModal';
 import { useAuth } from '../auth/AuthContext';
 import { useCognitoUsers } from '@/lib/hooks/useCognitoUsers';
 import FileEditor from '../components/FileEditor';
-import FileVersionHistory from '../components/FileVersionHistory';
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -74,7 +72,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const [deleteTargetUser, setDeleteTargetUser] = useState<CognitoUser | null>(null);
   const [showFileEditor, setShowFileEditor] = useState(false);
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
-  const [showVersionHistory, setShowVersionHistory] = useState(false);
+
   const { logout } = useAuth();
   const { users: cognitoUsers, loading: usersLoading, refetch } = useCognitoUsers();
 
@@ -107,7 +105,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     setDeleteTargetUser(null);
     setShowFileEditor(false);
     setCurrentDocumentId(null);
-    setShowVersionHistory(false);
   };
 
   const toggleTheme = () => {
@@ -223,18 +220,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         refetch={refetch}
         user={deleteTargetUser}
       />
-
-      {currentDocumentId && (
-        <FileVersionHistory
-          documentId={currentDocumentId}
-          isOpen={showVersionHistory}
-          onClose={() => setShowVersionHistory(false)}
-          onVersionSelect={(version) => {
-            console.log('選擇版本:', version);
-            setShowVersionHistory(false);
-          }}
-        />
-      )}
     </div>
   );
 };
