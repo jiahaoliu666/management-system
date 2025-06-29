@@ -47,11 +47,12 @@ interface EditorState {
 }
 
 const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) => {
+  const DEFAULT_TAG = DEFAULT_TAGS[0];
   const [state, setState] = useState<EditorState>({
     title: '',
     content: '',
     category: DEFAULT_CATEGORIES[0],
-    tags: [DEFAULT_TAGS[0]],
+    tags: [DEFAULT_TAG],
     isDirty: false,
     isSaving: false,
     lastSaved: null,
@@ -320,7 +321,16 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
 
   // 移除標籤
   const handleRemoveTag = (tagToRemove: string) => {
-    handleTagsChange(state.tags.filter(tag => tag !== tagToRemove));
+    // 僅當有多於一個標籤時才允許移除「一般文件」
+    if (tagToRemove === DEFAULT_TAG && state.tags.length === 1) return;
+    if (tagToRemove === DEFAULT_TAG && state.tags.length === 2 && state.tags.includes(DEFAULT_TAG)) {
+      // 僅剩兩個標籤且其中一個是「一般文件」，移除後只剩一個
+      setState(prev => ({ ...prev, tags: prev.tags.filter(tag => tag !== tagToRemove) }));
+      return;
+    }
+    if (state.tags.length > 1 || tagToRemove !== DEFAULT_TAG) {
+      setState(prev => ({ ...prev, tags: prev.tags.filter(tag => tag !== tagToRemove) }));
+    }
   };
 
   // 新增：重設所有欄位
@@ -329,7 +339,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       title: '',
       content: '',
       category: DEFAULT_CATEGORIES[0],
-      tags: [DEFAULT_TAGS[0]],
+      tags: [DEFAULT_TAG],
       isDirty: false,
       isSaving: false,
       lastSaved: null,
@@ -420,8 +430,8 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               onClick={() => setShowTagDropdown(!showTagDropdown)}
               className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <span className={state.tags.length > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}>
-                {state.tags.length > 0 ? state.tags.join('、') : '選擇標籤'}
+              <span className="text-slate-900 dark:text-white">
+                {(state.tags && state.tags.length > 0 ? state.tags : [DEFAULT_TAG]).join('、')}
               </span>
               <ChevronDown className="h-4 w-4" />
             </button>
@@ -456,9 +466,13 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                             key={tag}
                             onClick={() => handleRemoveTag(tag)}
                             className="w-full text-left px-3 py-2 text-sm text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900 transition-colors flex justify-between items-center"
+                            disabled={tag === DEFAULT_TAG && state.tags.length === 1}
+                            style={tag === DEFAULT_TAG && state.tags.length === 1 ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                           >
                             <span>{tag}</span>
-                            <span className="ml-2 text-indigo-400">×</span>
+                            {(tag !== DEFAULT_TAG || state.tags.length > 1) && (
+                              <span className="ml-2 text-indigo-400">×</span>
+                            )}
                           </button>
                         ))}
                       </div>
