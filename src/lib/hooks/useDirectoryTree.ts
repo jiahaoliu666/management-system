@@ -6,6 +6,8 @@ import { FileNode } from '@/types';
 function buildTree(items: any[]): FileNode[] {
   const map: Record<string, FileNode> = {};
   const roots: FileNode[] = [];
+  
+  // 首先創建所有節點的映射
   items.forEach(item => {
     const id = item.PK.S.replace('dir#', '');
     map[id] = {
@@ -15,15 +17,24 @@ function buildTree(items: any[]): FileNode[] {
       children: [],
     };
   });
+  
+  // 然後建立父子關係
   items.forEach(item => {
     const id = item.PK.S.replace('dir#', '');
     const parentId = item.parentId?.S?.replace('dir#', '') || 'root';
-    if (parentId && parentId !== id && map[parentId]) {
+    
+    if (parentId === 'root' || parentId === id) {
+      // 根節點或自引用節點
+      roots.push(map[id]);
+    } else if (map[parentId]) {
+      // 有父節點的節點
       map[parentId].children.push(map[id]);
     } else {
+      // 父節點不存在，作為根節點處理
       roots.push(map[id]);
     }
   });
+  
   return roots;
 }
 

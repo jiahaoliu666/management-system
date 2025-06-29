@@ -10,6 +10,11 @@
 │   │   ├── Header.tsx         # 頁面頂部
 │   │   ├── Sidebar.tsx        # 側邊導航欄
 │   │   ├── TeamView.tsx       # 團隊成員
+│   │   ├── FileEditor.tsx     # 文件編輯器
+│   │   ├── FileEditorSettings.tsx # 文件編輯器設定
+│   │   ├── FileVersionHistory.tsx # 文件版本歷史
+│   │   ├── FolderSelector.tsx # 文件目錄選擇器
+│   │   ├── FileView.tsx # 文件檢視彈出視窗
 │   │   └── modals/          # 彈出視窗組件
 │   │       ├── ModalBase.tsx               # 基礎彈出視窗
 │   │       ├── ProfileModal.tsx            # 個人資料彈出視窗
@@ -17,7 +22,8 @@
 │   │       └── NotificationSettingsModal.tsx # 通知設定彈出視窗
 │   │       └── InviteMemberModal.tsx # 邀請成員彈出視窗
 │   │       └── DeleteMemberModal.tsx # 刪除成員彈出視窗
-│   │
+
+│   │src/components/FileEditor.tsx
 │   ├── layouts/           # 頁面佈局組件
 │   │   └── MainLayout.tsx     # 主要應用佈局
 │   │
@@ -84,11 +90,15 @@
 
 4. 團隊成員（TeamView）
 一次大量邀請成員
-用戶名稱頭像和名稱要做區分
+
 
 5. 側邊欄（Sidebar）
 儲存密碼，並且目錄要上鎖、目錄上鎖要有密碼提示
 添加操作紀錄
+當點擊刪除主資料夾時，也要把次資料夾皆刪除，並且彈出提示窗詢問，刪除時也要把儲存在 AWS 的資料刪除
+directory 的 createdBy 值改為 mail 值，而不是 sub 值
+parentId 為何
+PK、SK值 為何
 
 6. Header（Header.tsx）
 搜尋、篩選、通知、用戶選單
@@ -102,7 +112,9 @@ toast 不要擋到右上角的 profile
 全局響應式頁面
 全局深/淺顏色切換
 CORS IP 限定特定domain
-policy 最小權限調整
+優化所有代碼
+優化、統一所有UI介面
+所有 policy 最小權限調整
 
 建立文件目錄 (已完成) -> 文件編輯器 -> 文件管理 -> 儀表板 -> 通知
 ------------------------------------進行中

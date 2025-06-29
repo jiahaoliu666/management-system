@@ -87,13 +87,13 @@ export const directoryApi = {
 
 // 文件 API
 export const fileApi = {
-  async create(data: { id: string; name: string; parentId?: string; s3Key: string; fileType?: string }) {
+  async create(data: { id: string; name: string; parentId?: string; s3Key: string; fileType?: string; content?: string }) {
     const token = getJwtToken();
     return apiClient.post('/api/file', data, {
       headers: { Authorization: `Bearer ${token}` }
     });
   },
-  async update(data: { id: string; name: string }) {
+  async update(data: { id: string; name: string; content?: string; parentId?: string }) {
     const token = getJwtToken();
     return apiClient.put('/api/file', data, {
       headers: { Authorization: `Bearer ${token}` }
@@ -102,6 +102,20 @@ export const fileApi = {
   async remove(data: { id: string; s3Key: string }) {
     const token = getJwtToken();
     return apiClient.delete('/api/file', { data, headers: { Authorization: `Bearer ${token}` } });
+  },
+  async get(id: string) {
+    const token = getJwtToken();
+    return apiClient.get(`/api/file?id=${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+  async list(parentId?: string) {
+    const token = getJwtToken();
+    const params = parentId ? { parentId } : {};
+    return apiClient.get('/api/file', {
+      params,
+      headers: { Authorization: `Bearer ${token}` }
+    });
   }
 };
 

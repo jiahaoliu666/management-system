@@ -2,14 +2,14 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { DynamoDBClient, PutItemCommand, UpdateItemCommand, DeleteItemCommand, ScanCommand } from '@aws-sdk/client-dynamodb';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 
-const tableName = process.env.DIRECTORY_TABLE_NAME!;
+const directoryTableName = process.env.DIRECTORY_TABLE_NAME || 'metaage-management-system-directory';
 const region = process.env.AWS_REGION || process.env.NEXT_PUBLIC_COGNITO_REGION || 'ap-southeast-1';
 const cognitoUserPoolId = process.env.COGNITO_USER_POOL_ID || process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || '';
 const cognitoClientId = process.env.COGNITO_CLIENT_ID || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '';
 
 const verifier = CognitoJwtVerifier.create({
   userPoolId: cognitoUserPoolId,
-  tokenUse: 'id', // 或 'access'，視你的前端傳哪一種 token
+  tokenUse: 'id',
   clientId: cognitoClientId,
 });
 
@@ -23,8 +23,8 @@ async function getUserIdFromToken(token: string) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!tableName) {
-    res.status(500).json({ error: 'Table name not configured' });
+  if (!directoryTableName) {
+    res.status(500).json({ error: 'Directory table name not configured' });
     return;
   }
   const auth = req.headers.authorization;
@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 查詢所有目錄
     try {
       const cmd = new ScanCommand({
-        TableName: tableName,
+        TableName: directoryTableName,
         FilterExpression: '#type = :folderType',
         ExpressionAttributeNames: { '#type': 'type' },
         ExpressionAttributeValues: { ':folderType': { S: 'folder' } }
@@ -67,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     try {
       const cmd = new PutItemCommand({
-        TableName: tableName,
+        TableName: directoryTableName,
         Item: {
           PK: { S: `dir#${id}` },
           SK: { S: `dir#${id}` },
@@ -75,6 +75,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           parentId: { S: parentId || 'root' },
           type: { S: 'folder' },
           createdBy: { S: userId },
+          createdAt: { S: new Date().toISOString() },
+          updatedAt: { S: new Date().toISOString() },
         },
         ConditionExpression: 'attribute_not_exists(PK)',
       });
@@ -94,14 +96,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     try {
       const cmd = new UpdateItemCommand({
-        TableName: tableName,
+        TableName: directoryTableName,
         Key: {
           PK: { S: `dir#${id}` },
           SK: { S: `dir#${id}` },
         },
-        UpdateExpression: 'SET #n = :name',
-        ExpressionAttributeNames: { '#n': 'name' },
-        ExpressionAttributeValues: { ':name': { S: name } },
+        UpdateExpression: 'SET #n = :name, #updatedAt = :updatedAt',
+        ExpressionAttributeNames: { '#n': 'name', '#updatedAt': 'updatedAt' },
+        ExpressionAttributeValues: { 
+          ':name': { S: name },
+          ':updatedAt': { S: new Date().toISOString() }
+        },
       });
       await client.send(cmd);
       res.status(200).json({ success: true });
@@ -119,7 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     try {
       const cmd = new DeleteItemCommand({
-        TableName: tableName,
+        TableName: directoryTableName,
         Key: {
           PK: { S: `dir#${id}` },
           SK: { S: `dir#${id}` },

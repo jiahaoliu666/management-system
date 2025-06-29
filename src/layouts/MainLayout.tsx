@@ -14,6 +14,8 @@ import InviteMemberModal from '@/components/modals/InviteMemberModal';
 import DeleteMemberModal from '@/components/modals/DeleteMemberModal';
 import { useAuth } from '../auth/AuthContext';
 import { useCognitoUsers } from '@/lib/hooks/useCognitoUsers';
+import FileEditor from '../components/FileEditor';
+import FileVersionHistory from '../components/FileVersionHistory';
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -70,6 +72,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTargetUser, setDeleteTargetUser] = useState<CognitoUser | null>(null);
+  const [showFileEditor, setShowFileEditor] = useState(false);
+  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const { logout } = useAuth();
   const { users: cognitoUsers, loading: usersLoading, refetch } = useCognitoUsers();
 
@@ -100,6 +105,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     setShowInviteModal(false);
     setShowDeleteModal(false);
     setDeleteTargetUser(null);
+    setShowFileEditor(false);
+    setCurrentDocumentId(null);
+    setShowVersionHistory(false);
   };
 
   const toggleTheme = () => {
@@ -111,9 +119,26 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       case 'dashboard':
         return <Dashboard recentDocuments={recentDocuments} recentActivities={recentActivities} teamMemberCount={cognitoUsers.length} />;
       case 'documents':
-        return <DocumentsView documents={recentDocuments} onDocumentClick={() => {}} />;
+        return <DocumentsView 
+          documents={recentDocuments} 
+          onDocumentClick={(doc) => {
+            setCurrentDocumentId(doc.id);
+            setShowFileEditor(true);
+          }} 
+        />;
       case 'editor':
-        return <EditorView onSave={() => {}} onPublish={() => {}} onPreview={() => {}} />;
+        return <FileEditor 
+          documentId={currentDocumentId || undefined}
+          onClose={() => {
+            setShowFileEditor(false);
+            setCurrentDocumentId(null);
+          }}
+          onSave={(document) => {
+            console.log('文件已儲存:', document);
+            setShowFileEditor(false);
+            setCurrentDocumentId(null);
+          }}
+        />;
       case 'team':
         return <TeamView 
           members={cognitoUsers} 
@@ -198,6 +223,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         refetch={refetch}
         user={deleteTargetUser}
       />
+
+      {currentDocumentId && (
+        <FileVersionHistory
+          documentId={currentDocumentId}
+          isOpen={showVersionHistory}
+          onClose={() => setShowVersionHistory(false)}
+          onVersionSelect={(version) => {
+            console.log('選擇版本:', version);
+            setShowVersionHistory(false);
+          }}
+        />
+      )}
     </div>
   );
 };

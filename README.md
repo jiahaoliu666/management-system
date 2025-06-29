@@ -1,158 +1,202 @@
-# 管理系統
+# MetaAge 管理系統
 
-這是一個基於 Next.js 和 AWS Cognito 的現代化管理系統，提供文件管理、團隊協作等功能。
+一個基於 Next.js、React 和 AWS 的現代化文件管理系統，支援文件編輯、版本控制和團隊協作。
 
 ## 功能特色
 
-### 身份驗證
-- 基於 AWS Cognito 的用戶認證
-- 支援首次登入密碼設定
-- 安全的會話管理
+- 🔐 **AWS Cognito 認證** - 安全的用戶認證和授權
+- 📁 **文件管理** - 支援文件創建、編輯、分類和標籤
+- 🔄 **自動儲存** - 智能自動儲存功能，防止資料遺失
+- 📊 **版本控制** - 文件版本歷史和回滾功能
+- 👥 **團隊協作** - 用戶管理和權限控制
+- 🌙 **深色模式** - 支援淺色和深色主題
+- 📱 **響應式設計** - 適配各種設備尺寸
 
-### 團隊管理
-- 邀請新成員加入團隊
-- 自動記錄成員加入日期（使用 birthdate 屬性）
-- 成員狀態管理（啟用、停用、待驗證等）
-- 安全的成員刪除功能
-- **即時搜尋功能**：支援姓名和信箱的模糊搜尋，不區分大小寫
+## 技術架構
 
-### 文件管理
-- 文件上傳和管理
-- 分類和標籤系統
-- 權限控制
+### 前端技術
 
-## 團隊成員加入日期功能
+- **Next.js 15** - React 框架
+- **React 19** - 用戶介面庫
+- **TypeScript** - 類型安全
+- **Tailwind CSS** - 樣式框架
+- **Lucide React** - 圖標庫
 
-### 功能說明
-當管理員邀請新成員時，系統會自動在 AWS Cognito 用戶池中設置該成員的 `birthdate` 屬性為當前日期（YYYY-MM-DD 格式），作為團隊加入日期記錄。
+### 後端服務
 
-### 技術實現
-1. **API 層面** (`src/pages/api/invite-user.ts`)
-   - 在創建用戶時自動設置 `birthdate` 屬性
-   - 使用 `getCurrentDateString()` 函數生成標準格式日期
+- **AWS DynamoDB** - 資料儲存
+  - `metaage-management-system-directory` - 目錄結構
+  - `metaage-management-system-document` - 文件內容
+- **AWS S3** - 文件內容儲存
+- **AWS Cognito** - 用戶認證
+- **Next.js API Routes** - 後端 API
 
-2. **前端顯示** (`src/components/TeamView.tsx`)
-   - 優先顯示 `birthdate` 屬性作為加入日期
-   - 如果沒有 `birthdate`，則使用 `UserCreateDate` 作為備用
-   - 使用 `formatJoinDate()` 函數格式化日期顯示
+## 快速開始
 
-3. **工具函數** (`src/utils/constants.ts`)
-   - `formatJoinDate()`: 將日期格式化為本地化格式
-   - `getCurrentDateString()`: 獲取當前日期字符串
+### 1. 環境設定
 
-### 使用方式
-1. 在團隊管理頁面點擊「邀請成員」
-2. 輸入新成員的電子郵件地址
-3. 點擊「發送邀請」
-4. 系統會自動設置加入日期並創建用戶
+複製環境變數範例文件：
 
-## 團隊成員即時搜尋功能
-
-### 功能特色
-- **即時搜尋**：輸入時立即過濾結果，無需點擊搜尋按鈕
-- **模糊搜尋**：支援部分匹配，不區分大小寫
-- **多欄位搜尋**：同時搜尋成員姓名和電子郵件地址
-- **搜尋高亮**：搜尋結果中的關鍵字會以黃色高亮顯示
-- **快捷鍵支援**：
-  - `Ctrl+F`（或 `Cmd+F`）：快速聚焦到搜尋框
-  - `Escape`：清空搜尋內容
-- **搜尋統計**：顯示搜尋結果數量和總成員數
-- **智能排序**：支援按名稱、信箱、狀態、加入日期排序
-
-### 技術實現
-1. **前端搜尋邏輯** (`src/components/TeamView.tsx`)
-   - 使用 `useMemo` 優化搜尋性能
-   - 實時過濾和排序
-   - 搜尋結果高亮顯示
-
-2. **用戶體驗優化**
-   - 搜尋框清空按鈕
-   - 鍵盤快捷鍵支援
-   - 搜尋提示和統計信息
-   - 響應式設計
-
-### 使用方式
-1. 在團隊成員頁面的搜尋框中輸入關鍵字
-2. 系統會即時顯示符合條件的成員
-3. 使用排序下拉選單調整顯示順序
-4. 使用快捷鍵提升操作效率
-
-## 開發環境設置
-
-### 環境變數
-```env
-NEXT_PUBLIC_COGNITO_USER_POOL_ID=your_user_pool_id
-NEXT_PUBLIC_COGNITO_CLIENT_ID=your_client_id
-NEXT_PUBLIC_COGNITO_REGION=ap-southeast-1
-COGNITO_REGION=ap-southeast-1
-COGNITO_USER_POOL_ID=your_user_pool_id
+```bash
+cp .env.example .env.local
 ```
 
-### 安裝依賴
+編輯 `.env.local` 文件，填入您的 AWS 配置：
+
+```env
+# AWS 設定
+AWS_REGION=ap-southeast-1
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+
+# DynamoDB 表格名稱
+DIRECTORY_TABLE_NAME=metaage-management-system-directory
+DOCUMENT_TABLE_NAME=metaage-management-system-document
+
+# S3
+DOCUMENTS_BUCKET_NAME=your-documents-bucket
+AVATAR_BUCKET_NAME=your-avatar-bucket
+
+# Cognito
+COGNITO_USER_POOL_ID=your-user-pool-id
+COGNITO_CLIENT_ID=your-client-id
+COGNITO_REGION=ap-southeast-1
+COGNITO_IDENTITY_POOL_ID=your-identity-pool-id
+```
+
+### 2. 安裝依賴
+
 ```bash
 npm install
 ```
 
-### 啟動開發服務器
+### 3. 啟動開發伺服器
+
 ```bash
 npm run dev
 ```
 
-## 技術棧
+開啟 [http://localhost:3000](http://localhost:3000) 查看應用程式。
 
-- **前端**: Next.js, React, TypeScript, Tailwind CSS
-- **身份驗證**: AWS Cognito
-- **UI 組件**: Lucide React Icons
-- **通知**: React Hot Toast
+## AWS 設定
 
-## 項目結構
+詳細的 AWS 設定說明請參考 [AWS 設定指南](docs/aws-setup.md)。
+
+### 必要服務
+
+1. **DynamoDB 表格**
+
+   - `metaage-management-system-directory` - 儲存目錄結構
+   - `metaage-management-system-document` - 儲存文件元資料
+
+2. **S3 儲存桶**
+
+   - 用於儲存文件內容
+
+3. **Cognito 用戶池**
+
+   - 用戶認證和授權
+
+4. **IAM 角色和權限**
+   - 應用程式存取 AWS 服務的權限
+
+## 專案結構
 
 ```
 src/
-├── auth/           # 身份驗證相關
-├── components/     # React 組件
-├── lib/           # 工具庫和配置
-├── pages/         # Next.js 頁面和 API
-├── styles/        # 樣式文件
-├── types/         # TypeScript 類型定義
-└── utils/         # 工具函數
+├── auth/                 # 認證相關
+│   ├── AuthContext.tsx   # 認證上下文
+│   └── ProtectedRoute.tsx # 路由保護
+├── components/           # React 組件
+│   ├── FileEditor.tsx    # 文件編輯器
+│   ├── FileVersionHistory.tsx # 版本歷史
+│   ├── modals/          # 模態框組件
+│   └── ...
+├── lib/                  # 工具庫
+│   ├── api/             # API 客戶端
+│   ├── hooks/           # 自定義 Hooks
+│   └── config/          # 配置
+├── pages/               # Next.js 頁面
+│   ├── api/            # API 路由
+│   └── ...
+└── types/               # TypeScript 類型定義
 ```
 
-## Getting Started
+## 資料模型
 
-First, run the development server:
+### 目錄表格 (metaage-management-system-directory)
+
+```json
+{
+  "PK": "dir#folder-id",
+  "SK": "dir#folder-id",
+  "name": "資料夾名稱",
+  "parentId": "parent-folder-id",
+  "type": "folder",
+  "createdBy": "user-id",
+  "createdAt": "2024-03-20T10:30:00Z",
+  "updatedAt": "2024-03-20T10:30:00Z"
+}
+```
+
+### 文件表格 (metaage-management-system-document)
+
+```json
+{
+  "PK": "file#file-id",
+  "SK": "file#file-id",
+  "name": "文件名稱",
+  "parentId": "folder-id",
+  "s3Key": "documents/file-id.json",
+  "fileType": "document",
+  "type": "file",
+  "createdBy": "user-id",
+  "createdAt": "2024-03-20T10:30:00Z",
+  "updatedAt": "2024-03-20T10:30:00Z"
+}
+```
+
+## 開發指南
+
+### 新增功能
+
+1. 在 `src/components/` 中創建新的 React 組件
+2. 在 `src/lib/hooks/` 中創建自定義 Hooks
+3. 在 `src/pages/api/` 中創建 API 路由
+4. 更新 `src/types/` 中的類型定義
+
+### 測試
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 執行 lint 檢查
+npm run lint
+
+# 建置專案
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 部署
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+### Vercel 部署
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+1. 將專案推送到 GitHub
+2. 在 Vercel 中連接 GitHub 倉庫
+3. 設定環境變數
+4. 部署
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+### 其他平台
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+專案支援部署到任何支援 Next.js 的平台，如：
 
-## Learn More
+- AWS Amplify
+- Netlify
+- Railway
+- 自建伺服器
 
-To learn more about Next.js, take a look at the following resources:
+## 貢獻
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+歡迎提交 Issue 和 Pull Request！
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 授權
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+MIT License
