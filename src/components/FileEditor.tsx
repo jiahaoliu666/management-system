@@ -80,6 +80,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
   const [showTagDropdown, setShowTagDropdown] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
   const [customTag, setCustomTag] = useState('');
+  const [showPreview, setShowPreview] = useState(true);
 
   const {
     document: documentData,
@@ -261,9 +262,9 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     showSuccess('文件已下載');
   };
 
-  // 處理預覽
-  const handlePreview = () => {
-    showInfo('預覽功能開發中');
+  // 處理預覽按鈕
+  const handleTogglePreview = () => {
+    setShowPreview((prev) => !prev);
   };
 
   const handleFolderSelect = (folderId: string, folderName: string) => {
@@ -352,6 +353,14 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     setCustomCategory('');
     setCustomTag('');
   };
+
+  // 新增一個簡單的 PreviewContent 元件，僅渲染 HTML
+  const PreviewContent: React.FC<{ content: string }> = ({ content }) => (
+    <div
+      className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto min-h-[400px] p-4 bg-white dark:bg-slate-800 rounded-lg"
+      dangerouslySetInnerHTML={{ __html: content }}
+    />
+  );
 
   if (isLoading) {
     return (
@@ -522,30 +531,39 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       </div>
       {/* 第二列：標題 */}
       <div className="border-b border-slate-200 dark:border-slate-700 p-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">標題</label>
-          <input
-            type="text"
-            value={state.title}
-            onChange={(e) => handleTitleChange(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="輸入文件標題"
-            onKeyDown={handleKeyDown}
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">標題</label>
+        <input
+          type="text"
+          value={state.title}
+          onChange={(e) => handleTitleChange(e.target.value)}
+          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="輸入文件標題"
+          onKeyDown={handleKeyDown}
+        />
+      </div>
+      {/* 第三列：編輯區域 + 預覽區域 */}
+      <div className={`p-4 flex flex-col md:flex-row gap-6 h-full`}>
+        <div className={`flex-1 min-w-0 ${showPreview ? 'md:w-1/2' : 'w-full'}`}> {/* 編輯器區域 */}
+          <RichTextEditor
+            value={state.content}
+            onChange={handleContentChange}
+            placeholder="開始編寫您的文件..."
+            className="h-full"
+            onCancel={handleReset}
+            onSave={handleSaveToFolder}
+            isSaving={state.isSaving}
+            canSave={!!state.title.trim()}
+            showPreview={showPreview}
+            onTogglePreview={handleTogglePreview}
           />
         </div>
-      </div>
-      {/* 第三列：編輯區域 */}
-      <div className="p-4">
-        <RichTextEditor
-          value={state.content}
-          onChange={handleContentChange}
-          placeholder="開始編寫您的文件..."
-          className="h-full"
-          onCancel={handleReset}
-          onSave={handleSaveToFolder}
-          isSaving={state.isSaving}
-          canSave={!!state.title.trim()}
-        />
+        {showPreview && (
+          <div className="flex-1 min-w-0 md:w-1/2 overflow-auto">
+            <div className="w-full h-full min-h-[400px] p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-600">
+              <PreviewContent content={state.content} />
+            </div>
+          </div>
+        )}
       </div>
       {/* 資料夾選擇器 */}
       <FolderSelector

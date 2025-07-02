@@ -35,7 +35,8 @@ import {
   Redo,
   Eraser,
   Palette,
-  Save
+  Save,
+  Eye
 } from 'lucide-react';
 import FileUpload from './FileUpload';
 
@@ -49,6 +50,9 @@ interface RichTextEditorProps {
   onSave?: () => void;
   isSaving?: boolean;
   canSave?: boolean;
+  showPreview?: boolean;
+  onTogglePreview?: () => void;
+  toolbarRight?: React.ReactNode;
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -60,7 +64,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onCancel,
   onSave,
   isSaving,
-  canSave
+  canSave,
+  showPreview,
+  onTogglePreview,
+  toolbarRight
 }) => {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
@@ -168,243 +175,256 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     <div className={`rich-text-editor ${className}`}>
       {/* 工具列 */}
       <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
-        <div className="flex flex-wrap gap-2">
-          {/* 文字樣式 */}
-          <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-            <button
-              onClick={() => editor.chain().focus().toggleBold().run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('bold') 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="粗體 (Ctrl+B)"
-            >
-              <Bold className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().toggleItalic().run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('italic') 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="斜體 (Ctrl+I)"
-            >
-              <Italic className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().toggleUnderline().run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('underline') 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="底線 (Ctrl+U)"
-            >
-              <UnderlineIcon className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().toggleStrike().run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('strike') 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="刪除線"
-            >
-              <Strikethrough className="h-4 w-4" />
-            </button>
-          </div>
+        <div className="flex flex-wrap gap-2 items-center justify-between">
+          <div className="flex flex-wrap gap-2">
+            {/* 文字樣式 */}
+            <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
+              <button
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('bold') 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="粗體 (Ctrl+B)"
+              >
+                <Bold className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('italic') 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="斜體 (Ctrl+I)"
+              >
+                <Italic className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().toggleUnderline().run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('underline') 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="底線 (Ctrl+U)"
+              >
+                <UnderlineIcon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().toggleStrike().run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('strike') 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="刪除線"
+              >
+                <Strikethrough className="h-4 w-4" />
+              </button>
+            </div>
 
-          {/* 標題 */}
-          <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-            <button
-              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('heading', { level: 1 }) 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="標題 1"
-            >
-              <Heading1 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('heading', { level: 2 }) 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="標題 2"
-            >
-              <Heading2 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('heading', { level: 3 }) 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="標題 3"
-            >
-              <Heading3 className="h-4 w-4" />
-            </button>
-          </div>
+            {/* 標題 */}
+            <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
+              <button
+                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('heading', { level: 1 }) 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="標題 1"
+              >
+                <Heading1 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('heading', { level: 2 }) 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="標題 2"
+              >
+                <Heading2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('heading', { level: 3 }) 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="標題 3"
+              >
+                <Heading3 className="h-4 w-4" />
+              </button>
+            </div>
 
-          {/* 對齊方式 */}
-          <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-            <button
-              onClick={() => editor.chain().focus().setTextAlign('left').run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive({ textAlign: 'left' }) 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="靠左對齊"
-            >
-              <AlignLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().setTextAlign('center').run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive({ textAlign: 'center' }) 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="置中對齊"
-            >
-              <AlignCenter className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().setTextAlign('right').run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive({ textAlign: 'right' }) 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="靠右對齊"
-            >
-              <AlignRight className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive({ textAlign: 'justify' }) 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="兩端對齊"
-            >
-              <AlignJustify className="h-4 w-4" />
-            </button>
-          </div>
+            {/* 對齊方式 */}
+            <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
+              <button
+                onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive({ textAlign: 'left' }) 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="靠左對齊"
+              >
+                <AlignLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive({ textAlign: 'center' }) 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="置中對齊"
+              >
+                <AlignCenter className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive({ textAlign: 'right' }) 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="靠右對齊"
+              >
+                <AlignRight className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive({ textAlign: 'justify' }) 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="兩端對齊"
+              >
+                <AlignJustify className="h-4 w-4" />
+              </button>
+            </div>
 
-          {/* 清單 */}
-          <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-            <button
-              onClick={() => editor.chain().focus().toggleBulletList().run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('bulletList') 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="無序清單"
-            >
-              <List className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().toggleOrderedList().run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('orderedList') 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="有序清單"
-            >
-              <ListOrdered className="h-4 w-4" />
-            </button>
-          </div>
+            {/* 清單 */}
+            <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
+              <button
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('bulletList') 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="無序清單"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('orderedList') 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="有序清單"
+              >
+                <ListOrdered className="h-4 w-4" />
+              </button>
+            </div>
 
-          {/* 插入功能 */}
-          <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-            <button
-              onClick={() => setShowLinkDialog(true)}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('link') 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="插入連結"
-            >
-              <LinkIcon className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setShowFileUpload(true)}
-              className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
-              title="插入圖片"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </button>
-            <button
-              onClick={insertTable}
-              className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
-              title="插入表格"
-            >
-              <TableIcon className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('codeBlock') 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="插入程式碼區塊"
-            >
-              <Code className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().toggleBlockquote().run()}
-              className={`p-2 rounded transition-colors ${
-                editor.isActive('blockquote') 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                  : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
-              title="插入引用"
-            >
-              <Quote className="h-4 w-4" />
-            </button>
-          </div>
+            {/* 插入功能 */}
+            <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
+              <button
+                onClick={() => setShowLinkDialog(true)}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('link') 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="插入連結"
+              >
+                <LinkIcon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setShowFileUpload(true)}
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                title="插入圖片"
+              >
+                <ImageIcon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={insertTable}
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                title="插入表格"
+              >
+                <TableIcon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('codeBlock') 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="插入程式碼區塊"
+              >
+                <Code className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                className={`p-2 rounded transition-colors ${
+                  editor.isActive('blockquote') 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+                title="插入引用"
+              >
+                <Quote className="h-4 w-4" />
+              </button>
+            </div>
 
-          {/* 其他功能 */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
-              className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
-              title="清除格式"
-            >
-              <Eraser className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().undo().run()}
-              disabled={!editor.can().undo()}
-              className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
-              title="復原"
-            >
-              <Undo className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => editor.chain().focus().redo().run()}
-              disabled={!editor.can().redo()}
-              className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
-              title="重做"
-            >
-              <Redo className="h-4 w-4" />
-            </button>
+            {/* 其他功能 */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                title="清除格式"
+              >
+                <Eraser className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().undo().run()}
+                disabled={!editor.can().undo()}
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
+                title="復原"
+              >
+                <Undo className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().redo().run()}
+                disabled={!editor.can().redo()}
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
+                title="重做"
+              >
+                <Redo className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={onTogglePreview}
+                className={`ml-1 p-2 rounded transition-colors border border-transparent ${showPreview ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'}`}
+                title={showPreview ? '隱藏預覽' : '顯示預覽'}
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+            </div>
           </div>
+          {toolbarRight && (
+            <div className="flex items-center ml-auto">{toolbarRight}</div>
+          )}
         </div>
       </div>
 
