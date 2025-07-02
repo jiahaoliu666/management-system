@@ -541,10 +541,68 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           onKeyDown={handleKeyDown}
         />
       </div>
-      {/* 第三列：編輯區域 + 預覽區域 */}
-      <div className="p-4">
-        <div className={`flex flex-col md:flex-row gap-6 h-full w-full`}>
-          <div className={`flex-1 min-w-0`}> {/* 編輯器區域 */}
+      {/* 工具列 + 編輯區域/預覽區域 */}
+      <div className={`flex-1 flex flex-col w-full`}>
+        {/* 工具列獨立區塊 */}
+        <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
+          <RichTextEditor
+            value={state.content}
+            onChange={handleContentChange}
+            placeholder="開始編寫您的文件..."
+            className="h-full"
+            onCancel={handleReset}
+            onSave={handleSaveToFolder}
+            isSaving={state.isSaving}
+            canSave={!!state.title.trim()}
+            showPreview={showPreview}
+            onTogglePreview={handleTogglePreview}
+            toolbarOnly={true}
+          />
+        </div>
+        {/* 編輯區域與預覽區域 */}
+        {showPreview ? (
+          <div className="flex flex-row gap-6 h-full w-full">
+            {/* 編輯區域 */}
+            <div className="flex-1 min-w-0 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800">
+              <RichTextEditor
+                value={state.content}
+                onChange={handleContentChange}
+                placeholder="開始編寫您的文件..."
+                className="h-full"
+                onCancel={handleReset}
+                onSave={handleSaveToFolder}
+                isSaving={state.isSaving}
+                canSave={!!state.title.trim()}
+                showPreview={showPreview}
+                onTogglePreview={handleTogglePreview}
+                contentOnly={true}
+              />
+              {/* 操作按鈕區塊 */}
+              <div className="mt-4 flex justify-end gap-3" role="group" aria-label="文件操作">
+                <button
+                  onClick={handleReset}
+                  className="flex items-center space-x-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shadow"
+                  type="button"
+                >
+                  <span>取消</span>
+                </button>
+                <button
+                  onClick={handleSaveToFolder}
+                  disabled={state.isSaving || !state.title.trim()}
+                  className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
+                  type="button"
+                >
+                  <span>儲存至資料夾</span>
+                </button>
+              </div>
+            </div>
+            {/* 預覽區域 */}
+            <div className="flex-1 min-w-0 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800">
+              <PreviewContent content={state.content} />
+            </div>
+          </div>
+        ) : (
+          <div className="border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 h-full">
             <RichTextEditor
               value={state.content}
               onChange={handleContentChange}
@@ -556,16 +614,10 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               canSave={!!state.title.trim()}
               showPreview={showPreview}
               onTogglePreview={handleTogglePreview}
+              contentOnly={true}
             />
           </div>
-          {showPreview && (
-            <div className="flex-1 min-w-0 overflow-auto">
-              <div className="w-full h-full min-h-[400px] p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-600">
-                <PreviewContent content={state.content} />
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
       {/* 資料夾選擇器 */}
       <FolderSelector
