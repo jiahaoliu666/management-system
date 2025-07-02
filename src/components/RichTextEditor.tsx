@@ -34,7 +34,8 @@ import {
   Undo,
   Redo,
   Eraser,
-  Palette
+  Palette,
+  Save
 } from 'lucide-react';
 import FileUpload from './FileUpload';
 
@@ -44,6 +45,10 @@ interface RichTextEditorProps {
   placeholder?: string;
   readOnly?: boolean;
   className?: string;
+  onCancel?: () => void;
+  onSave?: () => void;
+  isSaving?: boolean;
+  canSave?: boolean;
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -51,7 +56,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onChange,
   placeholder = '開始編寫您的文件...',
   readOnly = false,
-  className = ''
+  className = '',
+  onCancel,
+  onSave,
+  isSaving,
+  canSave
 }) => {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
@@ -403,6 +412,31 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       <div className="border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800">
         <EditorContent editor={editor} />
       </div>
+      {/* 操作按鈕區塊，緊貼外框下方靠右 */}
+      {(onCancel || onSave) && (
+        <div className="mt-4 flex justify-end gap-3" role="group" aria-label="文件操作">
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="flex items-center space-x-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shadow"
+              type="button"
+            >
+              <span>取消</span>
+            </button>
+          )}
+          {onSave && (
+            <button
+              onClick={onSave}
+              disabled={isSaving || canSave === false}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
+              type="button"
+            >
+              <Save className="h-4 w-4" />
+              <span>儲存至資料夾</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 連結對話框 */}
       {showLinkDialog && (

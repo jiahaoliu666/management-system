@@ -535,32 +535,17 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
         </div>
       </div>
       {/* 第三列：編輯區域 */}
-      <div className="flex-1 p-4">
+      <div className="p-4">
         <RichTextEditor
           value={state.content}
           onChange={handleContentChange}
           placeholder="開始編寫您的文件..."
           className="h-full"
+          onCancel={handleReset}
+          onSave={handleSaveToFolder}
+          isSaving={state.isSaving}
+          canSave={!!state.title.trim()}
         />
-        {/* 按鈕區域 - 編輯區域內，textarea 後方，靠右，間距2px */}
-        <div className="w-full flex justify-end mt-[12px] gap-3">
-          <button
-            onClick={handleReset}
-            className="flex items-center space-x-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shadow"
-            type="button"
-          >
-            <span>取消</span>
-          </button>
-          <button
-            onClick={handleSaveToFolder}
-            disabled={state.isSaving || !state.title.trim()}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
-            type="button"
-          >
-            <Save className="h-4 w-4" />
-            <span>儲存至資料夾</span>
-          </button>
-        </div>
       </div>
       {/* 資料夾選擇器 */}
       <FolderSelector
