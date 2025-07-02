@@ -542,28 +542,30 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
         />
       </div>
       {/* 第三列：編輯區域 + 預覽區域 */}
-      <div className={`p-4 flex flex-col md:flex-row gap-6 h-full`}>
-        <div className={`flex-1 min-w-0 ${showPreview ? 'md:w-1/2' : 'w-full'}`}> {/* 編輯器區域 */}
-          <RichTextEditor
-            value={state.content}
-            onChange={handleContentChange}
-            placeholder="開始編寫您的文件..."
-            className="h-full"
-            onCancel={handleReset}
-            onSave={handleSaveToFolder}
-            isSaving={state.isSaving}
-            canSave={!!state.title.trim()}
-            showPreview={showPreview}
-            onTogglePreview={handleTogglePreview}
-          />
-        </div>
-        {showPreview && (
-          <div className="flex-1 min-w-0 md:w-1/2 overflow-auto">
-            <div className="w-full h-full min-h-[400px] p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-600">
-              <PreviewContent content={state.content} />
-            </div>
+      <div className="p-4">
+        <div className={`flex flex-col md:flex-row gap-6 h-full w-full`}>
+          <div className={`flex-1 min-w-0`}> {/* 編輯器區域 */}
+            <RichTextEditor
+              value={state.content}
+              onChange={handleContentChange}
+              placeholder="開始編寫您的文件..."
+              className="h-full"
+              onCancel={handleReset}
+              onSave={handleSaveToFolder}
+              isSaving={state.isSaving}
+              canSave={!!state.title.trim()}
+              showPreview={showPreview}
+              onTogglePreview={handleTogglePreview}
+            />
           </div>
-        )}
+          {showPreview && (
+            <div className="flex-1 min-w-0 overflow-auto">
+              <div className="w-full h-full min-h-[400px] p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-600">
+                <PreviewContent content={state.content} />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
       {/* 資料夾選擇器 */}
       <FolderSelector
