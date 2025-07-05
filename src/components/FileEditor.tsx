@@ -545,11 +545,11 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           onKeyDown={handleKeyDown}
         />
       </div>
-      {/* 工具列 + 編輯區域/預覽區域 */}
-      <div className={`flex-1 flex flex-col w-full`}>
-        {/* 工具列獨立區塊 */}
-        <div className="p-4">
-          <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
+      {/* 工具列 + 編輯/預覽區域合併為同一容器，僅保留一條分隔線，圓角只在外層 */}
+      <div className="p-4">
+        <div className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
+          {/* 工具列 */}
+          <div className="p-3 bg-slate-50 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
             <RichTextEditor
               value={state.content}
               onChange={handleContentChange}
@@ -564,12 +564,13 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               toolbarOnly={true}
             />
           </div>
-        </div>
-        {/* 編輯區域與預覽區域 */}
-        {showPreview ? (
-          <div className="flex flex-row gap-6 h-full w-full">
-            {/* 編輯區域 */}
-            <div className="flex-1 min-w-0">
+          {/* 編輯區域或預覽區域（只保留一個） */}
+          <div className="px-3 py-2">
+            {showPreview ? (
+              <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl min-h-[400px] text-slate-900 dark:text-white">
+                <div dangerouslySetInnerHTML={{ __html: state.content }} />
+              </div>
+            ) : (
               <RichTextEditor
                 value={state.content}
                 onChange={handleContentChange}
@@ -583,47 +584,27 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                 onTogglePreview={handleTogglePreview}
                 contentOnly={true}
               />
-              {/* 操作按鈕區塊 */}
-              <div className="mt-4 flex justify-end gap-3" role="group" aria-label="文件操作">
-                <button
-                  onClick={handleReset}
-                  className="flex items-center space-x-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shadow"
-                  type="button"
-                >
-                  <span>取消</span>
-                </button>
-                <button
-                  onClick={handleSaveToFolder}
-                  disabled={state.isSaving || !state.title.trim()}
-                  className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
-                  type="button"
-                >
-                  <span>儲存至資料夾</span>
-                </button>
-              </div>
-            </div>
-            {/* 預覽區域 */}
-            <div className="flex-1 min-w-0">
-              <PreviewContent content={state.content} />
+            )}
+            {/* 操作按鈕區塊 */}
+            <div className="mt-4 flex justify-end gap-3" role="group" aria-label="文件操作">
+              <button
+                onClick={handleReset}
+                className="flex items-center space-x-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shadow"
+                type="button"
+              >
+                <span>取消</span>
+              </button>
+              <button
+                onClick={handleSaveToFolder}
+                disabled={state.isSaving || !state.title.trim()}
+                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
+                type="button"
+              >
+                <span>儲存至資料夾</span>
+              </button>
             </div>
           </div>
-        ) : (
-          <div className="h-full">
-            <RichTextEditor
-              value={state.content}
-              onChange={handleContentChange}
-              placeholder="開始編寫您的文件..."
-              className="h-full"
-              onCancel={handleReset}
-              onSave={handleSaveToFolder}
-              isSaving={state.isSaving}
-              canSave={!!state.title.trim()}
-              showPreview={showPreview}
-              onTogglePreview={handleTogglePreview}
-              contentOnly={true}
-            />
-          </div>
-        )}
+        </div>
       </div>
       {/* 資料夾選擇器 */}
       <FolderSelector
