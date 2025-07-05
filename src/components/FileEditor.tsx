@@ -548,20 +548,22 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       {/* 工具列 + 編輯區域/預覽區域 */}
       <div className={`flex-1 flex flex-col w-full`}>
         {/* 工具列獨立區塊 */}
-        <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
-          <RichTextEditor
-            value={state.content}
-            onChange={handleContentChange}
-            placeholder="開始編寫您的文件..."
-            className="h-full"
-            onCancel={handleReset}
-            onSave={handleSaveToFolder}
-            isSaving={state.isSaving}
-            canSave={!!state.title.trim()}
-            showPreview={showPreview}
-            onTogglePreview={handleTogglePreview}
-            toolbarOnly={true}
-          />
+        <div className="p-4">
+          <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
+            <RichTextEditor
+              value={state.content}
+              onChange={handleContentChange}
+              placeholder="開始編寫您的文件..."
+              className="h-full"
+              onCancel={handleReset}
+              onSave={handleSaveToFolder}
+              isSaving={state.isSaving}
+              canSave={!!state.title.trim()}
+              showPreview={showPreview}
+              onTogglePreview={handleTogglePreview}
+              toolbarOnly={true}
+            />
+          </div>
         </div>
         {/* 編輯區域與預覽區域 */}
         {showPreview ? (
