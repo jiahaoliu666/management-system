@@ -16,7 +16,8 @@ import {
   MoreHorizontal,
   Folder,
   ChevronDown,
-  Plus
+  Plus,
+  Edit
 } from 'lucide-react';
 import { useDirectoryTree } from '@/lib/hooks/useDirectoryTree';
 import { useFileOptions } from '@/lib/hooks/useFileOptions';
@@ -564,11 +565,42 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               toolbarOnly={true}
             />
           </div>
-          {/* 編輯區域或預覽區域（只保留一個） */}
+          {/* 編輯區域和預覽區域 */}
           <div className="px-3 py-2">
             {showPreview ? (
-              <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl min-h-[400px] text-slate-900 dark:text-white">
-                <div dangerouslySetInnerHTML={{ __html: state.content }} />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 min-h-[500px]">
+                {/* 左半部：編輯區域 */}
+                <div className="relative">
+                  <RichTextEditor
+                    value={state.content}
+                    onChange={handleContentChange}
+                    placeholder="開始編寫您的文件..."
+                    className="h-full"
+                    onCancel={handleReset}
+                    onSave={handleSaveToFolder}
+                    isSaving={state.isSaving}
+                    canSave={!!state.title.trim()}
+                    showPreview={showPreview}
+                    onTogglePreview={handleTogglePreview}
+                    contentOnly={true}
+                  />
+                </div>
+                {/* 右半部：預覽區域 */}
+                <div className="relative">
+                  <div className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg p-4 min-h-[500px] overflow-y-auto">
+                    <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none text-slate-900 dark:text-white">
+                      {state.content ? (
+                        <div dangerouslySetInnerHTML={{ __html: state.content }} />
+                      ) : (
+                        <div className="text-slate-400 dark:text-slate-500 italic text-center py-8">
+                          <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>開始編寫內容以查看預覽...</p>
+                          <p className="text-sm mt-2">支援富文本格式、圖片、表格等</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               <RichTextEditor

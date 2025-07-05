@@ -440,7 +440,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     return (
       <div className={`rich-text-editor ${className}`}>
         {/* 編輯器內容 */}
-        <EditorContent editor={editor} />
+        <div className="min-h-[500px]">
+          <EditorContent editor={editor} />
+        </div>
       </div>
     );
   }
