@@ -357,9 +357,13 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
   // 新增一個簡單的 PreviewContent 元件，僅渲染 HTML
   const PreviewContent: React.FC<{ content: string }> = ({ content }) => (
     <div
-      className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto min-h-[400px] p-4 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700"
-      dangerouslySetInnerHTML={{ __html: content }}
-    />
+      className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 mx-6"
+    >
+      <div
+        className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto min-h-[400px] text-slate-900 dark:text-white"
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    </div>
   );
 
   if (isLoading) {
