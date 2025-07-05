@@ -81,7 +81,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
   const [showTagDropdown, setShowTagDropdown] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
   const [customTag, setCustomTag] = useState('');
-  const [showPreview, setShowPreview] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
 
   const {
     document: documentData,
@@ -588,15 +588,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                 {/* 右半部：預覽區域 */}
                 <div className="border-l border-slate-200 dark:border-slate-600 pl-4">
                   <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none text-slate-900 dark:text-white min-h-[500px]">
-                    {state.content ? (
-                      <div dangerouslySetInnerHTML={{ __html: state.content }} />
-                    ) : (
-                      <div className="text-slate-400 dark:text-slate-500 italic text-center py-8">
-                        <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>開始編寫內容以查看預覽...</p>
-                        <p className="text-sm mt-2">支援富文本格式、圖片、表格等</p>
-                      </div>
-                    )}
+                    <div dangerouslySetInnerHTML={{ __html: state.content }} />
                   </div>
                 </div>
               </div>
@@ -619,7 +611,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
         </div>
       </div>
       {/* 操作按鈕區塊 - 移到容器外部 */}
-      <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+      <div className="px-4">
         <div className="flex justify-end gap-3" role="group" aria-label="文件操作">
           <button
             onClick={handleReset}
