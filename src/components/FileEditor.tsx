@@ -357,7 +357,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
   // 新增一個簡單的 PreviewContent 元件，僅渲染 HTML
   const PreviewContent: React.FC<{ content: string }> = ({ content }) => (
     <div
-      className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto min-h-[400px] p-4 bg-white dark:bg-slate-800 rounded-lg"
+      className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto min-h-[400px] p-4 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700"
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );
@@ -563,7 +563,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
         {showPreview ? (
           <div className="flex flex-row gap-6 h-full w-full">
             {/* 編輯區域 */}
-            <div className="flex-1 min-w-0 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800">
+            <div className="flex-1 min-w-0">
               <RichTextEditor
                 value={state.content}
                 onChange={handleContentChange}
@@ -597,12 +597,12 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               </div>
             </div>
             {/* 預覽區域 */}
-            <div className="flex-1 min-w-0 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800">
+            <div className="flex-1 min-w-0">
               <PreviewContent content={state.content} />
             </div>
           </div>
         ) : (
-          <div className="border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 h-full">
+          <div className="h-full">
             <RichTextEditor
               value={state.content}
               onChange={handleContentChange}

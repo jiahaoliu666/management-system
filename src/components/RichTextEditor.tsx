@@ -125,7 +125,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[400px] p-4'
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[400px] p-4 text-slate-900 dark:text-white'
       }
     }
   });
@@ -440,7 +440,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     return (
       <div className={`rich-text-editor ${className}`}>
         {/* 編輯器內容 */}
-        <div className="border-none">
+        <div className="border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
           <EditorContent editor={editor} />
         </div>
       </div>
@@ -705,7 +705,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </div>
 
       {/* 編輯器內容 */}
-      <div className="border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800">
+      <div className="border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
         <EditorContent editor={editor} />
       </div>
       {/* 操作按鈕區塊，緊貼外框下方靠右 */}
