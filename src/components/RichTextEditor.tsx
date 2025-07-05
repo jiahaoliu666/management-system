@@ -440,8 +440,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     return (
       <div className={`rich-text-editor ${className}`}>
         {/* 編輯器內容 */}
-        <div className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 mx-6">
-          <EditorContent editor={editor} />
+        <div className="p-4">
+          <div className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+            <EditorContent editor={editor} />
+          </div>
         </div>
       </div>
     );
@@ -705,8 +707,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </div>
 
       {/* 編輯器內容 */}
-      <div className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 mx-6">
-        <EditorContent editor={editor} />
+      <div className="p-4">
+        <div className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+          <EditorContent editor={editor} />
+        </div>
       </div>
       {/* 操作按鈕區塊，緊貼外框下方靠右 */}
       {(onCancel || onSave) && (
