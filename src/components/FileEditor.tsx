@@ -568,9 +568,9 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           {/* 編輯區域和預覽區域 */}
           <div className="px-3 py-2">
             {showPreview ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 min-h-[500px]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px]">
                 {/* 左半部：編輯區域 */}
-                <div className="relative">
+                <div className="pr-4">
                   <RichTextEditor
                     value={state.content}
                     onChange={handleContentChange}
@@ -586,19 +586,17 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                   />
                 </div>
                 {/* 右半部：預覽區域 */}
-                <div className="relative">
-                  <div className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg p-4 min-h-[500px] overflow-y-auto">
-                    <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none text-slate-900 dark:text-white">
-                      {state.content ? (
-                        <div dangerouslySetInnerHTML={{ __html: state.content }} />
-                      ) : (
-                        <div className="text-slate-400 dark:text-slate-500 italic text-center py-8">
-                          <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>開始編寫內容以查看預覽...</p>
-                          <p className="text-sm mt-2">支援富文本格式、圖片、表格等</p>
-                        </div>
-                      )}
-                    </div>
+                <div className="border-l border-slate-200 dark:border-slate-600 pl-4">
+                  <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none text-slate-900 dark:text-white min-h-[500px]">
+                    {state.content ? (
+                      <div dangerouslySetInnerHTML={{ __html: state.content }} />
+                    ) : (
+                      <div className="text-slate-400 dark:text-slate-500 italic text-center py-8">
+                        <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>開始編寫內容以查看預覽...</p>
+                        <p className="text-sm mt-2">支援富文本格式、圖片、表格等</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -617,25 +615,27 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                 contentOnly={true}
               />
             )}
-            {/* 操作按鈕區塊 */}
-            <div className="mt-4 flex justify-end gap-3" role="group" aria-label="文件操作">
-              <button
-                onClick={handleReset}
-                className="flex items-center space-x-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shadow"
-                type="button"
-              >
-                <span>取消</span>
-              </button>
-              <button
-                onClick={handleSaveToFolder}
-                disabled={state.isSaving || !state.title.trim()}
-                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
-                type="button"
-              >
-                <span>儲存至資料夾</span>
-              </button>
-            </div>
           </div>
+        </div>
+      </div>
+      {/* 操作按鈕區塊 - 移到容器外部 */}
+      <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+        <div className="flex justify-end gap-3" role="group" aria-label="文件操作">
+          <button
+            onClick={handleReset}
+            className="flex items-center space-x-2 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors shadow"
+            type="button"
+          >
+            <span>取消</span>
+          </button>
+          <button
+            onClick={handleSaveToFolder}
+            disabled={state.isSaving || !state.title.trim()}
+            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
+            type="button"
+          >
+            <span>儲存至資料夾</span>
+          </button>
         </div>
       </div>
       {/* 資料夾選擇器 */}
