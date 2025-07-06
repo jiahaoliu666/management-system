@@ -159,7 +159,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       })
     ],
     content: value,
-    editable: !readOnly,
+    editable: !readOnly && !isFileLinkMode,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
@@ -221,8 +221,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // 處理文件連結儲存
   const handleFileLinkSave = useCallback(() => {
-    if (!fileLinkData.title.trim() || !fileLinkData.url.trim()) {
-      alert('請填寫文件標題和連結網址');
+    if (!fileLinkData.url.trim()) {
+      alert('請填寫文件連結網址');
       return;
     }
     
@@ -250,44 +250,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button
                 onClick={() => editor.chain().focus().toggleBold().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('bold') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="粗體 (Ctrl+B)"
               >
                 <Bold className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleItalic().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('italic') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="斜體 (Ctrl+I)"
               >
                 <Italic className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleUnderline().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('underline') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="底線 (Ctrl+U)"
               >
                 <UnderlineIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleStrike().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('strike') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="刪除線"
               >
                 <Strikethrough className="h-4 w-4" />
@@ -298,33 +302,36 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button
                 onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('heading', { level: 1 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="標題 1"
               >
                 <Heading1 className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('heading', { level: 2 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="標題 2"
               >
                 <Heading2 className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('heading', { level: 3 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="標題 3"
               >
                 <Heading3 className="h-4 w-4" />
@@ -335,44 +342,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button
                 onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive({ textAlign: 'left' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="靠左對齊"
               >
                 <AlignLeft className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive({ textAlign: 'center' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="置中對齊"
               >
                 <AlignCenter className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive({ textAlign: 'right' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="靠右對齊"
               >
                 <AlignRight className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive({ textAlign: 'justify' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="兩端對齊"
               >
                 <AlignJustify className="h-4 w-4" />
@@ -383,22 +394,24 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button
                 onClick={() => editor.chain().focus().toggleBulletList().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('bulletList') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="無序清單"
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('orderedList') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="有序清單"
               >
                 <ListOrdered className="h-4 w-4" />
@@ -409,47 +422,52 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button
                 onClick={() => setShowLinkDialog(true)}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('link') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="插入連結"
               >
                 <LinkIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setShowFileUpload(true)}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                disabled={isFileLinkMode}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="插入圖片"
               >
                 <ImageIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={insertTable}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                disabled={isFileLinkMode}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="插入表格"
               >
                 <TableIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('codeBlock') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="插入程式碼區塊"
               >
                 <Code className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('blockquote') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="插入引用"
               >
                 <Quote className="h-4 w-4" />
@@ -460,23 +478,24 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                disabled={isFileLinkMode}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="清除格式"
               >
                 <Eraser className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().undo().run()}
-                disabled={!editor.can().undo()}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
+                disabled={!editor.can().undo() || isFileLinkMode}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`}
                 title="復原"
               >
                 <Undo className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().redo().run()}
-                disabled={!editor.can().redo()}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
+                disabled={!editor.can().redo() || isFileLinkMode}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`}
                 title="重做"
               >
                 <Redo className="h-4 w-4" />
@@ -484,11 +503,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <button
                 type="button"
                 onClick={onTogglePreview}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   showPreview 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title={showPreview ? '隱藏預覽' : '顯示預覽'}
               >
                 <Eye className="h-4 w-4" />
@@ -516,19 +536,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  文件標題 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={fileLinkData.title}
-                  onChange={(e) => updateFileLinkData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="請輸入文件標題"
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   文件連結 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -551,22 +558,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   rows={4}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                 />
-              </div>
-              
-              <div className="flex items-center gap-3 pt-4">
-                <button
-                  onClick={handleFileLinkSave}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-                >
-                  <FileText className="h-4 w-4" />
-                  儲存文件連結
-                </button>
-                <button
-                  onClick={toggleFileLinkMode}
-                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                >
-                  取消
-                </button>
               </div>
             </div>
           </div>
@@ -590,44 +581,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button
                 onClick={() => editor.chain().focus().toggleBold().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('bold') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="粗體 (Ctrl+B)"
               >
                 <Bold className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleItalic().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('italic') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="斜體 (Ctrl+I)"
               >
                 <Italic className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleUnderline().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('underline') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="底線 (Ctrl+U)"
               >
                 <UnderlineIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleStrike().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('strike') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="刪除線"
               >
                 <Strikethrough className="h-4 w-4" />
@@ -638,33 +633,36 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button
                 onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('heading', { level: 1 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="標題 1"
               >
                 <Heading1 className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('heading', { level: 2 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="標題 2"
               >
                 <Heading2 className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('heading', { level: 3 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="標題 3"
               >
                 <Heading3 className="h-4 w-4" />
@@ -675,44 +673,48 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button
                 onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive({ textAlign: 'left' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="靠左對齊"
               >
                 <AlignLeft className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive({ textAlign: 'center' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="置中對齊"
               >
                 <AlignCenter className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive({ textAlign: 'right' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="靠右對齊"
               >
                 <AlignRight className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive({ textAlign: 'justify' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="兩端對齊"
               >
                 <AlignJustify className="h-4 w-4" />
@@ -723,22 +725,24 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button
                 onClick={() => editor.chain().focus().toggleBulletList().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('bulletList') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="無序清單"
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('orderedList') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="有序清單"
               >
                 <ListOrdered className="h-4 w-4" />
@@ -749,47 +753,52 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button
                 onClick={() => setShowLinkDialog(true)}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('link') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="插入連結"
               >
                 <LinkIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setShowFileUpload(true)}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                disabled={isFileLinkMode}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="插入圖片"
               >
                 <ImageIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={insertTable}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                disabled={isFileLinkMode}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="插入表格"
               >
                 <TableIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('codeBlock') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="插入程式碼區塊"
               >
                 <Code className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   editor.isActive('blockquote') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="插入引用"
               >
                 <Quote className="h-4 w-4" />
@@ -800,23 +809,24 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                disabled={isFileLinkMode}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="清除格式"
               >
                 <Eraser className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().undo().run()}
-                disabled={!editor.can().undo()}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
+                disabled={!editor.can().undo() || isFileLinkMode}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`}
                 title="復原"
               >
                 <Undo className="h-4 w-4" />
               </button>
               <button
                 onClick={() => editor.chain().focus().redo().run()}
-                disabled={!editor.can().redo()}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
+                disabled={!editor.can().redo() || isFileLinkMode}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`}
                 title="重做"
               >
                 <Redo className="h-4 w-4" />
@@ -824,11 +834,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <button
                 type="button"
                 onClick={onTogglePreview}
+                disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
                   showPreview 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
+                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title={showPreview ? '隱藏預覽' : '顯示預覽'}
               >
                 <Eye className="h-4 w-4" />
@@ -849,19 +860,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <div className="p-4">
           <div className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  文件標題 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={fileLinkData.title}
-                  onChange={(e) => updateFileLinkData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="請輸入文件標題"
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-              
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   文件連結 <span className="text-red-500">*</span>
@@ -887,22 +885,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                 />
               </div>
-              
-              <div className="flex items-center gap-3 pt-4">
-                <button
-                  onClick={handleFileLinkSave}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-                >
-                  <FileText className="h-4 w-4" />
-                  儲存文件連結
-                </button>
-                <button
-                  onClick={toggleFileLinkMode}
-                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                >
-                  取消
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -916,7 +898,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       )}
       
       {/* 操作按鈕區塊，緊貼外框下方靠右 */}
-      {(onCancel || onSave) && !isFileLinkMode && (
+      {(onCancel || onSave) && (
         <div className="mt-4 flex justify-end gap-3" role="group" aria-label="文件操作">
           {onCancel && (
             <button

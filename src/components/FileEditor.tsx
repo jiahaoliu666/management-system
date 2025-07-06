@@ -258,15 +258,28 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
 
   // 切換文件連結模式
   const toggleFileLinkMode = useCallback(() => {
+    if (!isFileLinkMode) {
+      // 切換到文件連結模式前，檢查是否有內容
+      if (state.content.trim()) {
+        const hasContent = confirm('檢測到文字編輯區域有內容，切換到文件連結模式將會清空當前內容。確定要繼續嗎？');
+        if (!hasContent) {
+          return;
+        }
+      }
+    }
+    
     setIsFileLinkMode(prev => {
       const newMode = !prev;
       // 如果切換回編輯模式，清空文件連結資料
       if (prev) {
         setFileLinkData({ title: '', url: '', description: '' });
+      } else {
+        // 切換到文件連結模式時，清空編輯器內容
+        setState(prevState => ({ ...prevState, content: '', isDirty: true }));
       }
       return newMode;
     });
-  }, []);
+  }, [isFileLinkMode, state.content]);
 
   // 處理文件連結儲存
   const handleFileLinkSave = useCallback((fileLink: { title: string; url: string; description: string }) => {
@@ -275,15 +288,21 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       return;
     }
 
+    if (!fileLink.url.trim()) {
+      showError('請輸入文件連結');
+      return;
+    }
+
     setState(prev => ({ ...prev, isSaving: true }));
 
     try {
       const documentId = `link_${Date.now()}`;
+      const fileName = fileLink.url.split('/').pop() || '外部文件連結';
       
       // 創建文件連結記錄
       fileApi.create({
         id: documentId,
-        name: fileLink.title,
+        name: fileName,
         parentId: state.selectedFolderId,
         s3Key: `links/${documentId}.json`,
         fileType: 'link',
@@ -298,7 +317,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
         showSuccess('文件連結已成功儲存');
         onSave?.({
           id: documentId,
-          title: fileLink.title,
+          title: fileName,
           category: '外部連結',
           subcategory: '',
           lastModified: new Date().toISOString(),
@@ -326,6 +345,71 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       setState(prev => ({ ...prev, isSaving: false }));
     }
   }, [state.selectedFolderId, onSave]);
+
+  // 處理文件連結模式的儲存
+  const handleFileLinkModeSave = useCallback(() => {
+    if (!state.selectedFolderId) {
+      showError('請選擇要儲存的資料夾');
+      return;
+    }
+
+    if (!fileLinkData.url.trim()) {
+      showError('請輸入文件連結');
+      return;
+    }
+
+    setState(prev => ({ ...prev, isSaving: true }));
+
+    try {
+      const documentId = `link_${Date.now()}`;
+      const fileName = fileLinkData.url.split('/').pop() || '外部文件連結';
+      
+      // 創建文件連結記錄
+      fileApi.create({
+        id: documentId,
+        name: fileName,
+        parentId: state.selectedFolderId,
+        s3Key: `links/${documentId}.json`,
+        fileType: 'link',
+        content: JSON.stringify({
+          url: fileLinkData.url,
+          description: fileLinkData.description,
+          type: 'external_link'
+        }),
+        category: '外部連結',
+        tags: ['連結', '外部文件']
+      }).then(() => {
+        showSuccess('文件連結已成功儲存');
+        onSave?.({
+          id: documentId,
+          title: fileName,
+          category: '外部連結',
+          subcategory: '',
+          lastModified: new Date().toISOString(),
+          author: '',
+          status: 'active',
+          priority: 'medium',
+          tags: ['連結', '外部文件'],
+          permissions: ['read', 'write'],
+          fileType: 'link',
+          size: 0,
+          views: 0,
+          downloads: 0,
+          comments: 0,
+          versions: []
+        });
+        setFileLinkData({ title: '', url: '', description: '' });
+        setIsFileLinkMode(false);
+      }).catch((error: any) => {
+        showError(error.response?.data?.error || '儲存文件連結失敗');
+      }).finally(() => {
+        setState(prev => ({ ...prev, isSaving: false }));
+      });
+    } catch (error: any) {
+      showError(error.response?.data?.error || '儲存文件連結失敗');
+      setState(prev => ({ ...prev, isSaving: false }));
+    }
+  }, [state.selectedFolderId, fileLinkData, onSave]);
 
   // 處理下載
   const handleDownload = () => {
@@ -419,8 +503,6 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       setState(prev => ({ ...prev, isSaving: false }));
     }
   };
-
-
 
   // 新增標籤
   const handleAddTag = () => {
@@ -666,9 +748,9 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                 placeholder="開始編寫您的文件..."
                 className="h-full"
                 onCancel={handleReset}
-                onSave={handleSaveToFolder}
+                onSave={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
                 isSaving={state.isSaving}
-                canSave={!!state.title.trim()}
+                canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!state.title.trim()}
                 showPreview={showPreview}
                 onTogglePreview={handleTogglePreview}
                 onFileLinkSave={handleFileLinkSave}
@@ -682,11 +764,11 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                     ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
                     : 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-500'
                 }`}
-                title={isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
+                title={isFileLinkMode ? '切換回文字編輯模式' : '切換到文件連結模式'}
               >
                 <Link className="h-4 w-4" />
                 <span className="text-sm font-medium">
-                  {isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
+                  {isFileLinkMode ? '切換回文字編輯模式' : '切換到文件連結模式'}
                 </span>
               </button>
             </div>
@@ -703,9 +785,9 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                     placeholder="開始編寫您的文件..."
                     className="h-full"
                     onCancel={handleReset}
-                    onSave={handleSaveToFolder}
+                    onSave={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
                     isSaving={state.isSaving}
-                    canSave={!!state.title.trim()}
+                    canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!state.title.trim()}
                     showPreview={showPreview}
                     onTogglePreview={handleTogglePreview}
                     onFileLinkSave={handleFileLinkSave}
@@ -726,9 +808,9 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                 placeholder="開始編寫您的文件..."
                 className="h-full"
                 onCancel={handleReset}
-                onSave={handleSaveToFolder}
+                onSave={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
                 isSaving={state.isSaving}
-                canSave={!!state.title.trim()}
+                canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!state.title.trim()}
                 showPreview={showPreview}
                 onTogglePreview={handleTogglePreview}
                 onFileLinkSave={handleFileLinkSave}
@@ -753,8 +835,8 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
             <span>取消</span>
           </button>
           <button
-            onClick={handleSaveToFolder}
-            disabled={state.isSaving || !state.title.trim()}
+            onClick={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
+            disabled={state.isSaving || (isFileLinkMode ? !fileLinkData.url.trim() : !state.title.trim())}
             className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
             type="button"
           >
