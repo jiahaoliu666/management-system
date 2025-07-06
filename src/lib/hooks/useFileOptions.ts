@@ -7,8 +7,8 @@ interface FileOptions {
 }
 
 // 默認選項
-const DEFAULT_CATEGORIES = ['文件', '檔案', '簡報'];
-const DEFAULT_TAGS = ['一般文件', '技術文件', 'SOP'];
+const DEFAULT_CATEGORIES = ['文件', '檔案', '簡報', '外部連結'];
+const DEFAULT_TAGS = ['一般文件', '技術文件', 'SOP', '連結', '外部文件'];
 
 export const useFileOptions = () => {
   const [options, setOptions] = useState<FileOptions>({

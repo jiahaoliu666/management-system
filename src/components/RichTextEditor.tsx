@@ -36,7 +36,8 @@ import {
   Eraser,
   Palette,
   Save,
-  Eye
+  Eye,
+  FileText
 } from 'lucide-react';
 import FileUpload from './FileUpload';
 
@@ -55,6 +56,11 @@ interface RichTextEditorProps {
   toolbarRight?: React.ReactNode;
   toolbarOnly?: boolean;
   contentOnly?: boolean;
+  onFileLinkSave?: (fileLink: { title: string; url: string; description: string }) => void;
+  isFileLinkMode?: boolean;
+  onToggleFileLinkMode?: () => void;
+  fileLinkData?: { title: string; url: string; description: string };
+  onFileLinkDataChange?: (data: { title: string; url: string; description: string }) => void;
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -71,11 +77,45 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onTogglePreview,
   toolbarRight,
   toolbarOnly = false,
-  contentOnly = false
+  contentOnly = false,
+  onFileLinkSave,
+  isFileLinkMode: externalIsFileLinkMode,
+  onToggleFileLinkMode: externalToggleFileLinkMode,
+  fileLinkData: externalFileLinkData,
+  onFileLinkDataChange: externalFileLinkDataChange
 }) => {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
+  
+  // 使用外部狀態或內部狀態
+  const [internalIsFileLinkMode, setInternalIsFileLinkMode] = useState(false);
+  const [internalFileLinkData, setInternalFileLinkData] = useState({
+    title: '',
+    url: '',
+    description: ''
+  });
+  
+  const isFileLinkMode = externalIsFileLinkMode !== undefined ? externalIsFileLinkMode : internalIsFileLinkMode;
+  const setIsFileLinkMode = externalToggleFileLinkMode || setInternalIsFileLinkMode;
+  const fileLinkData = externalFileLinkData || internalFileLinkData;
+  
+  // 創建一個包裝函數來處理不同的 setFileLinkData 調用方式
+  const updateFileLinkData = useCallback((updater: { title: string; url: string; description: string } | ((prev: { title: string; url: string; description: string }) => { title: string; url: string; description: string })) => {
+    if (externalFileLinkDataChange) {
+      if (typeof updater === 'function') {
+        externalFileLinkDataChange(updater(fileLinkData));
+      } else {
+        externalFileLinkDataChange(updater);
+      }
+    } else {
+      if (typeof updater === 'function') {
+        setInternalFileLinkData(updater);
+      } else {
+        setInternalFileLinkData(updater);
+      }
+    }
+  }, [externalFileLinkDataChange, fileLinkData]);
 
   const editor = useEditor({
     extensions: [
@@ -166,6 +206,30 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     insertImage(fileUrl);
     setShowFileUpload(false);
   }, [insertImage]);
+
+  // 切換文件連結模式
+  const toggleFileLinkMode = useCallback(() => {
+    setIsFileLinkMode(prev => {
+      const newMode = !prev;
+      // 如果切換回編輯模式，清空文件連結資料
+      if (prev) {
+        updateFileLinkData({ title: '', url: '', description: '' });
+      }
+      return newMode;
+    });
+  }, [updateFileLinkData]);
+
+  // 處理文件連結儲存
+  const handleFileLinkSave = useCallback(() => {
+    if (!fileLinkData.title.trim() || !fileLinkData.url.trim()) {
+      alert('請填寫文件標題和連結網址');
+      return;
+    }
+    
+    onFileLinkSave?.(fileLinkData);
+    updateFileLinkData({ title: '', url: '', description: '' });
+    setIsFileLinkMode(false);
+  }, [fileLinkData, onFileLinkSave, updateFileLinkData]);
 
   if (!editor) {
     return (
@@ -431,9 +495,23 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               </button>
             </div>
           </div>
-          {toolbarRight && (
-            <div className="flex items-center ml-auto">{toolbarRight}</div>
-          )}
+          <div className="flex items-center gap-2">
+            {/* 切換文件連結模式按鈕 */}
+            <button
+              onClick={toggleFileLinkMode}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border ${
+                isFileLinkMode 
+                  ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700' 
+                  : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600'
+              }`}
+              title={isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
+            >
+              {isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
+            </button>
+            {toolbarRight && (
+              <div className="flex items-center ml-auto">{toolbarRight}</div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -444,9 +522,72 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     return (
       <div className={`rich-text-editor ${className}`}>
         {/* 編輯器內容 */}
-        <div className="min-h-[500px]">
-          <EditorContent editor={editor} />
-        </div>
+        {isFileLinkMode ? (
+          // 文件連結模式
+          <div className="min-h-[500px]">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  文件標題 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={fileLinkData.title}
+                  onChange={(e) => updateFileLinkData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="請輸入文件標題"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  文件連結 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  value={fileLinkData.url}
+                  onChange={(e) => updateFileLinkData(prev => ({ ...prev, url: e.target.value }))}
+                  placeholder="請貼上 OneDrive 或其他雲端儲存連結"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  文件描述
+                </label>
+                <textarea
+                  value={fileLinkData.description}
+                  onChange={(e) => updateFileLinkData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="請輸入文件描述（選填）"
+                  rows={4}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                />
+              </div>
+              
+              <div className="flex items-center gap-3 pt-4">
+                <button
+                  onClick={handleFileLinkSave}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  儲存文件連結
+                </button>
+                <button
+                  onClick={toggleFileLinkMode}
+                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // 文字編輯模式
+          <div className="min-h-[500px]">
+            <EditorContent editor={editor} />
+          </div>
+        )}
       </div>
     );
   }
@@ -706,20 +847,100 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               </button>
             </div>
           </div>
-          {toolbarRight && (
-            <div className="flex items-center ml-auto">{toolbarRight}</div>
-          )}
+          <div className="flex items-center gap-2">
+            {/* 切換文件連結模式按鈕 */}
+            <button
+              onClick={toggleFileLinkMode}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border ${
+                isFileLinkMode 
+                  ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700' 
+                  : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600'
+              }`}
+              title={isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
+            >
+              {isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
+            </button>
+            {toolbarRight && (
+              <div className="flex items-center ml-auto">{toolbarRight}</div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 編輯器內容 */}
-      <div className="p-4">
-        <div className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
-          <EditorContent editor={editor} />
+      {/* 內容區域 */}
+      {isFileLinkMode ? (
+        // 文件連結模式
+        <div className="p-4">
+          <div className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  文件標題 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={fileLinkData.title}
+                  onChange={(e) => updateFileLinkData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="請輸入文件標題"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  文件連結 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  value={fileLinkData.url}
+                  onChange={(e) => updateFileLinkData(prev => ({ ...prev, url: e.target.value }))}
+                  placeholder="請貼上 OneDrive 或其他雲端儲存連結"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  文件描述
+                </label>
+                <textarea
+                  value={fileLinkData.description}
+                  onChange={(e) => updateFileLinkData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="請輸入文件描述（選填）"
+                  rows={4}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                />
+              </div>
+              
+              <div className="flex items-center gap-3 pt-4">
+                <button
+                  onClick={handleFileLinkSave}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  儲存文件連結
+                </button>
+                <button
+                  onClick={toggleFileLinkMode}
+                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        // 文字編輯模式
+        <div className="p-4">
+          <div className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+            <EditorContent editor={editor} />
+          </div>
+        </div>
+      )}
+      
       {/* 操作按鈕區塊，緊貼外框下方靠右 */}
-      {(onCancel || onSave) && (
+      {(onCancel || onSave) && !isFileLinkMode && (
         <div className="mt-4 flex justify-end gap-3" role="group" aria-label="文件操作">
           {onCancel && (
             <button

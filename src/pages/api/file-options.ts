@@ -8,10 +8,10 @@ const cognitoUserPoolId = process.env.COGNITO_USER_POOL_ID || process.env.NEXT_P
 const cognitoClientId = process.env.COGNITO_CLIENT_ID || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '';
 
 // 默認分類選項
-const DEFAULT_CATEGORIES = ['文件', '檔案', '簡報'];
+const DEFAULT_CATEGORIES = ['文件', '檔案', '簡報', '外部連結'];
 
 // 默認標籤選項
-const DEFAULT_TAGS = ['一般文件', '技術文件', 'SOP'];
+const DEFAULT_TAGS = ['一般文件', '技術文件', 'SOP', '連結', '外部文件'];
 
 const verifier = CognitoJwtVerifier.create({
   userPoolId: cognitoUserPoolId,
