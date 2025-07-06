@@ -29,6 +29,7 @@ import { useFileEditor } from '@/lib/hooks/useFileEditor';
 import FolderSelector from './modals/FolderSelector';
 import RichTextEditor from './RichTextEditor';
 import { DEFAULT_CATEGORIES, DEFAULT_TAGS } from '@/utils/constants';
+import apiClient from '@/lib/api/apiClient';
 
 interface FileEditorProps {
   documentId?: string;
@@ -479,6 +480,17 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     }));
   };
 
+  // 新：呼叫 API 檢查 S3 是否有同名檔案
+  const checkS3FileExists = async (s3Key: string) => {
+    try {
+      const res = await apiClient.post('/api/check-s3-file-exists', { s3Key });
+      return res.data.exists;
+    } catch (err) {
+      showError('檢查檔案名稱時發生錯誤');
+      return false;
+    }
+  };
+
   const handleSaveToFolder = async () => {
     if (!state.selectedFolderId) {
       showError('請選擇要儲存的資料夾');
@@ -499,6 +511,17 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       const fileExt = '.json';
       const s3FileName = safeName.endsWith(fileExt) ? safeName : safeName + fileExt;
       const s3ObjectKey = `documents/${s3FileName}`;
+
+      // 新：呼叫 API 檢查 S3 是否有同名檔案
+      if (!documentId) {
+        const exists = await checkS3FileExists(s3ObjectKey);
+        if (exists) {
+          showError('已有相同檔案名稱，請更改標題名稱再儲存');
+          setState(prev => ({ ...prev, isSaving: false }));
+          return;
+        }
+      }
+
       // 準備儲存資料
       const saveData = {
         id: currentDocId,
@@ -520,28 +543,8 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       }
 
       showSuccess('文件已成功儲存');
-      
-      // 創建完整的文件物件用於回調
-      const savedDocument: Document = {
-        id: currentDocId,
-        title: documentTitle.trim(),
-        category: documentCategory || '文件',
-        subcategory: '',
-        lastModified: new Date().toISOString(),
-        author: '',
-        status: 'active',
-        priority: 'medium',
-        tags: documentTags.length > 0 ? documentTags : ['一般文件'],
-        permissions: ['read', 'write'],
-        fileType: 'document',
-        size: content.length,
-        views: 0,
-        downloads: 0,
-        comments: 0,
-        versions: []
-      };
-      
-      onSave?.(savedDocument);
+      // 儲存成功後自動重置所有欄位
+      handleReset();
     } catch (error: any) {
       showError(error.response?.data?.error || '儲存失敗');
     } finally {
@@ -939,7 +942,12 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           </button>
           <button
             onClick={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
-            disabled={documentIsSaving || (isFileLinkMode ? !fileLinkData.url.trim() : !documentTitle.trim())}
+            disabled={
+              documentIsSaving ||
+              (isFileLinkMode
+                ? !fileLinkData.url.trim()
+                : !documentTitle.trim() || !content || content.replace(/<[^>]+>/g, '').trim().length === 0)
+            }
             className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
             type="button"
           >

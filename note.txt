@@ -50,6 +50,7 @@
 │   │       └── file.ts # 新增、修改、刪除文件 API
 │   │       └── file-options.ts # 獲取文件編輯器的分類和標籤 API
 │   │       └── upload-file.ts # 上傳文件 (文件編輯器) API
+│   │       └── check-s3-file-exists.ts # 儲存時檢查 S3 是否存在相同的檔案名稱 API 
 │   │
 │   ├── styles/            # 樣式文件
 │   │   ├── globals.css      # 全局 CSS 樣式

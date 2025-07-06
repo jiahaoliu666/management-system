@@ -150,22 +150,6 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
     }
   }, [state, documentId, onSave, onError, loadDocument]);
 
-  // 自動儲存
-  const scheduleAutoSave = useCallback(() => {
-    if (!state.autoSaveEnabled || !state.isDirty) return;
-
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-
-    autoSaveTimeoutRef.current = setTimeout(() => {
-      // 只有在有內容且有標題時才自動儲存
-      if (state.content.trim() && state.title.trim()) {
-        saveDocument();
-      }
-    }, autoSaveInterval);
-  }, [state.autoSaveEnabled, state.isDirty, state.content, state.title, autoSaveInterval, saveDocument]);
-
   // 更新內容
   const updateContent = useCallback((newContent: string) => {
     setState(prev => ({
@@ -173,8 +157,7 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
       content: newContent,
       isDirty: true
     }));
-    scheduleAutoSave();
-  }, [scheduleAutoSave]);
+  }, []);
 
   // 更新標題
   const updateTitle = useCallback((newTitle: string) => {
@@ -183,8 +166,7 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
       title: newTitle.trim(),
       isDirty: true
     }));
-    scheduleAutoSave();
-  }, [scheduleAutoSave]);
+  }, []);
 
   // 更新分類
   const updateCategory = useCallback((newCategory: string) => {
@@ -193,8 +175,7 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
       category: newCategory.trim(),
       isDirty: true
     }));
-    scheduleAutoSave();
-  }, [scheduleAutoSave]);
+  }, []);
 
   // 更新標籤
   const updateTags = useCallback((newTags: string[]) => {
@@ -209,8 +190,7 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
       tags: validTags,
       isDirty: true
     }));
-    scheduleAutoSave();
-  }, [scheduleAutoSave]);
+  }, []);
 
   // 切換自動儲存
   const toggleAutoSave = useCallback((enabled: boolean) => {
