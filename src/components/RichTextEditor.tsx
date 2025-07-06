@@ -496,18 +496,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* 切換文件連結模式按鈕 */}
-            <button
-              onClick={toggleFileLinkMode}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border ${
-                isFileLinkMode 
-                  ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700' 
-                  : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600'
-              }`}
-              title={isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
-            >
-              {isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
-            </button>
             {toolbarRight && (
               <div className="flex items-center ml-auto">{toolbarRight}</div>
             )}
@@ -848,18 +836,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* 切換文件連結模式按鈕 */}
-            <button
-              onClick={toggleFileLinkMode}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border ${
-                isFileLinkMode 
-                  ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700' 
-                  : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-600'
-              }`}
-              title={isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
-            >
-              {isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
-            </button>
             {toolbarRight && (
               <div className="flex items-center ml-auto">{toolbarRight}</div>
             )}

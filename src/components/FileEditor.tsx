@@ -682,11 +682,11 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                     ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
                     : 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-500'
                 }`}
-                title={isFileLinkMode ? '切換到文字編輯模式' : '切換到文件連結模式'}
+                title={isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
               >
                 <Link className="h-4 w-4" />
                 <span className="text-sm font-medium">
-                  {isFileLinkMode ? '文字編輯' : '文件連結'}
+                  {isFileLinkMode ? '切換回文字編輯' : '切換到文件連結模式'}
                 </span>
               </button>
             </div>
