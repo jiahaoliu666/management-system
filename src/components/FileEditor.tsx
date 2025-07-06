@@ -89,6 +89,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     url: '',
     description: ''
   });
+  const [editorInstance, setEditorInstance] = useState<any>(null);
 
   const {
     document: documentData,
@@ -266,20 +267,27 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           return;
         }
       }
-    }
-    
-    setIsFileLinkMode(prev => {
-      const newMode = !prev;
-      // 如果切換回編輯模式，清空文件連結資料
-      if (prev) {
-        setFileLinkData({ title: '', url: '', description: '' });
-      } else {
+      
+      // 先重置編輯器狀態，清除所有格式和選擇
+      if (editorInstance) {
+        // 清除所有格式
+        editorInstance.chain().focus().unsetAllMarks().clearNodes().run();
+        // 確保游標在開始位置
+        editorInstance.chain().focus().setTextSelection(0).run();
+      }
+      
+      // 使用 setTimeout 確保重置完成後再切換模式
+      setTimeout(() => {
+        setIsFileLinkMode(true);
         // 切換到文件連結模式時，清空編輯器內容
         setState(prevState => ({ ...prevState, content: '', isDirty: true }));
-      }
-      return newMode;
-    });
-  }, [isFileLinkMode, state.content]);
+      }, 50);
+    } else {
+      // 切換回編輯模式
+      setIsFileLinkMode(false);
+      setFileLinkData({ title: '', url: '', description: '' });
+    }
+  }, [isFileLinkMode, state.content, editorInstance]);
 
   // 處理文件連結儲存
   const handleFileLinkSave = useCallback((fileLink: { title: string; url: string; description: string }) => {
@@ -345,6 +353,11 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       setState(prev => ({ ...prev, isSaving: false }));
     }
   }, [state.selectedFolderId, onSave]);
+
+  // 處理編輯器準備完成
+  const handleEditorReady = useCallback((editor: any) => {
+    setEditorInstance(editor);
+  }, []);
 
   // 處理文件連結模式的儲存
   const handleFileLinkModeSave = useCallback(() => {
@@ -759,6 +772,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                 onToggleFileLinkMode={toggleFileLinkMode}
                 fileLinkData={fileLinkData}
                 onFileLinkDataChange={setFileLinkData}
+                onEditorReady={handleEditorReady}
               />
               {/* 切換文件連結模式按鈕 */}
               <button
@@ -780,31 +794,55 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           {/* 編輯區域和預覽區域 */}
           <div className="px-3 py-2">
             {showPreview ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px]">
-                {/* 左半部：編輯區域 */}
-                <div className="pr-4">
-                  <RichTextEditor
-                    value={state.content}
-                    onChange={handleContentChange}
-                    placeholder="開始編寫您的文件..."
-                    className="h-full"
-                    onCancel={handleReset}
-                    onSave={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
-                    isSaving={state.isSaving}
-                    canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!state.title.trim()}
-                    showPreview={showPreview}
-                    onTogglePreview={handleTogglePreview}
-                    onFileLinkSave={handleFileLinkSave}
-                    contentOnly={true}
-                  />
-                </div>
-                {/* 右半部：預覽區域 */}
-                <div className="border-l border-slate-200 dark:border-slate-600 pl-4">
-                  <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none text-slate-900 dark:text-white min-h-[500px]">
-                    <div dangerouslySetInnerHTML={{ __html: state.content }} />
+              isFileLinkMode ? (
+                // 文件連結模式下顯示 RichTextEditor 的文件連結表單
+                <RichTextEditor
+                  value={state.content}
+                  onChange={handleContentChange}
+                  placeholder="開始編寫您的文件..."
+                  className="h-full"
+                  onCancel={handleReset}
+                  onSave={handleFileLinkModeSave}
+                  isSaving={state.isSaving}
+                  canSave={!!fileLinkData.url.trim()}
+                  showPreview={showPreview}
+                  onTogglePreview={handleTogglePreview}
+                  onFileLinkSave={handleFileLinkSave}
+                  contentOnly={true}
+                  isFileLinkMode={isFileLinkMode}
+                  onToggleFileLinkMode={toggleFileLinkMode}
+                  fileLinkData={fileLinkData}
+                  onFileLinkDataChange={setFileLinkData}
+                  onEditorReady={handleEditorReady}
+                />
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px]">
+                  {/* 左半部：編輯區域 */}
+                  <div className="pr-4">
+                    <RichTextEditor
+                      value={state.content}
+                      onChange={handleContentChange}
+                      placeholder="開始編寫您的文件..."
+                      className="h-full"
+                      onCancel={handleReset}
+                      onSave={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
+                      isSaving={state.isSaving}
+                      canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!state.title.trim()}
+                      showPreview={showPreview}
+                      onTogglePreview={handleTogglePreview}
+                      onFileLinkSave={handleFileLinkSave}
+                      contentOnly={true}
+                      onEditorReady={handleEditorReady}
+                    />
+                  </div>
+                  {/* 右半部：預覽區域 */}
+                  <div className="border-l border-slate-200 dark:border-slate-600 pl-4">
+                    <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none text-slate-900 dark:text-white min-h-[500px]">
+                      <div dangerouslySetInnerHTML={{ __html: state.content }} />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )
             ) : (
               <RichTextEditor
                 value={state.content}
@@ -823,6 +861,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                 onToggleFileLinkMode={toggleFileLinkMode}
                 fileLinkData={fileLinkData}
                 onFileLinkDataChange={setFileLinkData}
+                onEditorReady={handleEditorReady}
               />
             )}
           </div>

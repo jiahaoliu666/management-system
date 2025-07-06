@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -61,6 +61,7 @@ interface RichTextEditorProps {
   onToggleFileLinkMode?: () => void;
   fileLinkData?: { title: string; url: string; description: string };
   onFileLinkDataChange?: (data: { title: string; url: string; description: string }) => void;
+  onEditorReady?: (editor: any) => void;
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -82,7 +83,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   isFileLinkMode: externalIsFileLinkMode,
   onToggleFileLinkMode: externalToggleFileLinkMode,
   fileLinkData: externalFileLinkData,
-  onFileLinkDataChange: externalFileLinkDataChange
+  onFileLinkDataChange: externalFileLinkDataChange,
+  onEditorReady
 }) => {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
@@ -170,6 +172,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   });
 
+  // 當編輯器準備好時，通知父組件
+  useEffect(() => {
+    if (editor && onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [editor, onEditorReady]);
+
   // 插入連結
   const insertLink = useCallback(() => {
     if (editor && linkUrl) {
@@ -252,7 +261,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleBold().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('bold') 
+                  !isFileLinkMode && editor.isActive('bold') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -264,7 +273,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleItalic().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('italic') 
+                  !isFileLinkMode && editor.isActive('italic') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -276,7 +285,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleUnderline().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('underline') 
+                  !isFileLinkMode && editor.isActive('underline') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -288,7 +297,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleStrike().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('strike') 
+                  !isFileLinkMode && editor.isActive('strike') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -304,7 +313,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('heading', { level: 1 }) 
+                  !isFileLinkMode && editor.isActive('heading', { level: 1 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -316,7 +325,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('heading', { level: 2 }) 
+                  !isFileLinkMode && editor.isActive('heading', { level: 2 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -328,7 +337,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('heading', { level: 3 }) 
+                  !isFileLinkMode && editor.isActive('heading', { level: 3 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -344,7 +353,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().setTextAlign('left').run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive({ textAlign: 'left' }) 
+                  !isFileLinkMode && editor.isActive({ textAlign: 'left' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -356,7 +365,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().setTextAlign('center').run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive({ textAlign: 'center' }) 
+                  !isFileLinkMode && editor.isActive({ textAlign: 'center' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -368,7 +377,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().setTextAlign('right').run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive({ textAlign: 'right' }) 
+                  !isFileLinkMode && editor.isActive({ textAlign: 'right' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -380,7 +389,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().setTextAlign('justify').run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive({ textAlign: 'justify' }) 
+                  !isFileLinkMode && editor.isActive({ textAlign: 'justify' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -396,7 +405,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleBulletList().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('bulletList') 
+                  !isFileLinkMode && editor.isActive('bulletList') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -408,7 +417,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleOrderedList().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('orderedList') 
+                  !isFileLinkMode && editor.isActive('orderedList') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -424,7 +433,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => setShowLinkDialog(true)}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('link') 
+                  !isFileLinkMode && editor.isActive('link') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -452,7 +461,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleCodeBlock().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('codeBlock') 
+                  !isFileLinkMode && editor.isActive('codeBlock') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -464,7 +473,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleBlockquote().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('blockquote') 
+                  !isFileLinkMode && editor.isActive('blockquote') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -505,7 +514,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={onTogglePreview}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  showPreview 
+                  !isFileLinkMode && showPreview 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -542,7 +551,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   type="url"
                   value={fileLinkData.url}
                   onChange={(e) => updateFileLinkData(prev => ({ ...prev, url: e.target.value }))}
-                  placeholder="請貼上 OneDrive 或其他雲端儲存連結"
+                  placeholder="請貼上 OneDrive 或其他儲存連結"
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
@@ -583,7 +592,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleBold().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('bold') 
+                  !isFileLinkMode && editor.isActive('bold') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -595,7 +604,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleItalic().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('italic') 
+                  !isFileLinkMode && editor.isActive('italic') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -607,7 +616,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleUnderline().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('underline') 
+                  !isFileLinkMode && editor.isActive('underline') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -619,7 +628,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleStrike().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('strike') 
+                  !isFileLinkMode && editor.isActive('strike') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -635,7 +644,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('heading', { level: 1 }) 
+                  !isFileLinkMode && editor.isActive('heading', { level: 1 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -647,7 +656,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('heading', { level: 2 }) 
+                  !isFileLinkMode && editor.isActive('heading', { level: 2 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -659,7 +668,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('heading', { level: 3 }) 
+                  !isFileLinkMode && editor.isActive('heading', { level: 3 }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -675,7 +684,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().setTextAlign('left').run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive({ textAlign: 'left' }) 
+                  !isFileLinkMode && editor.isActive({ textAlign: 'left' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -687,7 +696,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().setTextAlign('center').run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive({ textAlign: 'center' }) 
+                  !isFileLinkMode && editor.isActive({ textAlign: 'center' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -699,7 +708,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().setTextAlign('right').run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive({ textAlign: 'right' }) 
+                  !isFileLinkMode && editor.isActive({ textAlign: 'right' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -711,7 +720,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().setTextAlign('justify').run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive({ textAlign: 'justify' }) 
+                  !isFileLinkMode && editor.isActive({ textAlign: 'justify' }) 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -727,7 +736,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleBulletList().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('bulletList') 
+                  !isFileLinkMode && editor.isActive('bulletList') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -739,7 +748,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleOrderedList().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('orderedList') 
+                  !isFileLinkMode && editor.isActive('orderedList') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -755,7 +764,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => setShowLinkDialog(true)}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('link') 
+                  !isFileLinkMode && editor.isActive('link') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -783,7 +792,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleCodeBlock().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('codeBlock') 
+                  !isFileLinkMode && editor.isActive('codeBlock') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -795,7 +804,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={() => editor.chain().focus().toggleBlockquote().run()}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  editor.isActive('blockquote') 
+                  !isFileLinkMode && editor.isActive('blockquote') 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -836,7 +845,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onClick={onTogglePreview}
                 disabled={isFileLinkMode}
                 className={`p-2 rounded transition-colors ${
-                  showPreview 
+                  !isFileLinkMode && showPreview 
                     ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
                     : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                 } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -868,7 +877,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   type="url"
                   value={fileLinkData.url}
                   onChange={(e) => updateFileLinkData(prev => ({ ...prev, url: e.target.value }))}
-                  placeholder="請貼上 OneDrive 或其他雲端儲存連結"
+                  placeholder="請貼上 OneDrive 或其他儲存連結"
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
