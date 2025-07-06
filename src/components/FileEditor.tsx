@@ -865,10 +865,11 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                       contentOnly={true}
                       onEditorReady={handleEditorReady}
                     />
-                    {/* 文字數量顯示 - 左半部 */}
-                    <div className="absolute bottom-1 text-xs text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-700/80 px-2 py-1 rounded-md backdrop-blur-sm">
-                      {textCount.characters} 字元
-                    </div>
+                    {!isFileLinkMode && (
+                      <div className="absolute bottom-1 text-xs text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-700/80 px-2 py-1 rounded-md backdrop-blur-sm">
+                        {textCount.characters} 字元
+                      </div>
+                    )}
                   </div>
                   {/* 右半部：預覽區域 */}
                   <div className="border-l border-slate-200 dark:border-slate-600 pl-4">
@@ -899,10 +900,11 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                   onFileLinkDataChange={setFileLinkData}
                   onEditorReady={handleEditorReady}
                 />
-                {/* 文字數量顯示 - 單一編輯模式 */}
-                <div className="absolute bottom-1 text-xs text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-700/80 px-2 py-1 rounded-md backdrop-blur-sm">
-                  {textCount.characters} 字元
-                </div>
+                {!isFileLinkMode && (
+                  <div className="absolute bottom-1 text-xs text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-700/80 px-2 py-1 rounded-md backdrop-blur-sm">
+                    {textCount.characters} 字元
+                  </div>
+                )}
               </div>
             )}
           </div>

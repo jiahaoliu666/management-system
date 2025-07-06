@@ -541,7 +541,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {/* 編輯器內容 */}
         {isFileLinkMode ? (
           // 文件連結模式
-          <div className="min-h-[500px]">
+          <div className="min-h-[180px]">
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
