@@ -49,6 +49,33 @@ interface EditorState {
   selectedFolderName: string;
 }
 
+// 計算文字數量的工具函數
+const calculateTextCount = (htmlContent: string): { characters: number; words: number } => {
+  if (!htmlContent) {
+    return { characters: 0, words: 0 };
+  }
+  
+  // 檢查是否在瀏覽器環境中
+  if (typeof window === 'undefined') {
+    return { characters: 0, words: 0 };
+  }
+  
+  // 創建臨時 DOM 元素來解析 HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+  
+  // 獲取純文字內容
+  const textContent = tempDiv.textContent || tempDiv.innerText || '';
+  
+  // 計算字元數（包含空格）
+  const characters = textContent.length;
+  
+  // 計算字數（以空格分隔）
+  const words = textContent.trim() ? textContent.trim().split(/\s+/).length : 0;
+  
+  return { characters, words };
+};
+
 const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) => {
   const DEFAULT_TAG = DEFAULT_TAGS[0];
   const [state, setState] = useState<EditorState>({
@@ -90,6 +117,9 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     description: ''
   });
   const [editorInstance, setEditorInstance] = useState<any>(null);
+
+  // 計算文字數量
+  const textCount = calculateTextCount(state.content);
 
   const {
     document: documentData,
@@ -261,8 +291,9 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
   const toggleFileLinkMode = useCallback(() => {
     if (!isFileLinkMode) {
       // 切換到文件連結模式前，檢查是否有內容
-      if (state.content.trim()) {
-        const hasContent = confirm('檢測到文字編輯區域有內容，切換到文件連結模式將會清空當前內容。確定要繼續嗎？');
+      const { characters } = calculateTextCount(state.content);
+      if (characters > 0) {
+        const hasContent = confirm(`檢測到文字編輯區域有內容（${characters} 個字元），切換到文件連結模式將會清空當前內容。確定要繼續嗎？`);
         if (!hasContent) {
           return;
         }
@@ -792,7 +823,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
             </div>
           </div>
           {/* 編輯區域和預覽區域 */}
-          <div className="px-3 py-2">
+          <div className="px-3 py-2 relative">
             {showPreview ? (
               isFileLinkMode ? (
                 // 文件連結模式下顯示 RichTextEditor 的文件連結表單
@@ -818,7 +849,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px]">
                   {/* 左半部：編輯區域 */}
-                  <div className="pr-4">
+                  <div className="pr-4 relative">
                     <RichTextEditor
                       value={state.content}
                       onChange={handleContentChange}
@@ -834,6 +865,10 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                       contentOnly={true}
                       onEditorReady={handleEditorReady}
                     />
+                    {/* 文字數量顯示 - 左半部 */}
+                    <div className="absolute bottom-1 text-xs text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-700/80 px-2 py-1 rounded-md backdrop-blur-sm">
+                      {textCount.characters} 字元
+                    </div>
                   </div>
                   {/* 右半部：預覽區域 */}
                   <div className="border-l border-slate-200 dark:border-slate-600 pl-4">
@@ -844,25 +879,31 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                 </div>
               )
             ) : (
-              <RichTextEditor
-                value={state.content}
-                onChange={handleContentChange}
-                placeholder="開始編寫您的文件..."
-                className="h-full"
-                onCancel={handleReset}
-                onSave={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
-                isSaving={state.isSaving}
-                canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!state.title.trim()}
-                showPreview={showPreview}
-                onTogglePreview={handleTogglePreview}
-                onFileLinkSave={handleFileLinkSave}
-                contentOnly={true}
-                isFileLinkMode={isFileLinkMode}
-                onToggleFileLinkMode={toggleFileLinkMode}
-                fileLinkData={fileLinkData}
-                onFileLinkDataChange={setFileLinkData}
-                onEditorReady={handleEditorReady}
-              />
+              <div className="relative">
+                <RichTextEditor
+                  value={state.content}
+                  onChange={handleContentChange}
+                  placeholder="開始編寫您的文件..."
+                  className="h-full"
+                  onCancel={handleReset}
+                  onSave={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
+                  isSaving={state.isSaving}
+                  canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!state.title.trim()}
+                  showPreview={showPreview}
+                  onTogglePreview={handleTogglePreview}
+                  onFileLinkSave={handleFileLinkSave}
+                  contentOnly={true}
+                  isFileLinkMode={isFileLinkMode}
+                  onToggleFileLinkMode={toggleFileLinkMode}
+                  fileLinkData={fileLinkData}
+                  onFileLinkDataChange={setFileLinkData}
+                  onEditorReady={handleEditorReady}
+                />
+                {/* 文字數量顯示 - 單一編輯模式 */}
+                <div className="absolute bottom-1 text-xs text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-700/80 px-2 py-1 rounded-md backdrop-blur-sm">
+                  {textCount.characters} 字元
+                </div>
+              </div>
             )}
           </div>
         </div>
