@@ -755,6 +755,10 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                 onTogglePreview={handleTogglePreview}
                 onFileLinkSave={handleFileLinkSave}
                 toolbarOnly={true}
+                isFileLinkMode={isFileLinkMode}
+                onToggleFileLinkMode={toggleFileLinkMode}
+                fileLinkData={fileLinkData}
+                onFileLinkDataChange={setFileLinkData}
               />
               {/* 切換文件連結模式按鈕 */}
               <button
