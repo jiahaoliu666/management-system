@@ -159,9 +159,12 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
     }
 
     autoSaveTimeoutRef.current = setTimeout(() => {
-      saveDocument();
+      // 只有在有內容且有標題時才自動儲存
+      if (state.content.trim() && state.title.trim()) {
+        saveDocument();
+      }
     }, autoSaveInterval);
-  }, [state.autoSaveEnabled, state.isDirty, autoSaveInterval, saveDocument]);
+  }, [state.autoSaveEnabled, state.isDirty, state.content, state.title, autoSaveInterval, saveDocument]);
 
   // 更新內容
   const updateContent = useCallback((newContent: string) => {
@@ -177,7 +180,7 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
   const updateTitle = useCallback((newTitle: string) => {
     setState(prev => ({
       ...prev,
-      title: newTitle,
+      title: newTitle.trim(),
       isDirty: true
     }));
     scheduleAutoSave();
@@ -187,7 +190,7 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
   const updateCategory = useCallback((newCategory: string) => {
     setState(prev => ({
       ...prev,
-      category: newCategory,
+      category: newCategory.trim(),
       isDirty: true
     }));
     scheduleAutoSave();
@@ -195,9 +198,15 @@ export const useFileEditor = (options: UseFileEditorOptions = {}) => {
 
   // 更新標籤
   const updateTags = useCallback((newTags: string[]) => {
+    // 確保至少有一個標籤
+    const validTags = newTags.filter(tag => tag.trim().length > 0);
+    if (validTags.length === 0) {
+      validTags.push('一般文件');
+    }
+    
     setState(prev => ({
       ...prev,
-      tags: newTags,
+      tags: validTags,
       isDirty: true
     }));
     scheduleAutoSave();

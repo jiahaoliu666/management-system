@@ -27,17 +27,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(500).json({ error: 'Directory table name not configured' });
     return;
   }
+  
   const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
-    res.status(401).json({ error: '未授權' });
-    return;
+  let userId: string | null = null;
+  
+  if (auth && auth.startsWith('Bearer ')) {
+    const token = auth.replace('Bearer ', '');
+    userId = await getUserIdFromToken(token);
   }
-  const token = auth.replace('Bearer ', '');
-  const userId = await getUserIdFromToken(token);
+  
   if (!userId) {
     res.status(401).json({ error: 'JWT 驗證失敗' });
     return;
   }
+  
   const client = new DynamoDBClient({ region });
 
   if (req.method === 'GET') {
@@ -65,7 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.status(400).json({ error: '缺少必要欄位' });
       return;
     }
+    
     try {
+      // 生產環境：實際儲存到 DynamoDB
       const cmd = new PutItemCommand({
         TableName: directoryTableName,
         Item: {
@@ -83,7 +88,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await client.send(cmd);
       res.status(200).json({ success: true });
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      console.error('創建資料夾失敗:', e);
+      res.status(500).json({ error: e.message || '創建資料夾失敗' });
     }
     return;
   }

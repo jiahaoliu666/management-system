@@ -494,50 +494,54 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
 
     try {
       const currentDocId = documentId || `doc_${Date.now()}`;
+      // 產生安全的檔案名稱
+      const safeName = documentTitle.trim().replace(/[^a-zA-Z0-9-_\.]/g, '_').slice(0, 64);
+      const fileExt = '.json';
+      const s3FileName = safeName.endsWith(fileExt) ? safeName : safeName + fileExt;
+      const s3ObjectKey = `documents/${s3FileName}`;
+      // 準備儲存資料
+      const saveData = {
+        id: currentDocId,
+        name: documentTitle.trim(),
+        content: content,
+        parentId: state.selectedFolderId,
+        category: documentCategory || '文件',
+        tags: documentTags.length > 0 ? documentTags : ['一般文件'],
+        fileType: 'document',
+        s3Key: s3ObjectKey
+      };
       
       if (documentId) {
         // 更新現有文件
-        await fileApi.update({
-          id: currentDocId,
-          name: documentTitle,
-          content: content,
-          parentId: state.selectedFolderId,
-          category: documentCategory,
-          tags: documentTags
-        });
+        await fileApi.update(saveData);
       } else {
         // 創建新文件
-        await fileApi.create({
-          id: currentDocId,
-          name: documentTitle,
-          parentId: state.selectedFolderId,
-          s3Key: `documents/${currentDocId}.json`,
-          fileType: 'document',
-          content: content,
-          category: documentCategory,
-          tags: documentTags
-        });
+        await fileApi.create(saveData);
       }
 
       showSuccess('文件已成功儲存');
-      onSave?.({
+      
+      // 創建完整的文件物件用於回調
+      const savedDocument: Document = {
         id: currentDocId,
-        title: documentTitle,
-        category: documentCategory,
+        title: documentTitle.trim(),
+        category: documentCategory || '文件',
         subcategory: '',
         lastModified: new Date().toISOString(),
         author: '',
         status: 'active',
         priority: 'medium',
-        tags: documentTags,
+        tags: documentTags.length > 0 ? documentTags : ['一般文件'],
         permissions: ['read', 'write'],
         fileType: 'document',
-        size: 0,
+        size: content.length,
         views: 0,
         downloads: 0,
         comments: 0,
         versions: []
-      });
+      };
+      
+      onSave?.(savedDocument);
     } catch (error: any) {
       showError(error.response?.data?.error || '儲存失敗');
     } finally {

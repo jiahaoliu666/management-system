@@ -25,23 +25,40 @@ async function getUserIdFromToken(token: string) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!documentTableName || !bucket) {
-    res.status(500).json({ error: 'Document table/Bucket name not configured' });
+  // 檢查環境變數
+  if (!documentTableName) {
+    console.error('DOCUMENT_TABLE_NAME 未設定');
+    res.status(500).json({ error: 'Document table name not configured' });
     return;
   }
+  
+  if (!bucket) {
+    console.error('DOCUMENTS_BUCKET_NAME 未設定');
+    res.status(500).json({ error: 'S3 bucket name not configured' });
+    return;
+  }
+  
+  if (!cognitoUserPoolId || !cognitoClientId) {
+    console.error('Cognito 設定未完成');
+    res.status(500).json({ error: 'Cognito configuration not complete' });
+    return;
+  }
+
   const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
-    res.status(401).json({ error: '未授權' });
-    return;
+  let userId: string | null = null;
+  
+  if (auth && auth.startsWith('Bearer ')) {
+    const token = auth.replace('Bearer ', '');
+    userId = await getUserIdFromToken(token);
   }
-  const token = auth.replace('Bearer ', '');
-  const userId = await getUserIdFromToken(token);
+  
   if (!userId) {
     res.status(401).json({ error: 'JWT 驗證失敗' });
     return;
   }
-  const db = new DynamoDBClient({ region });
-  const s3 = new S3Client({ region });
+
+  const client = new DynamoDBClient({ region });
+  const s3Client = new S3Client({ region });
 
   if (req.method === 'GET') {
     // 獲取文件列表或單個文件
@@ -57,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             SK: { S: `file#${id}` },
           },
         });
-        const data = await db.send(cmd);
+        const data = await client.send(cmd);
         
         if (!data.Item) {
           res.status(404).json({ error: '文件不存在' });
@@ -73,7 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               Bucket: bucket,
               Key: s3Key,
             });
-            const s3Data = await s3.send(getObjectCmd);
+            const s3Data = await s3Client.send(getObjectCmd);
             content = await s3Data.Body?.transformToString() || '';
           }
         } catch (s3Error) {
@@ -107,7 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ExpressionAttributeNames: parentId ? { '#parentId': 'parentId' } : undefined,
           ExpressionAttributeValues: parentId ? { ':parentId': { S: parentId as string } } : undefined,
         });
-        const data = await db.send(cmd);
+        const data = await client.send(cmd);
         res.status(200).json({ items: data.Items || [] });
       } catch (e: any) {
         console.error('DynamoDB Scan 失敗:', e);
@@ -124,41 +141,68 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.status(400).json({ error: '缺少必要欄位' });
       return;
     }
+    
+    // 驗證資料
+    if (name.trim().length === 0) {
+      res.status(400).json({ error: '文件名稱不能為空' });
+      return;
+    }
+    
+    if (tags && !Array.isArray(tags)) {
+      res.status(400).json({ error: '標籤必須是陣列格式' });
+      return;
+    }
+    
     try {
+      // 生產環境：實際儲存到 AWS
       // 儲存內容到 S3
       if (content) {
+        // 產生安全的檔案名稱（去除特殊字元、空白、限制長度）
+        const safeName = name.trim().replace(/[^a-zA-Z0-9-_\.]/g, '_').slice(0, 64);
+        const fileExt = '.json';
+        const s3FileName = safeName.endsWith(fileExt) ? safeName : safeName + fileExt;
+        const s3ObjectKey = s3Key || `documents/${s3FileName}`;
         const putObjectCmd = new PutObjectCommand({
           Bucket: bucket,
-          Key: s3Key || `documents/${id}.json`,
+          Key: s3ObjectKey,
           Body: content,
           ContentType: 'application/json',
+          Metadata: {
+            originalname: Buffer.from(name).toString('base64'),
+            filetype: (fileType || 'document').toLowerCase(),
+            createdby: userId,
+            createdat: new Date().toISOString()
+          }
         });
-        await s3.send(putObjectCmd);
-      }
+        await s3Client.send(putObjectCmd);
 
-      // 儲存 metadata 到 DynamoDB
-      const cmd = new PutItemCommand({
-        TableName: documentTableName,
-        Item: {
-          PK: { S: `file#${id}` },
-          SK: { S: `file#${id}` },
-          name: { S: name },
-          parentId: { S: parentId || 'root' },
-          s3Key: { S: s3Key || `documents/${id}.json` },
-          fileType: { S: fileType || 'document' },
-          category: { S: category || fileType || '文件' },
-          tags: { SS: tags || [] },
-          type: { S: 'file' },
-          createdBy: { S: userId },
-          createdAt: { S: new Date().toISOString() },
-          updatedAt: { S: new Date().toISOString() },
-        },
-        ConditionExpression: 'attribute_not_exists(PK)',
-      });
-      await db.send(cmd);
-      res.status(200).json({ success: true, id });
+        // 儲存 metadata 到 DynamoDB
+        const cmd = new PutItemCommand({
+          TableName: documentTableName,
+          Item: {
+            PK: { S: `file#${id}` },
+            SK: { S: `file#${id}` },
+            name: { S: name.trim() },
+            parentId: { S: parentId || 'root' },
+            s3Key: { S: s3ObjectKey },
+            fileType: { S: fileType || 'document' },
+            category: { S: category || fileType || '文件' },
+            tags: { SS: tags && tags.length > 0 ? tags : ['一般文件'] },
+            type: { S: 'file' },
+            createdBy: { S: userId },
+            createdAt: { S: new Date().toISOString() },
+            updatedAt: { S: new Date().toISOString() },
+            size: { N: content ? content.length.toString() : '0' }
+          },
+          ConditionExpression: 'attribute_not_exists(PK)',
+        });
+        await client.send(cmd);
+        res.status(200).json({ success: true, id });
+        return;
+      }
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      console.error('創建文件失敗:', e);
+      res.status(500).json({ error: e.message || '創建文件失敗' });
     }
     return;
   }
@@ -170,7 +214,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.status(400).json({ error: '缺少必要欄位' });
       return;
     }
+    
     try {
+      // 生產環境：實際更新到 AWS
       // 獲取現有的 s3Key
       const getCmd = new GetItemCommand({
         TableName: documentTableName,
@@ -179,7 +225,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           SK: { S: `file#${id}` },
         },
       });
-      const existingData = await db.send(getCmd);
+      const existingData = await client.send(getCmd);
       
       if (!existingData.Item) {
         res.status(404).json({ error: '文件不存在' });
@@ -190,13 +236,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // 更新內容到 S3
       if (content && s3Key) {
+        // 取得現有 fileType
+        const existingFileType = existingData.Item.fileType?.S || 'document';
         const putObjectCmd = new PutObjectCommand({
           Bucket: bucket,
           Key: s3Key,
           Body: content,
           ContentType: 'application/json',
+          Metadata: {
+            filetype: existingFileType.toLowerCase(),
+            updatedby: userId,
+            updatedat: new Date().toISOString()
+          }
         });
-        await s3.send(putObjectCmd);
+        await s3Client.send(putObjectCmd);
       }
 
       // 更新 metadata 到 DynamoDB
@@ -238,10 +291,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ExpressionAttributeNames: expressionAttributeNames,
         ExpressionAttributeValues: expressionAttributeValues,
       });
-      await db.send(cmd);
+      await client.send(cmd);
       res.status(200).json({ success: true });
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      console.error('更新文件失敗:', e);
+      res.status(500).json({ error: e.message || '更新文件失敗' });
     }
     return;
   }
@@ -262,14 +316,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           SK: { S: `file#${id}` },
         },
       });
-      await db.send(cmd);
+      await client.send(cmd);
       
       // 刪除 S3 檔案
       const delCmd = new DeleteObjectCommand({
         Bucket: bucket,
         Key: s3Key,
       });
-      await s3.send(delCmd);
+      await s3Client.send(delCmd);
       res.status(200).json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });

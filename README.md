@@ -94,11 +94,16 @@ AWS_ACCESS_KEY_ID=your-access-key
 AWS_SECRET_ACCESS_KEY=your-secret-key
 ```
 
-### 3. AWS 設定
+**AWS 服務設定：**
 
-請參考 [AWS 設定指南](docs/aws-setup.md) 完成 AWS 服務設定。
+請參考 [AWS 設定指南](docs/aws-setup.md) 完成完整的 AWS 服務設定，包括：
 
-### 4. 啟動開發伺服器
+1. DynamoDB 表建立
+2. S3 Bucket 設定
+3. Cognito 用戶池配置
+4. IAM 權限設定
+
+### 3. 啟動開發伺服器
 
 ```bash
 npm run dev

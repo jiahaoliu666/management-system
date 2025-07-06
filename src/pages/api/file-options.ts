@@ -41,15 +41,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(500).json({ error: 'Document table name not configured' });
     return;
   }
-
+  
   const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
-    res.status(401).json({ error: '未授權' });
-    return;
+  let userId: string | null = null;
+  
+  if (auth && auth.startsWith('Bearer ')) {
+    const token = auth.replace('Bearer ', '');
+    userId = await getUserIdFromToken(token);
   }
-
-  const token = auth.replace('Bearer ', '');
-  const userId = await getUserIdFromToken(token);
+  
   if (!userId) {
     res.status(401).json({ error: 'JWT 驗證失敗' });
     return;

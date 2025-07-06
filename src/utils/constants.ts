@@ -247,4 +247,109 @@ export const formatJoinDate = (dateString: string | null | undefined): string =>
  */
 export const getCurrentDateString = (): string => {
   return new Date().toISOString().split('T')[0];
+};
+
+// 格式化文字相關常數和工具函數
+export const TEXT_FORMATTING_OPTIONS = {
+  // 標題層級
+  HEADING_LEVELS: [1, 2, 3, 4, 5, 6],
+  
+  // 文字對齊方式
+  TEXT_ALIGNMENTS: ['left', 'center', 'right', 'justify'],
+  
+  // 支援的檔案類型
+  SUPPORTED_FILE_TYPES: [
+    'image/jpeg',
+    'image/png', 
+    'image/gif',
+    'image/webp',
+    'application/pdf',
+    'text/plain',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ],
+  
+  // 最大檔案大小 (MB)
+  MAX_FILE_SIZE: 10,
+  
+  // 自動儲存間隔 (毫秒)
+  AUTO_SAVE_INTERVAL: 30000,
+  
+  // 編輯器快捷鍵
+  KEYBOARD_SHORTCUTS: {
+    BOLD: 'Ctrl+B',
+    ITALIC: 'Ctrl+I', 
+    UNDERLINE: 'Ctrl+U',
+    LINK: 'Ctrl+K',
+    SAVE: 'Ctrl+S',
+    UNDO: 'Ctrl+Z',
+    REDO: 'Ctrl+Y'
+  }
+};
+
+// 文字格式化工具函數
+export const formatTextUtils = {
+  // 計算文字統計
+  calculateTextStats: (htmlContent: string) => {
+    if (!htmlContent) {
+      return { characters: 0, words: 0, paragraphs: 0 };
+    }
+    
+    // 創建臨時 DOM 元素來解析 HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    const characters = textContent.length;
+    const words = textContent.trim() ? textContent.trim().split(/\s+/).length : 0;
+    const paragraphs = (htmlContent.match(/<p[^>]*>/g) || []).length;
+    
+    return { characters, words, paragraphs };
+  },
+  
+  // 清理 HTML 內容
+  sanitizeHtml: (html: string): string => {
+    // 移除潛在的危險標籤和屬性
+    const allowedTags = [
+      'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'ul', 'ol', 'li',
+      'blockquote', 'code', 'pre',
+      'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td'
+    ];
+    
+    const allowedAttributes = [
+      'href', 'src', 'alt', 'title', 'class', 'style',
+      'width', 'height', 'target', 'rel'
+    ];
+    
+    // 這裡可以實作更完整的 HTML 清理邏輯
+    // 為了簡化，這裡只做基本的標籤過濾
+    return html;
+  },
+  
+  // 生成文件摘要
+  generateSummary: (htmlContent: string, maxLength: number = 150): string => {
+    if (!htmlContent) return '';
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    
+    if (textContent.length <= maxLength) {
+      return textContent;
+    }
+    
+    return textContent.substring(0, maxLength) + '...';
+  },
+  
+  // 驗證連結 URL
+  isValidUrl: (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }; 

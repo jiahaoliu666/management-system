@@ -121,28 +121,44 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // 配置 StarterKit 以支援更多格式化選項
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6]
+        },
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false
+        }
+      }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-600 hover:text-blue-800 underline'
-        }
+          class: 'text-blue-600 hover:text-blue-800 underline cursor-pointer'
+        },
+        validate: href => /^https?:\/\//.test(href)
       }),
       Image.configure({
         HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-lg'
-        }
+          class: 'max-w-full h-auto rounded-lg shadow-sm',
+          loading: 'lazy'
+        },
+        allowBase64: true
       }),
       Table.configure({
         resizable: true,
         HTMLAttributes: {
-          class: 'border-collapse border border-gray-300 w-full'
+          class: 'border-collapse border border-gray-300 w-full my-4'
         }
       }),
       TableRow,
       TableHeader.configure({
         HTMLAttributes: {
-          class: 'border border-gray-300 bg-gray-100 px-4 py-2 font-bold'
+          class: 'border border-gray-300 bg-gray-100 px-4 py-2 font-bold text-center'
         }
       }),
       TableCell.configure({
@@ -151,25 +167,34 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }
       }),
       TextAlign.configure({
-        types: ['heading', 'paragraph']
+        types: ['heading', 'paragraph'],
+        alignments: ['left', 'center', 'right', 'justify']
       }),
       Underline,
       TextStyle,
       Color,
       Highlight.configure({
-        multicolor: true
+        multicolor: true,
+        HTMLAttributes: {
+          class: 'bg-yellow-200 dark:bg-yellow-800'
+        }
       })
     ],
     content: value,
     editable: !readOnly && !isFileLinkMode,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      // 獲取 HTML 內容並觸發變更
+      const html = editor.getHTML();
+      onChange(html);
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[400px] text-slate-900 dark:text-white'
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[400px] text-slate-900 dark:text-white p-4',
+        spellcheck: 'true'
       }
-    }
+    },
+    // 解決 SSR 問題
+    immediatelyRender: false
   });
 
   // 當編輯器準備好時，通知父組件
