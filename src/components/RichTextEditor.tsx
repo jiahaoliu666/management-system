@@ -12,6 +12,8 @@ import Underline from '@tiptap/extension-underline';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
+import HorizontalRule from '@tiptap/extension-horizontal-rule';
+import Blockquote from '@tiptap/extension-blockquote';
 import { 
   Bold, 
   Italic, 
@@ -89,6 +91,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
+  const [selectedColor, setSelectedColor] = useState('#000000');
   
   // 使用外部狀態或內部狀態
   const [internalIsFileLinkMode, setInternalIsFileLinkMode] = useState(false);
@@ -178,12 +181,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         HTMLAttributes: {
           class: 'bg-yellow-200 dark:bg-yellow-800'
         }
-      })
+      }),
+      HorizontalRule,
+      Blockquote
     ],
     content: value,
     editable: !readOnly && !isFileLinkMode,
     onUpdate: ({ editor }) => {
-      // 獲取 HTML 內容並觸發變更
       const html = editor.getHTML();
       onChange(html);
     },
@@ -197,6 +201,35 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     immediatelyRender: false
   });
 
+  // 處理顏色變更
+  const handleColorChange = useCallback((color: string) => {
+    setSelectedColor(color);
+    if (editor) {
+      editor.chain().focus().setColor(color).run();
+    }
+  }, [editor]);
+
+  // 處理螢光標記
+  const handleHighlight = useCallback(() => {
+    if (editor) {
+      editor.chain().focus().toggleHighlight().run();
+    }
+  }, [editor]);
+
+  // 處理縮排
+  const handleIndent = useCallback(() => {
+    if (editor) {
+      editor.chain().focus().sinkListItem('listItem').run();
+    }
+  }, [editor]);
+
+  // 處理減少縮排
+  const handleOutdent = useCallback(() => {
+    if (editor) {
+      editor.chain().focus().liftListItem('listItem').run();
+    }
+  }, [editor]);
+
   // 當編輯器準備好時，通知父組件
   useEffect(() => {
     if (editor && onEditorReady) {
@@ -204,10 +237,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [editor, onEditorReady]);
 
-  // 監聽外部 value 變化，同步到編輯器
+  // 簡化的內容同步：只在編輯器初始化時設置內容
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
-      editor.commands.setContent(value);
+      editor.commands.setContent(value, false);
     }
   }, [editor, value]);
 
@@ -287,273 +320,59 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {/* 工具列 */}
         <div className="flex flex-wrap gap-2 items-center justify-between">
           <div className="flex flex-wrap gap-2">
-            {/* 文字樣式 */}
+            {/* 文字樣式群組 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-              <button
-                onClick={() => editor.chain().focus().toggleBold().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('bold') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="粗體 (Ctrl+B)"
-              >
-                <Bold className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleItalic().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('italic') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="斜體 (Ctrl+I)"
-              >
-                <Italic className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleUnderline().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('underline') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="底線 (Ctrl+U)"
-              >
-                <UnderlineIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleStrike().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('strike') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="刪除線"
-              >
-                <Strikethrough className="h-4 w-4" />
-              </button>
+              {/* 標題 */}
+              {[1,2,3].map(level => (
+                <button key={level} onClick={() => editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 }).run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('heading', { level: level as 1 | 2 | 3 }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title={`標題 ${level}`}>
+                  {level === 1 ? <Heading1 className="h-4 w-4" /> : level === 2 ? <Heading2 className="h-4 w-4" /> : <Heading3 className="h-4 w-4" />}
+                </button>
+              ))}
+              <button onClick={() => editor.chain().focus().toggleBold().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bold') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="粗體 (Ctrl+B)"><Bold className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().toggleItalic().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('italic') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="斜體 (Ctrl+I)"><Italic className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().toggleUnderline().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('underline') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="底線 (Ctrl+U)"><UnderlineIcon className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().toggleStrike().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('strike') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="刪除線"><Strikethrough className="h-4 w-4" /></button>
             </div>
-
-            {/* 標題 */}
+            {/* 顏色/背景色 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-              <button
-                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('heading', { level: 1 }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="標題 1"
-              >
-                <Heading1 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('heading', { level: 2 }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="標題 2"
-              >
-                <Heading2 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('heading', { level: 3 }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="標題 3"
-              >
-                <Heading3 className="h-4 w-4" />
-              </button>
+              <input 
+                type="color" 
+                title="文字顏色" 
+                className="w-6 h-6 p-0 border-none bg-transparent cursor-pointer" 
+                value={selectedColor}
+                onChange={e => handleColorChange(e.target.value)} 
+              />
+              <button onClick={() => editor.chain().focus().unsetColor().run()} className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" title="移除文字顏色"><Palette className="h-4 w-4" /></button>
+              <button onClick={handleHighlight} className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 ${editor.isActive('highlight') ? 'bg-yellow-200 dark:bg-yellow-800' : ''}`} title="螢光標記"><span className="text-xs font-bold">H</span></button>
             </div>
-
-            {/* 對齊方式 */}
+            {/* 對齊/縮排 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-              <button
-                onClick={() => editor.chain().focus().setTextAlign('left').run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive({ textAlign: 'left' }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="靠左對齊"
-              >
-                <AlignLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().setTextAlign('center').run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive({ textAlign: 'center' }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="置中對齊"
-              >
-                <AlignCenter className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().setTextAlign('right').run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive({ textAlign: 'right' }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="靠右對齊"
-              >
-                <AlignRight className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive({ textAlign: 'justify' }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="兩端對齊"
-              >
-                <AlignJustify className="h-4 w-4" />
-              </button>
+              <button onClick={() => editor.chain().focus().setTextAlign('left').run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'left' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="靠左對齊"><AlignLeft className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().setTextAlign('center').run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'center' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="置中對齊"><AlignCenter className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().setTextAlign('right').run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'right' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="靠右對齊"><AlignRight className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().setTextAlign('justify').run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'justify' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="兩端對齊"><AlignJustify className="h-4 w-4" /></button>
+              <button onClick={handleIndent} className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" title="縮排"><span className="text-xs">→</span></button>
+              <button onClick={handleOutdent} className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" title="減少縮排"><span className="text-xs">←</span></button>
             </div>
-
-            {/* 清單 */}
+            {/* 清單/表格/分隔線 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-              <button
-                onClick={() => editor.chain().focus().toggleBulletList().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('bulletList') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="無序清單"
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('orderedList') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="有序清單"
-              >
-                <ListOrdered className="h-4 w-4" />
-              </button>
+              <button onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bulletList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="無序清單"><List className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().toggleOrderedList().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('orderedList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="有序清單"><ListOrdered className="h-4 w-4" /></button>
+              <button onClick={insertTable} disabled={isFileLinkMode} className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="插入表格"><TableIcon className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().setHorizontalRule().run()} className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" title="插入分隔線"><hr className="w-4 border-t-2 border-slate-400 inline-block align-middle" /></button>
             </div>
-
             {/* 插入功能 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-              <button
-                onClick={() => setShowLinkDialog(true)}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('link') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="插入連結"
-              >
-                <LinkIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setShowFileUpload(true)}
-                disabled={isFileLinkMode}
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="插入圖片"
-              >
-                <ImageIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={insertTable}
-                disabled={isFileLinkMode}
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="插入表格"
-              >
-                <TableIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('codeBlock') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="插入程式碼區塊"
-              >
-                <Code className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('blockquote') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="插入引用"
-              >
-                <Quote className="h-4 w-4" />
-              </button>
+              <button onClick={() => setShowLinkDialog(true)} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('link') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="插入連結"><LinkIcon className="h-4 w-4" /></button>
+              <button onClick={() => setShowFileUpload(true)} disabled={isFileLinkMode} className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="插入圖片"><ImageIcon className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().toggleBlockquote().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('blockquote') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="插入引用"><Quote className="h-4 w-4" /></button>
             </div>
-
             {/* 其他功能 */}
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="清除格式"
-              >
-                <Eraser className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().undo().run()}
-                disabled={!editor.can().undo() || isFileLinkMode}
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`}
-                title="復原"
-              >
-                <Undo className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().redo().run()}
-                disabled={!editor.can().redo() || isFileLinkMode}
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`}
-                title="重做"
-              >
-                <Redo className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={onTogglePreview}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && showPreview 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={showPreview ? '隱藏預覽' : '顯示預覽'}
-              >
-                <Eye className="h-4 w-4" />
-              </button>
+              <button onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} disabled={isFileLinkMode} className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="清除格式"><Eraser className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo() || isFileLinkMode} className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} title="復原"><Undo className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo() || isFileLinkMode} className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} title="重做"><Redo className="h-4 w-4" /></button>
+              <button type="button" onClick={onTogglePreview} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && showPreview ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title={showPreview ? '隱藏預覽' : '顯示預覽'}><Eye className="h-4 w-4" /></button>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -618,273 +437,59 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
         <div className="flex flex-wrap gap-2 items-center justify-between">
           <div className="flex flex-wrap gap-2">
-            {/* 文字樣式 */}
+            {/* 文字樣式群組 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-              <button
-                onClick={() => editor.chain().focus().toggleBold().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('bold') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="粗體 (Ctrl+B)"
-              >
-                <Bold className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleItalic().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('italic') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="斜體 (Ctrl+I)"
-              >
-                <Italic className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleUnderline().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('underline') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="底線 (Ctrl+U)"
-              >
-                <UnderlineIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleStrike().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('strike') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="刪除線"
-              >
-                <Strikethrough className="h-4 w-4" />
-              </button>
+              {/* 標題 */}
+              {[1,2,3].map(level => (
+                <button key={level} onClick={() => editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 }).run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('heading', { level: level as 1 | 2 | 3 }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title={`標題 ${level}`}>
+                  {level === 1 ? <Heading1 className="h-4 w-4" /> : level === 2 ? <Heading2 className="h-4 w-4" /> : <Heading3 className="h-4 w-4" />}
+                </button>
+              ))}
+              <button onClick={() => editor.chain().focus().toggleBold().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bold') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="粗體 (Ctrl+B)"><Bold className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().toggleItalic().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('italic') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="斜體 (Ctrl+I)"><Italic className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().toggleUnderline().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('underline') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="底線 (Ctrl+U)"><UnderlineIcon className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().toggleStrike().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('strike') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="刪除線"><Strikethrough className="h-4 w-4" /></button>
             </div>
-
-            {/* 標題 */}
+            {/* 顏色/背景色 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-              <button
-                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('heading', { level: 1 }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="標題 1"
-              >
-                <Heading1 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('heading', { level: 2 }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="標題 2"
-              >
-                <Heading2 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('heading', { level: 3 }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="標題 3"
-              >
-                <Heading3 className="h-4 w-4" />
-              </button>
+              <input 
+                type="color" 
+                title="文字顏色" 
+                className="w-6 h-6 p-0 border-none bg-transparent cursor-pointer" 
+                value={selectedColor}
+                onChange={e => handleColorChange(e.target.value)} 
+              />
+              <button onClick={() => editor.chain().focus().unsetColor().run()} className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" title="移除文字顏色"><Palette className="h-4 w-4" /></button>
+              <button onClick={handleHighlight} className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 ${editor.isActive('highlight') ? 'bg-yellow-200 dark:bg-yellow-800' : ''}`} title="螢光標記"><span className="text-xs font-bold">H</span></button>
             </div>
-
-            {/* 對齊方式 */}
+            {/* 對齊/縮排 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-              <button
-                onClick={() => editor.chain().focus().setTextAlign('left').run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive({ textAlign: 'left' }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="靠左對齊"
-              >
-                <AlignLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().setTextAlign('center').run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive({ textAlign: 'center' }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="置中對齊"
-              >
-                <AlignCenter className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().setTextAlign('right').run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive({ textAlign: 'right' }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="靠右對齊"
-              >
-                <AlignRight className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive({ textAlign: 'justify' }) 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="兩端對齊"
-              >
-                <AlignJustify className="h-4 w-4" />
-              </button>
+              <button onClick={() => editor.chain().focus().setTextAlign('left').run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'left' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="靠左對齊"><AlignLeft className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().setTextAlign('center').run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'center' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="置中對齊"><AlignCenter className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().setTextAlign('right').run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'right' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="靠右對齊"><AlignRight className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().setTextAlign('justify').run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'justify' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="兩端對齊"><AlignJustify className="h-4 w-4" /></button>
+              <button onClick={handleIndent} className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" title="縮排"><span className="text-xs">→</span></button>
+              <button onClick={handleOutdent} className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" title="減少縮排"><span className="text-xs">←</span></button>
             </div>
-
-            {/* 清單 */}
+            {/* 清單/表格/分隔線 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-              <button
-                onClick={() => editor.chain().focus().toggleBulletList().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('bulletList') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="無序清單"
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('orderedList') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="有序清單"
-              >
-                <ListOrdered className="h-4 w-4" />
-              </button>
+              <button onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bulletList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="無序清單"><List className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().toggleOrderedList().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('orderedList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="有序清單"><ListOrdered className="h-4 w-4" /></button>
+              <button onClick={insertTable} disabled={isFileLinkMode} className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="插入表格"><TableIcon className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().setHorizontalRule().run()} className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" title="插入分隔線"><hr className="w-4 border-t-2 border-slate-400 inline-block align-middle" /></button>
             </div>
-
             {/* 插入功能 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
-              <button
-                onClick={() => setShowLinkDialog(true)}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('link') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="插入連結"
-              >
-                <LinkIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setShowFileUpload(true)}
-                disabled={isFileLinkMode}
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="插入圖片"
-              >
-                <ImageIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={insertTable}
-                disabled={isFileLinkMode}
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="插入表格"
-              >
-                <TableIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('codeBlock') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="插入程式碼區塊"
-              >
-                <Code className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && editor.isActive('blockquote') 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="插入引用"
-              >
-                <Quote className="h-4 w-4" />
-              </button>
+              <button onClick={() => setShowLinkDialog(true)} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('link') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="插入連結"><LinkIcon className="h-4 w-4" /></button>
+              <button onClick={() => setShowFileUpload(true)} disabled={isFileLinkMode} className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="插入圖片"><ImageIcon className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().toggleBlockquote().run()} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('blockquote') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="插入引用"><Quote className="h-4 w-4" /></button>
             </div>
-
             {/* 其他功能 */}
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
-                disabled={isFileLinkMode}
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="清除格式"
-              >
-                <Eraser className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().undo().run()}
-                disabled={!editor.can().undo() || isFileLinkMode}
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`}
-                title="復原"
-              >
-                <Undo className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => editor.chain().focus().redo().run()}
-                disabled={!editor.can().redo() || isFileLinkMode}
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`}
-                title="重做"
-              >
-                <Redo className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={onTogglePreview}
-                disabled={isFileLinkMode}
-                className={`p-2 rounded transition-colors ${
-                  !isFileLinkMode && showPreview 
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
-                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
-                } ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={showPreview ? '隱藏預覽' : '顯示預覽'}
-              >
-                <Eye className="h-4 w-4" />
-              </button>
+              <button onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} disabled={isFileLinkMode} className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title="清除格式"><Eraser className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo() || isFileLinkMode} className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} title="復原"><Undo className="h-4 w-4" /></button>
+              <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo() || isFileLinkMode} className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} title="重做"><Redo className="h-4 w-4" /></button>
+              <button type="button" onClick={onTogglePreview} disabled={isFileLinkMode} className={`p-2 rounded transition-colors ${!isFileLinkMode && showPreview ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} title={showPreview ? '隱藏預覽' : '顯示預覽'}><Eye className="h-4 w-4" /></button>
             </div>
           </div>
           <div className="flex items-center gap-2">
