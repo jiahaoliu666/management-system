@@ -420,7 +420,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <button
                 type="button"
                 onClick={onTogglePreview}
-                className={`ml-1 p-2 rounded transition-colors ${showPreview ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300'} hover:bg-slate-200 dark:hover:bg-slate-600`}
+                className={`p-2 rounded transition-colors ${
+                  showPreview 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
                 title={showPreview ? '隱藏預覽' : '顯示預覽'}
               >
                 <Eye className="h-4 w-4" />
@@ -691,7 +695,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <button
                 type="button"
                 onClick={onTogglePreview}
-                className={`ml-1 p-2 rounded transition-colors ${showPreview ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300'} hover:bg-slate-200 dark:hover:bg-slate-600`}
+                className={`p-2 rounded transition-colors ${
+                  showPreview 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                    : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
                 title={showPreview ? '隱藏預覽' : '顯示預覽'}
               >
                 <Eye className="h-4 w-4" />
