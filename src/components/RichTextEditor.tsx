@@ -237,12 +237,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [editor, onEditorReady]);
 
-  // 簡化的內容同步：只在編輯器初始化時設置內容
+  // 只在初始化時設置內容
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
+    if (editor && editor.isEmpty && value) {
       editor.commands.setContent(value, false);
     }
-  }, [editor, value]);
+  }, [editor]);
 
   // 插入連結
   const insertLink = useCallback(() => {
