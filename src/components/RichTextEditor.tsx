@@ -179,6 +179,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [editor, onEditorReady]);
 
+  // 監聽外部 value 變化，同步到編輯器
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value);
+    }
+  }, [editor, value]);
+
   // 插入連結
   const insertLink = useCallback(() => {
     if (editor && linkUrl) {

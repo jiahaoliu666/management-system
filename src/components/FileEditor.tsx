@@ -118,9 +118,6 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
   });
   const [editorInstance, setEditorInstance] = useState<any>(null);
 
-  // 計算文字數量
-  const textCount = calculateTextCount(state.content);
-
   const {
     document: documentData,
     content,
@@ -144,6 +141,9 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     onSave,
     onError: (error) => showError(error)
   });
+
+  // 計算文字數量
+  const textCount = calculateTextCount(content);
 
   const { tree: directoryTree } = useDirectoryTree();
   const { categories, tags: availableTags, loading: optionsLoading } = useFileOptions();
@@ -291,7 +291,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
   const toggleFileLinkMode = useCallback(() => {
     if (!isFileLinkMode) {
       // 切換到文件連結模式前，檢查是否有內容
-      const { characters } = calculateTextCount(state.content);
+      const { characters } = calculateTextCount(content);
       if (characters > 0) {
         const hasContent = confirm(`檢測到文字編輯區域有內容（${characters} 個字元），切換到文件連結模式將會清空當前內容。確定要繼續嗎？`);
         if (!hasContent) {
@@ -301,24 +301,21 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       
       // 先重置編輯器狀態，清除所有格式和選擇
       if (editorInstance) {
-        // 清除所有格式
-        editorInstance.chain().focus().unsetAllMarks().clearNodes().run();
+        // 清除所有格式和內容
+        editorInstance.chain().focus().unsetAllMarks().clearNodes().setContent('').run();
         // 確保游標在開始位置
         editorInstance.chain().focus().setTextSelection(0).run();
       }
       
-      // 使用 setTimeout 確保重置完成後再切換模式
-      setTimeout(() => {
-        setIsFileLinkMode(true);
-        // 切換到文件連結模式時，清空編輯器內容
-        setState(prevState => ({ ...prevState, content: '', isDirty: true }));
-      }, 50);
+      // 立即清空內容狀態
+      updateContent('');
+      setIsFileLinkMode(true);
     } else {
       // 切換回編輯模式
       setIsFileLinkMode(false);
       setFileLinkData({ title: '', url: '', description: '' });
     }
-  }, [isFileLinkMode, state.content, editorInstance]);
+  }, [isFileLinkMode, content, editorInstance, updateContent]);
 
   // 處理文件連結儲存
   const handleFileLinkSave = useCallback((fileLink: { title: string; url: string; description: string }) => {
@@ -461,7 +458,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${state.title || '未命名文件'}.txt`;
+    a.download = `${documentTitle || '未命名文件'}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -488,7 +485,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
       return;
     }
 
-    if (!state.title.trim()) {
+    if (!documentTitle.trim()) {
       showError('請輸入文件標題');
       return;
     }
@@ -502,37 +499,37 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
         // 更新現有文件
         await fileApi.update({
           id: currentDocId,
-          name: state.title,
-          content: state.content,
+          name: documentTitle,
+          content: content,
           parentId: state.selectedFolderId,
-          category: state.category,
-          tags: state.tags
+          category: documentCategory,
+          tags: documentTags
         });
       } else {
         // 創建新文件
         await fileApi.create({
           id: currentDocId,
-          name: state.title,
+          name: documentTitle,
           parentId: state.selectedFolderId,
           s3Key: `documents/${currentDocId}.json`,
           fileType: 'document',
-          content: state.content,
-          category: state.category,
-          tags: state.tags
+          content: content,
+          category: documentCategory,
+          tags: documentTags
         });
       }
 
       showSuccess('文件已成功儲存');
       onSave?.({
         id: currentDocId,
-        title: state.title,
-        category: state.category,
+        title: documentTitle,
+        category: documentCategory,
         subcategory: '',
         lastModified: new Date().toISOString(),
         author: '',
         status: 'active',
         priority: 'medium',
-        tags: state.tags,
+        tags: documentTags,
         permissions: ['read', 'write'],
         fileType: 'document',
         size: 0,
@@ -572,6 +569,13 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
 
   // 新增：重設所有欄位
   const handleReset = () => {
+    // 重置 useFileEditor hook 中的狀態
+    updateContent('');
+    updateTitle('');
+    updateCategory(DEFAULT_CATEGORIES[0]);
+    updateTags([DEFAULT_TAG]);
+    
+    // 重置本地狀態
     setState({
       title: '',
       content: '',
@@ -587,6 +591,15 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     setCurrentTag('');
     setCustomCategory('');
     setCustomTag('');
+    
+    // 重置編輯器實例
+    if (editorInstance) {
+      editorInstance.chain().focus().unsetAllMarks().clearNodes().setContent('').run();
+    }
+    
+    // 重置文件連結模式
+    setIsFileLinkMode(false);
+    setFileLinkData({ title: '', url: '', description: '' });
   };
 
   // 新增一個簡單的 PreviewContent 元件，僅渲染 HTML
@@ -621,8 +634,8 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
               className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <span className={state.category ? 'text-slate-900 dark:text-white' : 'text-slate-400'}>
-                {state.category || '選擇分類'}
+              <span className={documentCategory ? 'text-slate-900 dark:text-white' : 'text-slate-400'}>
+                {documentCategory || '選擇分類'}
               </span>
               <ChevronDown className="h-4 w-4" />
             </button>
@@ -680,7 +693,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               <span className="text-slate-900 dark:text-white">
-                {(state.tags && state.tags.length > 0 ? state.tags : [DEFAULT_TAG]).join('、')}
+                {(documentTags && documentTags.length > 0 ? documentTags : [DEFAULT_TAG]).join('、')}
               </span>
               <ChevronDown className="h-4 w-4" />
             </button>
@@ -773,7 +786,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">標題</label>
         <input
           type="text"
-          value={state.title}
+          value={documentTitle}
           onChange={(e) => handleTitleChange(e.target.value)}
           className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           placeholder="輸入文件標題"
@@ -787,14 +800,14 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           <div className="p-3 bg-slate-50 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
             <div className="flex items-center justify-between">
               <RichTextEditor
-                value={state.content}
+                value={content}
                 onChange={handleContentChange}
                 placeholder="開始編寫您的文件..."
                 className="h-full"
                 onCancel={handleReset}
                 onSave={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
-                isSaving={state.isSaving}
-                canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!state.title.trim()}
+                isSaving={documentIsSaving}
+                canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!documentTitle.trim()}
                 showPreview={showPreview}
                 onTogglePreview={handleTogglePreview}
                 onFileLinkSave={handleFileLinkSave}
@@ -828,13 +841,13 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
               isFileLinkMode ? (
                 // 文件連結模式下顯示 RichTextEditor 的文件連結表單
                 <RichTextEditor
-                  value={state.content}
+                  value={content}
                   onChange={handleContentChange}
                   placeholder="開始編寫您的文件..."
                   className="h-full"
                   onCancel={handleReset}
                   onSave={handleFileLinkModeSave}
-                  isSaving={state.isSaving}
+                  isSaving={documentIsSaving}
                   canSave={!!fileLinkData.url.trim()}
                   showPreview={showPreview}
                   onTogglePreview={handleTogglePreview}
@@ -851,14 +864,14 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                   {/* 左半部：編輯區域 */}
                   <div className="pr-4 relative">
                     <RichTextEditor
-                      value={state.content}
+                      value={content}
                       onChange={handleContentChange}
                       placeholder="開始編寫您的文件..."
                       className="h-full"
                       onCancel={handleReset}
                       onSave={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
-                      isSaving={state.isSaving}
-                      canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!state.title.trim()}
+                      isSaving={documentIsSaving}
+                      canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!documentTitle.trim()}
                       showPreview={showPreview}
                       onTogglePreview={handleTogglePreview}
                       onFileLinkSave={handleFileLinkSave}
@@ -874,7 +887,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                   {/* 右半部：預覽區域 */}
                   <div className="border-l border-slate-200 dark:border-slate-600 pl-4">
                     <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none text-slate-900 dark:text-white min-h-[500px]">
-                      <div dangerouslySetInnerHTML={{ __html: state.content }} />
+                      <div dangerouslySetInnerHTML={{ __html: content }} />
                     </div>
                   </div>
                 </div>
@@ -882,14 +895,14 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
             ) : (
               <div className="relative">
                 <RichTextEditor
-                  value={state.content}
+                  value={content}
                   onChange={handleContentChange}
                   placeholder="開始編寫您的文件..."
                   className="h-full"
                   onCancel={handleReset}
                   onSave={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
-                  isSaving={state.isSaving}
-                  canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!state.title.trim()}
+                  isSaving={documentIsSaving}
+                  canSave={isFileLinkMode ? !!fileLinkData.url.trim() : !!documentTitle.trim()}
                   showPreview={showPreview}
                   onTogglePreview={handleTogglePreview}
                   onFileLinkSave={handleFileLinkSave}
@@ -922,7 +935,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
           </button>
           <button
             onClick={isFileLinkMode ? handleFileLinkModeSave : handleSaveToFolder}
-            disabled={state.isSaving || (isFileLinkMode ? !fileLinkData.url.trim() : !state.title.trim())}
+            disabled={documentIsSaving || (isFileLinkMode ? !fileLinkData.url.trim() : !documentTitle.trim())}
             className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-lg transition-colors shadow-lg"
             type="button"
           >
