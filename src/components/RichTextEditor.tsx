@@ -328,29 +328,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }, [editor, hasSelection]);
 
   // 格式化按鈕點擊處理器
-  const handleFormatClick = useCallback((command: () => void, requiresSelection = false) => {
+  const handleFormatClick = useCallback((command: () => void) => {
     if (!editor || !editor.isEditable || isFileLinkMode) {
       return;
     }
-
-    if (requiresSelection && !hasSelection()) {
-      // 如果沒有選取文字，顯示提示
-      showError('請先選取要格式化的文字');
-      return;
-    }
-
-    if (!canApplyFormat()) {
-      showError('無法在此位置應用格式化');
-      return;
-    }
-
     try {
       command();
     } catch (error) {
       console.error('Format command error:', error);
       showError('格式化操作失敗');
     }
-  }, [editor, isFileLinkMode, hasSelection, canApplyFormat]);
+  }, [editor, isFileLinkMode]);
 
   // 插入功能點擊處理器
   const handleInsertClick = useCallback((command: () => void) => {
@@ -431,7 +419,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               {[1,2,3].map(level => (
                 <button 
                   key={level} 
-                  onClick={() => handleFormatClick(() => editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 }).run(), false)} 
+                  onClick={() => handleFormatClick(() => editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 }).run())} 
                   disabled={isFileLinkMode} 
                   className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('heading', { level: level as 1 | 2 | 3 }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                   title={`標題 ${level}`}
@@ -440,34 +428,34 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 </button>
               ))}
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBold().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBold().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bold') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                title="粗體 (Ctrl+B) - 需要選取文字"
+                title="粗體 (Ctrl+B)"
               >
                 <Bold className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleItalic().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleItalic().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('italic') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                title="斜體 (Ctrl+I) - 需要選取文字"
+                title="斜體 (Ctrl+I)"
               >
                 <Italic className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleUnderline().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleUnderline().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('underline') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                title="底線 (Ctrl+U) - 需要選取文字"
+                title="底線 (Ctrl+U)"
               >
                 <UnderlineIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleStrike().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleStrike().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('strike') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                title="刪除線 - 需要選取文字"
+                title="刪除線 (Ctrl+Shift+S)"
               >
                 <Strikethrough className="h-4 w-4" />
               </button>
@@ -482,14 +470,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onChange={e => handleColorChange(e.target.value)} 
               />
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().unsetColor().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().unsetColor().run())} 
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="移除文字顏色 - 需要選取文字"
               >
                 <Palette className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleHighlight().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleHighlight().run())} 
                 className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 ${editor.isActive('highlight') ? 'bg-yellow-200 dark:bg-yellow-800' : ''}`} 
                 title="螢光標記 - 需要選取文字"
               >
@@ -499,7 +487,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 對齊/縮排 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('left').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('left').run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'left' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="靠左對齊"
@@ -507,7 +495,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <AlignLeft className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('center').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('center').run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'center' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="置中對齊"
@@ -515,7 +503,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <AlignCenter className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('right').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('right').run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'right' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="靠右對齊"
@@ -523,7 +511,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <AlignRight className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('justify').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('justify').run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'justify' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="兩端對齊"
@@ -531,14 +519,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <AlignJustify className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().sinkListItem('listItem').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().sinkListItem('listItem').run())} 
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="縮排"
               >
                 <span className="text-xs">→</span>
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().liftListItem('listItem').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().liftListItem('listItem').run())} 
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="減少縮排"
               >
@@ -548,7 +536,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 清單/表格/分隔線 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBulletList().run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBulletList().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bulletList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="無序清單"
@@ -556,7 +544,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <List className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleOrderedList().run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleOrderedList().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('orderedList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="有序清單"
@@ -598,7 +586,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <ImageIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBlockquote().run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBlockquote().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('blockquote') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="插入引用"
@@ -609,7 +597,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 其他功能 */}
             <div className="flex items-center gap-1">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().unsetAllMarks().clearNodes().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().unsetAllMarks().clearNodes().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="清除格式 - 需要選取文字"
@@ -617,7 +605,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <Eraser className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().undo().run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().undo().run())} 
                 disabled={!editor.can().undo() || isFileLinkMode} 
                 className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
                 title="復原"
@@ -625,7 +613,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <Undo className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().redo().run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().redo().run())} 
                 disabled={!editor.can().redo() || isFileLinkMode} 
                 className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
                 title="重做"
@@ -711,7 +699,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               {[1,2,3].map(level => (
                 <button 
                   key={level} 
-                  onClick={() => handleFormatClick(() => editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 }).run(), false)} 
+                  onClick={() => handleFormatClick(() => editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 }).run())} 
                   disabled={isFileLinkMode} 
                   className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('heading', { level: level as 1 | 2 | 3 }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                   title={`標題 ${level}`}
@@ -720,34 +708,34 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 </button>
               ))}
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBold().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBold().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bold') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                title="粗體 (Ctrl+B) - 需要選取文字"
+                title="粗體 (Ctrl+B)"
               >
                 <Bold className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleItalic().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleItalic().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('italic') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                title="斜體 (Ctrl+I) - 需要選取文字"
+                title="斜體 (Ctrl+I)"
               >
                 <Italic className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleUnderline().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleUnderline().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('underline') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                title="底線 (Ctrl+U) - 需要選取文字"
+                title="底線 (Ctrl+U)"
               >
                 <UnderlineIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleStrike().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleStrike().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('strike') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                title="刪除線 - 需要選取文字"
+                title="刪除線 (Ctrl+Shift+S)"
               >
                 <Strikethrough className="h-4 w-4" />
               </button>
@@ -762,14 +750,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onChange={e => handleColorChange(e.target.value)} 
               />
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().unsetColor().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().unsetColor().run())} 
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="移除文字顏色 - 需要選取文字"
               >
                 <Palette className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleHighlight().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleHighlight().run())} 
                 className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 ${editor.isActive('highlight') ? 'bg-yellow-200 dark:bg-yellow-800' : ''}`} 
                 title="螢光標記 - 需要選取文字"
               >
@@ -779,7 +767,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 對齊/縮排 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('left').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('left').run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'left' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="靠左對齊"
@@ -787,7 +775,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <AlignLeft className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('center').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('center').run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'center' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="置中對齊"
@@ -795,7 +783,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <AlignCenter className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('right').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('right').run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'right' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="靠右對齊"
@@ -803,7 +791,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <AlignRight className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('justify').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('justify').run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'justify' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="兩端對齊"
@@ -811,14 +799,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <AlignJustify className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().sinkListItem('listItem').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().sinkListItem('listItem').run())} 
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="縮排"
               >
                 <span className="text-xs">→</span>
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().liftListItem('listItem').run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().liftListItem('listItem').run())} 
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="減少縮排"
               >
@@ -828,7 +816,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 清單/表格/分隔線 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBulletList().run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBulletList().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bulletList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="無序清單"
@@ -836,7 +824,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <List className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleOrderedList().run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleOrderedList().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('orderedList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="有序清單"
@@ -878,7 +866,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <ImageIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBlockquote().run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBlockquote().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('blockquote') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="插入引用"
@@ -889,7 +877,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 其他功能 */}
             <div className="flex items-center gap-1">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().unsetAllMarks().clearNodes().run(), true)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().unsetAllMarks().clearNodes().run())} 
                 disabled={isFileLinkMode} 
                 className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="清除格式 - 需要選取文字"
@@ -897,7 +885,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <Eraser className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().undo().run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().undo().run())} 
                 disabled={!editor.can().undo() || isFileLinkMode} 
                 className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
                 title="復原"
@@ -905,7 +893,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <Undo className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().redo().run(), false)} 
+                onClick={() => handleFormatClick(() => editor.chain().focus().redo().run())} 
                 disabled={!editor.can().redo() || isFileLinkMode} 
                 className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
                 title="重做"
