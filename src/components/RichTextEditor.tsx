@@ -14,6 +14,9 @@ import Color from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
 import HorizontalRule from '@tiptap/extension-horizontal-rule';
 import Blockquote from '@tiptap/extension-blockquote';
+import BoldExtension from '@tiptap/extension-bold';
+import ItalicExtension from '@tiptap/extension-italic';
+import StrikeExtension from '@tiptap/extension-strike';
 import { 
   Bold, 
   Italic, 
@@ -65,6 +68,7 @@ interface RichTextEditorProps {
   fileLinkData?: { title: string; url: string; description: string };
   onFileLinkDataChange?: (data: { title: string; url: string; description: string }) => void;
   onEditorReady?: (editor: any) => void;
+  editorInstance?: any; // 新增: 可傳入 editor 實例
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -87,7 +91,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onToggleFileLinkMode: externalToggleFileLinkMode,
   fileLinkData: externalFileLinkData,
   onFileLinkDataChange: externalFileLinkDataChange,
-  onEditorReady
+  onEditorReady,
+  editorInstance // 新增
 }) => {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
@@ -123,35 +128,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [externalFileLinkDataChange, fileLinkData]);
 
-  const editor = useEditor({
+  // 只初始化 editor，如果未傳入 editorInstance
+  const editor = editorInstance || useEditor({
     extensions: [
       StarterKit.configure({
-        // 配置 StarterKit 以支援更多格式化選項
-        heading: {
-          levels: [1, 2, 3, 4, 5, 6]
-        },
-        bulletList: {
-          keepMarks: true,
-          keepAttributes: false
-        },
-        orderedList: {
-          keepMarks: true,
-          keepAttributes: false
-        },
-        bold: {
-          HTMLAttributes: {
-            class: 'font-bold'
-          }
-        },
-        italic: {
-          HTMLAttributes: {
-            class: 'italic'
-          }
-        },
-        strike: {
-          HTMLAttributes: {
-            class: 'line-through'
-          }
+        bold: false,
+        italic: false,
+        strike: false
+      }),
+      BoldExtension,
+      ItalicExtension,
+      StrikeExtension,
+      Underline.configure({
+        HTMLAttributes: {
+          class: 'underline'
         }
       }),
       Link.configure({
@@ -190,11 +180,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         alignments: ['left', 'center', 'right', 'justify'],
         defaultAlignment: 'left'
       }),
-      Underline.configure({
-        HTMLAttributes: {
-          class: 'underline'
-        }
-      }),
       TextStyle,
       Color,
       Highlight.configure({
@@ -208,9 +193,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     ],
     content: value || '<p><br></p>',
     editable: !readOnly && !isFileLinkMode,
+    immediatelyRender: true, // React 19/18 官方建議，立即渲染
+    shouldRerenderOnTransaction: false, // React 19/18 官方建議，僅必要時重渲染
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      console.log('TipTap content updated:', html);
       onChange(html);
     },
     editorProps: {
@@ -222,10 +208,177 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }
     },
     onCreate: ({ editor }) => {
-      console.log('TipTap editor created:', editor);
+      if (onEditorReady) onEditorReady(editor);
     },
     onFocus: ({ editor }) => {
-      console.log('TipTap editor focused:', editor);
+      // 當編輯器準備好時，通知父組件
+      useEffect(() => {
+        if (editor && onEditorReady) {
+          onEditorReady(editor);
+        }
+      }, [editor, onEditorReady]);
+
+      // 同步內容變更
+      useEffect(() => {
+        if (editor && value !== editor.getHTML()) {
+          editor.commands.setContent(value || '<p><br></p>', false);
+        }
+      }, [editor, value]);
+
+      // 插入連結
+      const insertLink = useCallback(() => {
+        if (editor && editor.isEditable && linkUrl) {
+          editor.chain().focus().setLink({ href: linkUrl }).run();
+          setLinkUrl('');
+          setShowLinkDialog(false);
+        }
+      }, [editor, linkUrl]);
+
+      // 插入圖片
+      const insertImage = useCallback((url: string) => {
+        if (editor && editor.isEditable) {
+          editor.chain().focus().setImage({ src: url }).run();
+        }
+      }, [editor]);
+
+      // 插入表格
+      const insertTable = useCallback(() => {
+        if (editor && editor.isEditable) {
+          const rows = prompt('請輸入表格行數 (1-10):', '3');
+          const cols = prompt('請輸入表格列數 (1-10):', '3');
+          
+          if (rows && cols) {
+            const rowCount = Math.min(Math.max(parseInt(rows), 1), 10);
+            const colCount = Math.min(Math.max(parseInt(cols), 1), 10);
+            
+            editor.chain().focus().insertTable({ rows: rowCount, cols: colCount, withHeaderRow: true }).run();
+          }
+        }
+      }, [editor]);
+
+      // 處理檔案上傳成功
+      const handleFileUploadSuccess = useCallback((fileUrl: string, fileName: string) => {
+        insertImage(fileUrl);
+        setShowFileUpload(false);
+      }, [insertImage]);
+
+      // 切換文件連結模式
+      const toggleFileLinkMode = useCallback(() => {
+        setIsFileLinkMode(prev => {
+          const newMode = !prev;
+          // 如果切換回編輯模式，清空文件連結資料
+          if (prev) {
+            updateFileLinkData({ title: '', url: '', description: '' });
+          }
+          return newMode;
+        });
+      }, [updateFileLinkData]);
+
+      // 處理文件連結儲存
+      const handleFileLinkSave = useCallback(() => {
+        if (!fileLinkData.url.trim()) {
+          alert('請填寫文件連結網址');
+          return;
+        }
+        
+        onFileLinkSave?.(fileLinkData);
+        updateFileLinkData({ title: '', url: '', description: '' });
+        setIsFileLinkMode(false);
+      }, [fileLinkData, onFileLinkSave, updateFileLinkData]);
+
+      // 檢查是否有選取的文字
+      const hasSelection = useCallback(() => {
+        return editor && !editor.state.selection.empty;
+      }, [editor]);
+
+      // 檢查是否有選取的文字或游標在可格式化的位置
+      const canApplyFormat = useCallback(() => {
+        if (!editor) return false;
+        const { selection } = editor.state;
+        return !selection.empty || editor.isActive('paragraph') || editor.isActive('heading');
+      }, [editor]);
+
+      // 處理顏色變更
+      const handleColorChange = useCallback((color: string) => {
+        setSelectedColor(color);
+        if (editor && editor.isEditable && hasSelection()) {
+          console.log('Setting color:', color);
+          editor.chain().focus().setColor(color).run();
+        } else if (editor && editor.isEditable) {
+          showError('請先選取要變更顏色的文字');
+        }
+      }, [editor, hasSelection]);
+
+      // 格式化按鈕點擊處理器
+      const handleFormatClick = useCallback((command: () => void) => {
+        if (!editor || !editor.isEditable || isFileLinkMode) {
+          return;
+        }
+        try {
+          command();
+        } catch (error) {
+          console.error('Format command error:', error);
+          showError('格式化操作失敗');
+        }
+      }, [editor, isFileLinkMode]);
+
+      // 插入功能點擊處理器
+      const handleInsertClick = useCallback((command: () => void) => {
+        if (!editor || !editor.isEditable || isFileLinkMode) {
+          return;
+        }
+
+        try {
+          command();
+        } catch (error) {
+          console.error('Insert command error:', error);
+          showError('插入操作失敗');
+        }
+      }, [editor, isFileLinkMode]);
+
+      // 工具列按鈕點擊處理器
+      const handleToolbarClick = useCallback((command: () => void) => {
+        if (editor && editor.isEditable && !isFileLinkMode) {
+          try {
+            console.log('Executing TipTap command');
+            command();
+            console.log('TipTap command executed successfully');
+          } catch (error) {
+            console.error('TipTap command error:', error);
+          }
+        } else {
+          console.log('Editor not ready:', { 
+            editor: !!editor, 
+            isEditable: editor?.isEditable, 
+            isFileLinkMode 
+          });
+        }
+      }, [editor, isFileLinkMode]);
+
+      // 確保編輯器已初始化
+      useEffect(() => {
+        if (editor) {
+          console.log('TipTap editor initialized:', {
+            editor: editor,
+            isEditable: editor.isEditable,
+            isEmpty: editor.isEmpty,
+            content: editor.getHTML()
+          });
+        } else {
+          console.log('TipTap editor not initialized yet');
+        }
+      }, [editor]);
+
+      // 直接執行編輯器命令的函數
+      const executeCommand = useCallback((command: () => void) => {
+        if (editor && editor.isEditable && !isFileLinkMode) {
+          try {
+            command();
+          } catch (error) {
+            console.error('TipTap command error:', error);
+          }
+        }
+      }, [editor, isFileLinkMode]);
     }
   });
 

@@ -30,6 +30,24 @@ import FolderSelector from './modals/FolderSelector';
 import RichTextEditor from './RichTextEditor';
 import { DEFAULT_CATEGORIES, DEFAULT_TAGS } from '@/utils/constants';
 import apiClient from '@/lib/api/apiClient';
+import { useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import BoldExtension from '@tiptap/extension-bold';
+import ItalicExtension from '@tiptap/extension-italic';
+import StrikeExtension from '@tiptap/extension-strike';
+import Underline from '@tiptap/extension-underline';
+import TiptapLink from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
+import TextAlign from '@tiptap/extension-text-align';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import HorizontalRule from '@tiptap/extension-horizontal-rule';
+import Blockquote from '@tiptap/extension-blockquote';
 
 interface FileEditorProps {
   documentId?: string;
@@ -621,6 +639,55 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
     </div>
   );
 
+  // 建立唯一的 editor 實例
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ bold: false, italic: false, strike: false }),
+      BoldExtension,
+      ItalicExtension,
+      StrikeExtension,
+      Underline.configure({ HTMLAttributes: { class: 'underline' } }),
+      TiptapLink.configure({
+        openOnClick: false,
+        HTMLAttributes: { class: 'text-blue-600 hover:text-blue-800 underline cursor-pointer' },
+        validate: (href: string) => /^https?:\/\//.test(href)
+      }),
+      Image.configure({
+        HTMLAttributes: { class: 'max-w-full h-auto rounded-lg shadow-sm', loading: 'lazy' },
+        allowBase64: true
+      }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: { class: 'border-collapse border border-gray-300 w-full my-4' }
+      }),
+      TableRow,
+      TableHeader.configure({ HTMLAttributes: { class: 'border border-gray-300 bg-gray-100 px-4 py-2 font-bold text-center' } }),
+      TableCell.configure({ HTMLAttributes: { class: 'border border-gray-300 px-4 py-2' } }),
+      TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right', 'justify'], defaultAlignment: 'left' }),
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true, HTMLAttributes: { class: 'bg-yellow-200 dark:bg-yellow-800' } }),
+      HorizontalRule,
+      Blockquote
+    ],
+    content: content || '<p><br></p>',
+    editable: !isFileLinkMode,
+    immediatelyRender: true,
+    shouldRerenderOnTransaction: false,
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      updateContent(html);
+    },
+    editorProps: {
+      attributes: {
+        class: 'tiptap focus:outline-none min-h-[400px] text-slate-900 dark:text-white p-4',
+        spellcheck: 'true',
+        placeholder: '開始編寫您的文件...',
+        'data-testid': 'tiptap-editor'
+      }
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -824,6 +891,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                 fileLinkData={fileLinkData}
                 onFileLinkDataChange={setFileLinkData}
                 onEditorReady={handleEditorReady}
+                editorInstance={editor}
               />
               {/* 切換文件連結模式按鈕 */}
               <button
@@ -865,6 +933,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                   fileLinkData={fileLinkData}
                   onFileLinkDataChange={setFileLinkData}
                   onEditorReady={handleEditorReady}
+                  editorInstance={editor}
                 />
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px]">
@@ -884,6 +953,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                       onFileLinkSave={handleFileLinkSave}
                       contentOnly={true}
                       onEditorReady={handleEditorReady}
+                      editorInstance={editor}
                     />
                     {!isFileLinkMode && (
                       <div className="absolute bottom-1 text-xs text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-700/80 px-2 py-1 rounded-md backdrop-blur-sm">
@@ -919,6 +989,7 @@ const FileEditor: React.FC<FileEditorProps> = ({ documentId, onClose, onSave }) 
                   fileLinkData={fileLinkData}
                   onFileLinkDataChange={setFileLinkData}
                   onEditorReady={handleEditorReady}
+                  editorInstance={editor}
                 />
                 {!isFileLinkMode && (
                   <div className="absolute bottom-1 text-xs text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-slate-700/80 px-2 py-1 rounded-md backdrop-blur-sm">
