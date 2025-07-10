@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -127,6 +127,50 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }
     }
   }, [externalFileLinkDataChange, fileLinkData]);
+
+  // 1. 工具列 roving tabindex 狀態
+  const [toolbarFocusIdx, setToolbarFocusIdx] = useState<number>(-1);
+  const toolbarButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const toolbarButtonCount = 20; // 根據實際按鈕數量調整
+
+  // 2. 工具列鍵盤操作
+  const handleToolbarKeyDown = (e: React.KeyboardEvent) => {
+    if (toolbarFocusIdx === -1) return;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const next = (toolbarFocusIdx + 1) % toolbarButtonCount;
+      setToolbarFocusIdx(next);
+      toolbarButtonRefs.current[next]?.focus();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const prev = (toolbarFocusIdx - 1 + toolbarButtonCount) % toolbarButtonCount;
+      setToolbarFocusIdx(prev);
+      toolbarButtonRefs.current[prev]?.focus();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setToolbarFocusIdx(0);
+      toolbarButtonRefs.current[0]?.focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      setToolbarFocusIdx(toolbarButtonCount - 1);
+      toolbarButtonRefs.current[toolbarButtonCount - 1]?.focus();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setToolbarFocusIdx(-1);
+      // focus 回編輯區
+      const editorEl = document.querySelector('[data-testid="tiptap-editor"]') as HTMLElement | null;
+      editorEl?.focus();
+    }
+  };
+
+  // 3. 工具列 sticky
+  const toolbarStickyClass = 'sticky top-0 z-20 bg-slate-50 dark:bg-slate-700';
+
+  // 4. 工具列按鈕點擊自動 focus 編輯區
+  const focusEditor = () => {
+    const editorEl = document.querySelector('[data-testid="tiptap-editor"]') as HTMLElement | null;
+    editorEl?.focus();
+  };
 
   // 只初始化 editor，如果未傳入 editorInstance
   const editor = editorInstance || useEditor({
@@ -564,50 +608,83 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     return (
       <div className={`rich-text-editor ${className}`}>
         {/* 工具列 */}
-        <div className="flex flex-wrap gap-2 items-center justify-between">
+        <div
+          role="toolbar"
+          aria-label="富文字編輯工具列"
+          aria-controls="tiptap-editor-main"
+          tabIndex={0}
+          className={`flex flex-wrap gap-2 items-center justify-between ${toolbarStickyClass}`}
+          onKeyDown={handleToolbarKeyDown}
+          onFocus={() => setToolbarFocusIdx(0)}
+          onBlur={() => setToolbarFocusIdx(-1)}
+        >
           <div className="flex flex-wrap gap-2">
             {/* 文字樣式群組 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               {/* 標題 */}
-              {[1,2,3].map(level => (
-                <button 
-                  key={level} 
-                  onClick={() => handleFormatClick(() => editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 }).run())} 
-                  disabled={isFileLinkMode} 
-                  className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('heading', { level: level as 1 | 2 | 3 }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                  title={`標題 ${level}`}
+              {[1,2,3].map((level, idx) => (
+                <button
+                  key={level}
+                  ref={el => { toolbarButtonRefs.current[idx] = el; }}
+                  tabIndex={toolbarFocusIdx === idx ? 0 : -1}
+                  aria-label={`標題 ${level}`}
+                  aria-pressed={editor.isActive('heading', { level })}
+                  aria-disabled={isFileLinkMode}
+                  onClick={() => { handleFormatClick(() => editor.chain().focus().toggleHeading({ level }).run()); focusEditor(); }}
+                  onFocus={() => setToolbarFocusIdx(idx)}
+                  className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('heading', { level }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {level === 1 ? <Heading1 className="h-4 w-4" /> : level === 2 ? <Heading2 className="h-4 w-4" /> : <Heading3 className="h-4 w-4" />}
                 </button>
               ))}
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBold().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bold') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[4] = el; }}
+                tabIndex={toolbarFocusIdx === 4 ? 0 : -1}
+                aria-label="粗體"
+                aria-pressed={editor.isActive('bold')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleBold().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(4)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('bold') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="粗體 (Ctrl+B)"
               >
                 <Bold className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleItalic().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('italic') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[5] = el; }}
+                tabIndex={toolbarFocusIdx === 5 ? 0 : -1}
+                aria-label="斜體"
+                aria-pressed={editor.isActive('italic')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleItalic().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(5)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('italic') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="斜體 (Ctrl+I)"
               >
                 <Italic className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleUnderline().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('underline') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[6] = el; }}
+                tabIndex={toolbarFocusIdx === 6 ? 0 : -1}
+                aria-label="底線"
+                aria-pressed={editor.isActive('underline')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleUnderline().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(6)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('underline') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="底線 (Ctrl+U)"
               >
                 <UnderlineIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleStrike().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('strike') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[7] = el; }}
+                tabIndex={toolbarFocusIdx === 7 ? 0 : -1}
+                aria-label="刪除線"
+                aria-pressed={editor.isActive('strike')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleStrike().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(7)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('strike') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="刪除線 (Ctrl+Shift+S)"
               >
                 <Strikethrough className="h-4 w-4" />
@@ -623,14 +700,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onChange={e => handleColorChange(e.target.value)} 
               />
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().unsetColor().run())} 
+                ref={el => { toolbarButtonRefs.current[8] = el; }}
+                tabIndex={toolbarFocusIdx === 8 ? 0 : -1}
+                aria-label="移除文字顏色"
+                aria-pressed={!editor.isActive('color')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().unsetColor().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(8)}
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="移除文字顏色 - 需要選取文字"
               >
                 <Palette className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleHighlight().run())} 
+                ref={el => { toolbarButtonRefs.current[9] = el; }}
+                tabIndex={toolbarFocusIdx === 9 ? 0 : -1}
+                aria-label="螢光標記"
+                aria-pressed={editor.isActive('highlight')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleHighlight().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(9)}
                 className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 ${editor.isActive('highlight') ? 'bg-yellow-200 dark:bg-yellow-800' : ''}`} 
                 title="螢光標記 - 需要選取文字"
               >
@@ -640,46 +729,76 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 對齊/縮排 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('left').run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'left' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[10] = el; }}
+                tabIndex={toolbarFocusIdx === 10 ? 0 : -1}
+                aria-label="靠左對齊"
+                aria-pressed={editor.isActive({ textAlign: 'left' })}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().setTextAlign('left').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(10)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive({ textAlign: 'left' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="靠左對齊"
               >
                 <AlignLeft className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('center').run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'center' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[11] = el; }}
+                tabIndex={toolbarFocusIdx === 11 ? 0 : -1}
+                aria-label="置中對齊"
+                aria-pressed={editor.isActive({ textAlign: 'center' })}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().setTextAlign('center').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(11)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive({ textAlign: 'center' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="置中對齊"
               >
                 <AlignCenter className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('right').run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'right' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[12] = el; }}
+                tabIndex={toolbarFocusIdx === 12 ? 0 : -1}
+                aria-label="靠右對齊"
+                aria-pressed={editor.isActive({ textAlign: 'right' })}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().setTextAlign('right').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(12)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive({ textAlign: 'right' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="靠右對齊"
               >
                 <AlignRight className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('justify').run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'justify' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[13] = el; }}
+                tabIndex={toolbarFocusIdx === 13 ? 0 : -1}
+                aria-label="兩端對齊"
+                aria-pressed={editor.isActive({ textAlign: 'justify' })}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().setTextAlign('justify').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(13)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive({ textAlign: 'justify' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="兩端對齊"
               >
                 <AlignJustify className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().sinkListItem('listItem').run())} 
+                ref={el => { toolbarButtonRefs.current[14] = el; }}
+                tabIndex={toolbarFocusIdx === 14 ? 0 : -1}
+                aria-label="縮排"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().sinkListItem('listItem').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(14)}
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="縮排"
               >
                 <span className="text-xs">→</span>
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().liftListItem('listItem').run())} 
+                ref={el => { toolbarButtonRefs.current[15] = el; }}
+                tabIndex={toolbarFocusIdx === 15 ? 0 : -1}
+                aria-label="減少縮排"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().liftListItem('listItem').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(15)}
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="減少縮排"
               >
@@ -689,31 +808,50 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 清單/表格/分隔線 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBulletList().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bulletList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[16] = el; }}
+                tabIndex={toolbarFocusIdx === 16 ? 0 : -1}
+                aria-label="無序清單"
+                aria-pressed={editor.isActive('bulletList')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleBulletList().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(16)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('bulletList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="無序清單"
               >
                 <List className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleOrderedList().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('orderedList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[17] = el; }}
+                tabIndex={toolbarFocusIdx === 17 ? 0 : -1}
+                aria-label="有序清單"
+                aria-pressed={editor.isActive('orderedList')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleOrderedList().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(17)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('orderedList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="有序清單"
               >
                 <ListOrdered className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleInsertClick(() => insertTable())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[18] = el; }}
+                tabIndex={toolbarFocusIdx === 18 ? 0 : -1}
+                aria-label="插入表格"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleInsertClick(() => insertTable()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(18)}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="插入表格"
               >
                 <TableIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleInsertClick(() => editor.chain().focus().setHorizontalRule().run())} 
+                ref={el => { toolbarButtonRefs.current[19] = el; }}
+                tabIndex={toolbarFocusIdx === 19 ? 0 : -1}
+                aria-label="插入分隔線"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleInsertClick(() => editor.chain().focus().setHorizontalRule().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(19)}
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="插入分隔線"
               >
@@ -723,25 +861,38 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 插入功能 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button 
-                onClick={() => setShowLinkDialog(true)} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('link') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[20] = el; }}
+                tabIndex={toolbarFocusIdx === 20 ? 0 : -1}
+                aria-label="插入連結"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { setShowLinkDialog(true); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(20)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('link') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="插入連結"
               >
                 <LinkIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => setShowFileUpload(true)} 
-                disabled={isFileLinkMode} 
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[21] = el; }}
+                tabIndex={toolbarFocusIdx === 21 ? 0 : -1}
+                aria-label="插入圖片"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { setShowFileUpload(true); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(21)}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="插入圖片"
               >
                 <ImageIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBlockquote().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('blockquote') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[22] = el; }}
+                tabIndex={toolbarFocusIdx === 22 ? 0 : -1}
+                aria-label="插入引用"
+                aria-pressed={editor.isActive('blockquote')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleBlockquote().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(22)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('blockquote') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="插入引用"
               >
                 <Quote className="h-4 w-4" />
@@ -750,34 +901,50 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 其他功能 */}
             <div className="flex items-center gap-1">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().unsetAllMarks().clearNodes().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[23] = el; }}
+                tabIndex={toolbarFocusIdx === 23 ? 0 : -1}
+                aria-label="清除格式"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().unsetAllMarks().clearNodes().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(23)}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="清除格式 - 需要選取文字"
               >
                 <Eraser className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().undo().run())} 
-                disabled={!editor.can().undo() || isFileLinkMode} 
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[24] = el; }}
+                tabIndex={toolbarFocusIdx === 24 ? 0 : -1}
+                aria-label="復原"
+                aria-disabled={!editor.can().undo() || isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().undo().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(24)}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
                 title="復原"
               >
                 <Undo className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().redo().run())} 
-                disabled={!editor.can().redo() || isFileLinkMode} 
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[25] = el; }}
+                tabIndex={toolbarFocusIdx === 25 ? 0 : -1}
+                aria-label="重做"
+                aria-disabled={!editor.can().redo() || isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().redo().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(25)}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
                 title="重做"
               >
                 <Redo className="h-4 w-4" />
               </button>
               <button 
-                type="button" 
+                ref={el => { toolbarButtonRefs.current[26] = el; }}
+                tabIndex={toolbarFocusIdx === 26 ? 0 : -1}
+                aria-label={showPreview ? '隱藏預覽' : '顯示預覽'}
+                aria-pressed={showPreview}
+                aria-disabled={isFileLinkMode}
                 onClick={onTogglePreview} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && showPreview ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                onFocus={() => setToolbarFocusIdx(26)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && showPreview ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title={showPreview ? '隱藏預覽' : '顯示預覽'}
               >
                 <Eye className="h-4 w-4" />
@@ -833,7 +1000,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         ) : (
           // 文字編輯模式
           <div className="min-h-[500px]">
-            <EditorContent editor={editor} />
+            <EditorContent
+              editor={editor}
+              id="tiptap-editor-main"
+              role="textbox"
+              aria-multiline="true"
+              aria-label="文件內容編輯區"
+              data-testid="tiptap-editor"
+              tabIndex={0}
+            />
           </div>
         )}
       </div>
@@ -844,50 +1019,83 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     <div className={`rich-text-editor ${className}`}>
       {/* 工具列 */}
       <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
-        <div className="flex flex-wrap gap-2 items-center justify-between">
+        <div
+          role="toolbar"
+          aria-label="富文字編輯工具列"
+          aria-controls="tiptap-editor-main"
+          tabIndex={0}
+          className={`flex flex-wrap gap-2 items-center justify-between ${toolbarStickyClass}`}
+          onKeyDown={handleToolbarKeyDown}
+          onFocus={() => setToolbarFocusIdx(0)}
+          onBlur={() => setToolbarFocusIdx(-1)}
+        >
           <div className="flex flex-wrap gap-2">
             {/* 文字樣式群組 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               {/* 標題 */}
-              {[1,2,3].map(level => (
-                <button 
-                  key={level} 
-                  onClick={() => handleFormatClick(() => editor.chain().focus().toggleHeading({ level: level as 1 | 2 | 3 }).run())} 
-                  disabled={isFileLinkMode} 
-                  className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('heading', { level: level as 1 | 2 | 3 }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                  title={`標題 ${level}`}
+              {[1,2,3].map((level, idx) => (
+                <button
+                  key={level}
+                  ref={el => { toolbarButtonRefs.current[idx] = el; }}
+                  tabIndex={toolbarFocusIdx === idx ? 0 : -1}
+                  aria-label={`標題 ${level}`}
+                  aria-pressed={editor.isActive('heading', { level })}
+                  aria-disabled={isFileLinkMode}
+                  onClick={() => { handleFormatClick(() => editor.chain().focus().toggleHeading({ level }).run()); focusEditor(); }}
+                  onFocus={() => setToolbarFocusIdx(idx)}
+                  className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('heading', { level }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {level === 1 ? <Heading1 className="h-4 w-4" /> : level === 2 ? <Heading2 className="h-4 w-4" /> : <Heading3 className="h-4 w-4" />}
                 </button>
               ))}
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBold().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bold') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[4] = el; }}
+                tabIndex={toolbarFocusIdx === 4 ? 0 : -1}
+                aria-label="粗體"
+                aria-pressed={editor.isActive('bold')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleBold().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(4)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('bold') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="粗體 (Ctrl+B)"
               >
                 <Bold className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleItalic().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('italic') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[5] = el; }}
+                tabIndex={toolbarFocusIdx === 5 ? 0 : -1}
+                aria-label="斜體"
+                aria-pressed={editor.isActive('italic')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleItalic().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(5)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('italic') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="斜體 (Ctrl+I)"
               >
                 <Italic className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleUnderline().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('underline') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[6] = el; }}
+                tabIndex={toolbarFocusIdx === 6 ? 0 : -1}
+                aria-label="底線"
+                aria-pressed={editor.isActive('underline')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleUnderline().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(6)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('underline') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="底線 (Ctrl+U)"
               >
                 <UnderlineIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleStrike().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('strike') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[7] = el; }}
+                tabIndex={toolbarFocusIdx === 7 ? 0 : -1}
+                aria-label="刪除線"
+                aria-pressed={editor.isActive('strike')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleStrike().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(7)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('strike') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="刪除線 (Ctrl+Shift+S)"
               >
                 <Strikethrough className="h-4 w-4" />
@@ -903,14 +1111,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 onChange={e => handleColorChange(e.target.value)} 
               />
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().unsetColor().run())} 
+                ref={el => { toolbarButtonRefs.current[8] = el; }}
+                tabIndex={toolbarFocusIdx === 8 ? 0 : -1}
+                aria-label="移除文字顏色"
+                aria-pressed={!editor.isActive('color')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().unsetColor().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(8)}
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="移除文字顏色 - 需要選取文字"
               >
                 <Palette className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleHighlight().run())} 
+                ref={el => { toolbarButtonRefs.current[9] = el; }}
+                tabIndex={toolbarFocusIdx === 9 ? 0 : -1}
+                aria-label="螢光標記"
+                aria-pressed={editor.isActive('highlight')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleHighlight().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(9)}
                 className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 ${editor.isActive('highlight') ? 'bg-yellow-200 dark:bg-yellow-800' : ''}`} 
                 title="螢光標記 - 需要選取文字"
               >
@@ -920,46 +1140,76 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 對齊/縮排 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('left').run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'left' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[10] = el; }}
+                tabIndex={toolbarFocusIdx === 10 ? 0 : -1}
+                aria-label="靠左對齊"
+                aria-pressed={editor.isActive({ textAlign: 'left' })}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().setTextAlign('left').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(10)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive({ textAlign: 'left' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="靠左對齊"
               >
                 <AlignLeft className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('center').run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'center' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[11] = el; }}
+                tabIndex={toolbarFocusIdx === 11 ? 0 : -1}
+                aria-label="置中對齊"
+                aria-pressed={editor.isActive({ textAlign: 'center' })}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().setTextAlign('center').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(11)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive({ textAlign: 'center' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="置中對齊"
               >
                 <AlignCenter className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('right').run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'right' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[12] = el; }}
+                tabIndex={toolbarFocusIdx === 12 ? 0 : -1}
+                aria-label="靠右對齊"
+                aria-pressed={editor.isActive({ textAlign: 'right' })}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().setTextAlign('right').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(12)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive({ textAlign: 'right' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="靠右對齊"
               >
                 <AlignRight className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().setTextAlign('justify').run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive({ textAlign: 'justify' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[13] = el; }}
+                tabIndex={toolbarFocusIdx === 13 ? 0 : -1}
+                aria-label="兩端對齊"
+                aria-pressed={editor.isActive({ textAlign: 'justify' })}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().setTextAlign('justify').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(13)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive({ textAlign: 'justify' }) ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="兩端對齊"
               >
                 <AlignJustify className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().sinkListItem('listItem').run())} 
+                ref={el => { toolbarButtonRefs.current[14] = el; }}
+                tabIndex={toolbarFocusIdx === 14 ? 0 : -1}
+                aria-label="縮排"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().sinkListItem('listItem').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(14)}
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="縮排"
               >
                 <span className="text-xs">→</span>
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().liftListItem('listItem').run())} 
+                ref={el => { toolbarButtonRefs.current[15] = el; }}
+                tabIndex={toolbarFocusIdx === 15 ? 0 : -1}
+                aria-label="減少縮排"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().liftListItem('listItem').run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(15)}
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="減少縮排"
               >
@@ -969,31 +1219,50 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 清單/表格/分隔線 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBulletList().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('bulletList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[16] = el; }}
+                tabIndex={toolbarFocusIdx === 16 ? 0 : -1}
+                aria-label="無序清單"
+                aria-pressed={editor.isActive('bulletList')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleBulletList().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(16)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('bulletList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="無序清單"
               >
                 <List className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleOrderedList().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('orderedList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[17] = el; }}
+                tabIndex={toolbarFocusIdx === 17 ? 0 : -1}
+                aria-label="有序清單"
+                aria-pressed={editor.isActive('orderedList')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleOrderedList().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(17)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('orderedList') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="有序清單"
               >
                 <ListOrdered className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleInsertClick(() => insertTable())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[18] = el; }}
+                tabIndex={toolbarFocusIdx === 18 ? 0 : -1}
+                aria-label="插入表格"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleInsertClick(() => insertTable()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(18)}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="插入表格"
               >
                 <TableIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleInsertClick(() => editor.chain().focus().setHorizontalRule().run())} 
+                ref={el => { toolbarButtonRefs.current[19] = el; }}
+                tabIndex={toolbarFocusIdx === 19 ? 0 : -1}
+                aria-label="插入分隔線"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleInsertClick(() => editor.chain().focus().setHorizontalRule().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(19)}
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="插入分隔線"
               >
@@ -1003,25 +1272,38 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 插入功能 */}
             <div className="flex items-center gap-1 border-r border-slate-300 dark:border-slate-600 pr-2">
               <button 
-                onClick={() => setShowLinkDialog(true)} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('link') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[20] = el; }}
+                tabIndex={toolbarFocusIdx === 20 ? 0 : -1}
+                aria-label="插入連結"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { setShowLinkDialog(true); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(20)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('link') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="插入連結"
               >
                 <LinkIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => setShowFileUpload(true)} 
-                disabled={isFileLinkMode} 
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[21] = el; }}
+                tabIndex={toolbarFocusIdx === 21 ? 0 : -1}
+                aria-label="插入圖片"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { setShowFileUpload(true); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(21)}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="插入圖片"
               >
                 <ImageIcon className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().toggleBlockquote().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && editor.isActive('blockquote') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[22] = el; }}
+                tabIndex={toolbarFocusIdx === 22 ? 0 : -1}
+                aria-label="插入引用"
+                aria-pressed={editor.isActive('blockquote')}
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().toggleBlockquote().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(22)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && editor.isActive('blockquote') ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="插入引用"
               >
                 <Quote className="h-4 w-4" />
@@ -1030,34 +1312,50 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             {/* 其他功能 */}
             <div className="flex items-center gap-1">
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().unsetAllMarks().clearNodes().run())} 
-                disabled={isFileLinkMode} 
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[23] = el; }}
+                tabIndex={toolbarFocusIdx === 23 ? 0 : -1}
+                aria-label="清除格式"
+                aria-disabled={isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().unsetAllMarks().clearNodes().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(23)}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title="清除格式 - 需要選取文字"
               >
                 <Eraser className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().undo().run())} 
-                disabled={!editor.can().undo() || isFileLinkMode} 
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[24] = el; }}
+                tabIndex={toolbarFocusIdx === 24 ? 0 : -1}
+                aria-label="復原"
+                aria-disabled={!editor.can().undo() || isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().undo().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(24)}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
                 title="復原"
               >
                 <Undo className="h-4 w-4" />
               </button>
               <button 
-                onClick={() => handleFormatClick(() => editor.chain().focus().redo().run())} 
-                disabled={!editor.can().redo() || isFileLinkMode} 
-                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
+                ref={el => { toolbarButtonRefs.current[25] = el; }}
+                tabIndex={toolbarFocusIdx === 25 ? 0 : -1}
+                aria-label="重做"
+                aria-disabled={!editor.can().redo() || isFileLinkMode}
+                onClick={() => { handleFormatClick(() => editor.chain().focus().redo().run()); focusEditor(); }}
+                onFocus={() => setToolbarFocusIdx(25)}
+                className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 ${isFileLinkMode ? 'cursor-not-allowed' : ''}`} 
                 title="重做"
               >
                 <Redo className="h-4 w-4" />
               </button>
               <button 
-                type="button" 
+                ref={el => { toolbarButtonRefs.current[26] = el; }}
+                tabIndex={toolbarFocusIdx === 26 ? 0 : -1}
+                aria-label={showPreview ? '隱藏預覽' : '顯示預覽'}
+                aria-pressed={showPreview}
+                aria-disabled={isFileLinkMode}
                 onClick={onTogglePreview} 
-                disabled={isFileLinkMode} 
-                className={`p-2 rounded transition-colors ${!isFileLinkMode && showPreview ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                onFocus={() => setToolbarFocusIdx(26)}
+                className={`p-2 rounded transition-colors focus:ring-2 focus:ring-indigo-500 ${!isFileLinkMode && showPreview ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' : 'hover:bg-slate-200 dark:hover:bg-slate-600'} ${isFileLinkMode ? 'opacity-50 cursor-not-allowed' : ''}`} 
                 title={showPreview ? '隱藏預覽' : '顯示預覽'}
               >
                 <Eye className="h-4 w-4" />
@@ -1110,7 +1408,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         // 文字編輯模式
         <div className="p-4">
           <div className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
-            <EditorContent editor={editor} />
+            <EditorContent
+              editor={editor}
+              id="tiptap-editor-main"
+              role="textbox"
+              aria-multiline="true"
+              aria-label="文件內容編輯區"
+              data-testid="tiptap-editor"
+              tabIndex={0}
+            />
           </div>
         </div>
       )}
