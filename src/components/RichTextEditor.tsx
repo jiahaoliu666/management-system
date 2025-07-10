@@ -222,17 +222,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
-        alignments: ['left', 'center', 'right'], // 移除 'justify'
+        alignments: ['left', 'center', 'right'],
         defaultAlignment: 'left'
       }),
       TextStyle,
-      Color,
       Highlight.configure({
         multicolor: true,
         HTMLAttributes: {
           class: 'bg-yellow-200 dark:bg-yellow-800'
         }
       }),
+      Color,
       HorizontalRule,
       Blockquote
     ],
@@ -714,7 +714,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="移除文字顏色 - 需要選取文字"
               >
-                <Palette className="h-4 w-4" />
+                <Eraser className="h-4 w-4" />
               </button>
               <button 
                 ref={el => { toolbarButtonRefs.current[8] = el; }}
@@ -1116,7 +1116,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
                 title="移除文字顏色 - 需要選取文字"
               >
-                <X className="h-4 w-4" />
+                <Eraser className="h-4 w-4" />
               </button>
               <button 
                 ref={el => { toolbarButtonRefs.current[8] = el; }}
