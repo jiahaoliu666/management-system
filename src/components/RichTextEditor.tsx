@@ -43,7 +43,9 @@ import {
   Eye,
   FileText,
   X,
-  Highlighter
+  Highlighter,
+  Indent,
+  Outdent
 } from 'lucide-react';
 import FileUpload from './FileUpload';
 import { showError } from '@/utils/notification';
@@ -234,7 +236,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }),
       Color,
       HorizontalRule,
-      Blockquote
+      Blockquote,
     ],
     content: value || '<p><br></p>',
     editable: !readOnly && !isFileLinkMode,
@@ -776,24 +778,68 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 tabIndex={toolbarFocusIdx === 12 ? 0 : -1}
                 aria-label="縮排"
                 aria-disabled={isFileLinkMode}
-                onClick={() => { handleFormatClick(() => editor.chain().focus().sinkListItem('listItem').run()); focusEditor(); }}
+                onClick={() => { 
+                  handleFormatClick(() => {
+                    // 檢查是否在列表中
+                    if (editor.isActive('bulletList') || editor.isActive('orderedList')) {
+                      editor.chain().focus().sinkListItem('listItem').run();
+                    } else {
+                      // 對一般段落進行縮排
+                      const { selection } = editor.state;
+                      const { $from, $to } = selection;
+                      const tr = editor.state.tr;
+                      editor.state.doc.nodesBetween($from.pos, $to.pos, (node: any, pos: number) => {
+                        if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                          const currentStyle = node.attrs.style || '';
+                          const currentIndent = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
+                          const newIndent = Math.min(currentIndent + 1, 5);
+                          const newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '') + `margin-left: ${newIndent}em;`;
+                          tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle });
+                        }
+                      });
+                      editor.view.dispatch(tr);
+                    }
+                  }); 
+                  focusEditor(); 
+                }}
                 onFocus={() => setToolbarFocusIdx(12)}
-                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
+                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500" 
                 title="縮排"
               >
-                <span className="text-xs">→</span>
+                <Indent className="h-4 w-4" />
               </button>
               <button 
                 ref={el => { toolbarButtonRefs.current[13] = el; }}
                 tabIndex={toolbarFocusIdx === 13 ? 0 : -1}
                 aria-label="減少縮排"
                 aria-disabled={isFileLinkMode}
-                onClick={() => { handleFormatClick(() => editor.chain().focus().liftListItem('listItem').run()); focusEditor(); }}
+                onClick={() => { 
+                  handleFormatClick(() => {
+                    if (editor.isActive('bulletList') || editor.isActive('orderedList')) {
+                      editor.chain().focus().liftListItem('listItem').run();
+                    } else {
+                      const { selection } = editor.state;
+                      const { $from, $to } = selection;
+                      const tr = editor.state.tr;
+                      editor.state.doc.nodesBetween($from.pos, $to.pos, (node: any, pos: number) => {
+                        if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                          const currentStyle = node.attrs.style || '';
+                          const currentIndent = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
+                          const newIndent = Math.max(currentIndent - 1, 0);
+                          const newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '') + (newIndent > 0 ? `margin-left: ${newIndent}em;` : '');
+                          tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle });
+                        }
+                      });
+                      editor.view.dispatch(tr);
+                    }
+                  }); 
+                  focusEditor(); 
+                }}
                 onFocus={() => setToolbarFocusIdx(13)}
-                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
+                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500" 
                 title="減少縮排"
               >
-                <span className="text-xs">←</span>
+                <Outdent className="h-4 w-4" />
               </button>
             </div>
             {/* 清單/表格/分隔線 */}
@@ -1178,24 +1224,68 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 tabIndex={toolbarFocusIdx === 12 ? 0 : -1}
                 aria-label="縮排"
                 aria-disabled={isFileLinkMode}
-                onClick={() => { handleFormatClick(() => editor.chain().focus().sinkListItem('listItem').run()); focusEditor(); }}
+                onClick={() => { 
+                  handleFormatClick(() => {
+                    // 檢查是否在列表中
+                    if (editor.isActive('bulletList') || editor.isActive('orderedList')) {
+                      editor.chain().focus().sinkListItem('listItem').run();
+                    } else {
+                      // 對一般段落進行縮排
+                      const { selection } = editor.state;
+                      const { $from, $to } = selection;
+                      const tr = editor.state.tr;
+                      editor.state.doc.nodesBetween($from.pos, $to.pos, (node: any, pos: number) => {
+                        if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                          const currentStyle = node.attrs.style || '';
+                          const currentIndent = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
+                          const newIndent = Math.min(currentIndent + 1, 5);
+                          const newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '') + `margin-left: ${newIndent}em;`;
+                          tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle });
+                        }
+                      });
+                      editor.view.dispatch(tr);
+                    }
+                  }); 
+                  focusEditor(); 
+                }}
                 onFocus={() => setToolbarFocusIdx(12)}
-                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
+                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500" 
                 title="縮排"
               >
-                <span className="text-xs">→</span>
+                <Indent className="h-4 w-4" />
               </button>
               <button 
                 ref={el => { toolbarButtonRefs.current[13] = el; }}
                 tabIndex={toolbarFocusIdx === 13 ? 0 : -1}
                 aria-label="減少縮排"
                 aria-disabled={isFileLinkMode}
-                onClick={() => { handleFormatClick(() => editor.chain().focus().liftListItem('listItem').run()); focusEditor(); }}
+                onClick={() => { 
+                  handleFormatClick(() => {
+                    if (editor.isActive('bulletList') || editor.isActive('orderedList')) {
+                      editor.chain().focus().liftListItem('listItem').run();
+                    } else {
+                      const { selection } = editor.state;
+                      const { $from, $to } = selection;
+                      const tr = editor.state.tr;
+                      editor.state.doc.nodesBetween($from.pos, $to.pos, (node: any, pos: number) => {
+                        if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                          const currentStyle = node.attrs.style || '';
+                          const currentIndent = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
+                          const newIndent = Math.max(currentIndent - 1, 0);
+                          const newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '') + (newIndent > 0 ? `margin-left: ${newIndent}em;` : '');
+                          tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle });
+                        }
+                      });
+                      editor.view.dispatch(tr);
+                    }
+                  }); 
+                  focusEditor(); 
+                }}
                 onFocus={() => setToolbarFocusIdx(13)}
-                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600" 
+                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500" 
                 title="減少縮排"
               >
-                <span className="text-xs">←</span>
+                <Outdent className="h-4 w-4" />
               </button>
             </div>
             {/* 清單/表格/分隔線 */}
