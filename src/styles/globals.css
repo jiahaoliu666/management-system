@@ -481,3 +481,29 @@ html, body, #__next {
 .dark .tiptap th {
   background: #374151;
 } 
+
+/* 允許 tiptap 內容縮排 style 生效 */
+.tiptap p[style*="margin-left"], .tiptap h1[style*="margin-left"], .tiptap h2[style*="margin-left"], .tiptap h3[style*="margin-left"], .tiptap h4[style*="margin-left"], .tiptap h5[style*="margin-left"], .tiptap h6[style*="margin-left"] {
+  margin-left: inherit !important;
+}
+
+/* 確保縮排樣式不被覆蓋 */
+.tiptap p[style*="margin-left: 1em"], .tiptap h1[style*="margin-left: 1em"], .tiptap h2[style*="margin-left: 1em"], .tiptap h3[style*="margin-left: 1em"] {
+  margin-left: 1em !important;
+}
+
+.tiptap p[style*="margin-left: 2em"], .tiptap h1[style*="margin-left: 2em"], .tiptap h2[style*="margin-left: 2em"], .tiptap h3[style*="margin-left: 2em"] {
+  margin-left: 2em !important;
+}
+
+.tiptap p[style*="margin-left: 3em"], .tiptap h1[style*="margin-left: 3em"], .tiptap h2[style*="margin-left: 3em"], .tiptap h3[style*="margin-left: 3em"] {
+  margin-left: 3em !important;
+}
+
+.tiptap p[style*="margin-left: 4em"], .tiptap h1[style*="margin-left: 4em"], .tiptap h2[style*="margin-left: 4em"], .tiptap h3[style*="margin-left: 4em"] {
+  margin-left: 4em !important;
+}
+
+.tiptap p[style*="margin-left: 5em"], .tiptap h1[style*="margin-left: 5em"], .tiptap h2[style*="margin-left: 5em"], .tiptap h3[style*="margin-left: 5em"] {
+  margin-left: 5em !important;
+} 
