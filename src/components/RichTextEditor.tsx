@@ -51,6 +51,7 @@ import {
 } from 'lucide-react';
 import FileUpload from './FileUpload';
 import { showError } from '@/utils/notification';
+import { Command, RawCommands } from '@tiptap/core';
 
 interface RichTextEditorProps {
   value: string;
@@ -83,8 +84,8 @@ const IndentParagraph = Paragraph.extend({
       ...this.parent?.(),
       style: {
         default: null,
-        parseHTML: element => element.getAttribute('style') || null,
-        renderHTML: attributes => {
+        parseHTML: (element: HTMLElement) => element.getAttribute('style') || null,
+        renderHTML: (attributes: any) => {
           return attributes.style ? { style: attributes.style } : {};
         },
       },
@@ -98,8 +99,8 @@ const IndentHeading = Heading.extend({
       ...this.parent?.(),
       style: {
         default: null,
-        parseHTML: element => element.getAttribute('style') || null,
-        renderHTML: attributes => {
+        parseHTML: (element: HTMLElement) => element.getAttribute('style') || null,
+        renderHTML: (attributes: any) => {
           return attributes.style ? { style: attributes.style } : {};
         },
       },
@@ -635,110 +636,58 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [editor, isFileLinkMode]);
 
-  // 重新實現縮排功能 - 使用更簡潔可靠的方法
+  // 在元件內部新增縮排/減少縮排 function
   const handleIndent = useCallback(() => {
-    if (!editor || !editor.isEditable) {
-      return;
-    }
-    
-    try {
-      // 使用 TipTap 的標準方法處理縮排
-      editor.chain().focus().command(({ tr, dispatch, state }: { tr: any; dispatch: any; state: any }) => {
-        const { selection } = state;
-        const { $from, $to } = selection;
-        let changed = false;
-        
-        // 遍歷選取範圍內的所有區塊節點
-        state.doc.nodesBetween($from.pos, $to.pos, (node: any, pos: number) => {
-          if (node.type.name === 'paragraph' || node.type.name === 'heading') {
-            const currentStyle = node.attrs.style || '';
-            const currentIndent = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
-            const newIndent = Math.min(currentIndent + 1, 5);
-            
-            // 構建新的 style 屬性
-            let newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '');
-            if (newIndent > 0) {
-              newStyle = newStyle + `margin-left: ${newIndent}em;`;
-            }
-            
-            // 更新節點屬性
-            tr.setNodeMarkup(pos, undefined, { 
-              ...node.attrs, 
-              style: newStyle.trim() || undefined 
-            });
-            changed = true;
-          }
-        });
-        
-        if (changed && dispatch) {
-          dispatch(tr);
-        }
-        return changed;
-      }).run();
-      
-      // 確保焦點回到編輯器
+    if (!editor || !editor.isEditable) return;
+    const { state, view } = editor;
+    const { selection } = state;
+    let tr = state.tr;
+    let changed = false;
+    state.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
+      if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+        const currentStyle = node.attrs.style || '';
+        const currentIndent = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
+        const newIndent = Math.min(currentIndent + 1, 5);
+        let newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '');
+        if (newIndent > 0) newStyle += `margin-left: ${newIndent}em;`;
+        tr = tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle.trim() || null });
+        changed = true;
+      }
+    });
+    if (changed) {
+      editor.view.dispatch(tr);
+      editor.view.focus();
       setTimeout(() => {
-        const editorEl = document.querySelector('[data-testid="tiptap-editor"]') as HTMLElement;
-        if (editorEl) {
-          editorEl.focus();
-        }
+        editor.commands.setContent(editor.getHTML(), false);
+        console.log('After indent:', editor.getHTML());
       }, 0);
-      
-    } catch (error) {
-      console.error('縮排操作失敗:', error);
     }
   }, [editor]);
 
   const handleOutdent = useCallback(() => {
-    if (!editor || !editor.isEditable) {
-      return;
-    }
-    
-    try {
-      // 使用 TipTap 的標準方法處理減少縮排
-      editor.chain().focus().command(({ tr, dispatch, state }: { tr: any; dispatch: any; state: any }) => {
-        const { selection } = state;
-        const { $from, $to } = selection;
-        let changed = false;
-        
-        // 遍歷選取範圍內的所有區塊節點
-        state.doc.nodesBetween($from.pos, $to.pos, (node: any, pos: number) => {
-          if (node.type.name === 'paragraph' || node.type.name === 'heading') {
-            const currentStyle = node.attrs.style || '';
-            const currentIndent = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
-            const newIndent = Math.max(currentIndent - 1, 0);
-            
-            // 構建新的 style 屬性
-            let newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '');
-            if (newIndent > 0) {
-              newStyle = newStyle + `margin-left: ${newIndent}em;`;
-            }
-            
-            // 更新節點屬性
-            tr.setNodeMarkup(pos, undefined, { 
-              ...node.attrs, 
-              style: newStyle.trim() || undefined 
-            });
-            changed = true;
-          }
-        });
-        
-        if (changed && dispatch) {
-          dispatch(tr);
-        }
-        return changed;
-      }).run();
-      
-      // 確保焦點回到編輯器
+    if (!editor || !editor.isEditable) return;
+    const { state, view } = editor;
+    const { selection } = state;
+    let tr = state.tr;
+    let changed = false;
+    state.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
+      if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+        const currentStyle = node.attrs.style || '';
+        const currentIndent = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
+        const newIndent = Math.max(currentIndent - 1, 0);
+        let newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '');
+        if (newIndent > 0) newStyle += `margin-left: ${newIndent}em;`;
+        tr = tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle.trim() || null });
+        changed = true;
+      }
+    });
+    if (changed) {
+      editor.view.dispatch(tr);
+      editor.view.focus();
       setTimeout(() => {
-        const editorEl = document.querySelector('[data-testid="tiptap-editor"]') as HTMLElement;
-        if (editorEl) {
-          editorEl.focus();
-        }
+        editor.commands.setContent(editor.getHTML(), false);
+        console.log('After outdent:', editor.getHTML());
       }, 0);
-      
-    } catch (error) {
-      console.error('減少縮排操作失敗:', error);
     }
   }, [editor]);
 
