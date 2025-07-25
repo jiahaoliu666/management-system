@@ -47,7 +47,9 @@ import {
   X,
   Highlighter,
   Indent,
-  Outdent
+  Outdent,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 import FileUpload from './FileUpload';
 import { showError } from '@/utils/notification';
@@ -639,7 +641,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   // 在元件內部新增縮排/減少縮排 function
   const handleIndent = useCallback(() => {
     if (!editor || !editor.isEditable) return;
-    const { state, view } = editor;
+    const { state } = editor;
     const { selection } = state;
     let tr = state.tr;
     let changed = false;
@@ -650,7 +652,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         const newIndent = Math.min(currentIndent + 1, 5);
         let newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '');
         if (newIndent > 0) newStyle += `margin-left: ${newIndent}em;`;
-        tr = tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle.trim() || null });
+        // 保留 margin-right（如有）
+        const rightMatch = currentStyle.match(/margin-right:\s*\d+em/);
+        if (rightMatch) newStyle += ` ${rightMatch[0]};`;
+        tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: newStyle.trim() || null });
         changed = true;
       }
     });
@@ -659,14 +664,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       editor.view.focus();
       setTimeout(() => {
         editor.commands.setContent(editor.getHTML(), false);
-        console.log('After indent:', editor.getHTML());
       }, 0);
     }
   }, [editor]);
 
   const handleOutdent = useCallback(() => {
     if (!editor || !editor.isEditable) return;
-    const { state, view } = editor;
+    const { state } = editor;
     const { selection } = state;
     let tr = state.tr;
     let changed = false;
@@ -677,7 +681,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         const newIndent = Math.max(currentIndent - 1, 0);
         let newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '');
         if (newIndent > 0) newStyle += `margin-left: ${newIndent}em;`;
-        tr = tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle.trim() || null });
+        // 保留 margin-right（如有）
+        const rightMatch = currentStyle.match(/margin-right:\s*\d+em/);
+        if (rightMatch) newStyle += ` ${rightMatch[0]};`;
+        tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: newStyle.trim() || null });
         changed = true;
       }
     });
@@ -686,9 +693,144 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       editor.view.focus();
       setTimeout(() => {
         editor.commands.setContent(editor.getHTML(), false);
-        console.log('After outdent:', editor.getHTML());
       }, 0);
     }
+  }, [editor]);
+
+  // handleIndentLeft/handleOutdentLeft（原本 handleIndent/handleOutdent）
+  const handleIndentLeft = useCallback(() => {
+    if (!editor || !editor.isEditable) return;
+    const { state } = editor;
+    const { selection } = state;
+    let tr = state.tr;
+    let changed = false;
+    state.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
+      if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+        const currentStyle = node.attrs.style || '';
+        const currentIndent = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
+        const newIndent = Math.min(currentIndent + 1, 5);
+        let newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '');
+        if (newIndent > 0) newStyle += `margin-left: ${newIndent}em;`;
+        // 保留 margin-right
+        const rightMatch = currentStyle.match(/margin-right:\s*\d+em/);
+        if (rightMatch) newStyle += ` ${rightMatch[0]};`;
+        tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: newStyle.trim() || null });
+        changed = true;
+      }
+    });
+    if (changed) {
+      editor.view.dispatch(tr);
+      editor.view.focus();
+      setTimeout(() => {
+        editor.commands.setContent(editor.getHTML(), false);
+      }, 0);
+    }
+  }, [editor]);
+
+  const handleOutdentLeft = useCallback(() => {
+    if (!editor || !editor.isEditable) return;
+    const { state } = editor;
+    const { selection } = state;
+    let tr = state.tr;
+    let changed = false;
+    state.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
+      if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+        const currentStyle = node.attrs.style || '';
+        const currentIndent = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
+        const newIndent = Math.max(currentIndent - 1, 0);
+        let newStyle = currentStyle.replace(/margin-left:\s*\d+em;?\s*/, '');
+        if (newIndent > 0) newStyle += `margin-left: ${newIndent}em;`;
+        // 保留 margin-right
+        const rightMatch = currentStyle.match(/margin-right:\s*\d+em/);
+        if (rightMatch) newStyle += ` ${rightMatch[0]};`;
+        tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: newStyle.trim() || null });
+        changed = true;
+      }
+    });
+    if (changed) {
+      editor.view.dispatch(tr);
+      editor.view.focus();
+      setTimeout(() => {
+        editor.commands.setContent(editor.getHTML(), false);
+      }, 0);
+    }
+  }, [editor]);
+
+  // handleIndentRight/handleOutdentRight
+  const handleIndentRight = useCallback(() => {
+    if (!editor || !editor.isEditable) return;
+    const { state } = editor;
+    const { selection } = state;
+    let tr = state.tr;
+    let changed = false;
+    state.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
+      if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+        const currentStyle = node.attrs.style || '';
+        const currentIndent = parseInt(currentStyle.match(/margin-right:\s*(\d+)em/)?.[1] || '0');
+        const newIndent = Math.min(currentIndent + 1, 5);
+        let newStyle = currentStyle.replace(/margin-right:\s*\d+em;?\s*/, '');
+        if (newIndent > 0) newStyle += `margin-right: ${newIndent}em;`;
+        // 保留 margin-left
+        const leftMatch = currentStyle.match(/margin-left:\s*\d+em/);
+        if (leftMatch) newStyle = `${leftMatch[0]}; ` + newStyle;
+        tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: newStyle.trim() || null });
+        changed = true;
+      }
+    });
+    if (changed) {
+      editor.view.dispatch(tr);
+      editor.view.focus();
+      setTimeout(() => {
+        editor.commands.setContent(editor.getHTML(), false);
+      }, 0);
+    }
+  }, [editor]);
+
+  const handleOutdentRight = useCallback(() => {
+    if (!editor || !editor.isEditable) return;
+    const { state } = editor;
+    const { selection } = state;
+    let tr = state.tr;
+    let changed = false;
+    state.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
+      if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+        const currentStyle = node.attrs.style || '';
+        const currentIndent = parseInt(currentStyle.match(/margin-right:\s*(\d+)em/)?.[1] || '0');
+        const newIndent = Math.max(currentIndent - 1, 0);
+        let newStyle = currentStyle.replace(/margin-right:\s*\d+em;?\s*/, '');
+        if (newIndent > 0) newStyle += `margin-right: ${newIndent}em;`;
+        // 保留 margin-left
+        const leftMatch = currentStyle.match(/margin-left:\s*\d+em/);
+        if (leftMatch) newStyle = `${leftMatch[0]}; ` + newStyle;
+        tr = tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: newStyle.trim() || null });
+        changed = true;
+      }
+    });
+    if (changed) {
+      editor.view.dispatch(tr);
+      editor.view.focus();
+      setTimeout(() => {
+        editor.commands.setContent(editor.getHTML(), false);
+      }, 0);
+    }
+  }, [editor]);
+
+  // 取得選取內容的最小/最大縮排層級（左右）
+  const getIndentLevelOfSelection = useCallback(() => {
+    if (!editor) return { minLeft: 0, maxLeft: 0 };
+    const { state } = editor;
+    let minLeft = 5, maxLeft = 0, found = false;
+    state.doc.nodesBetween(state.selection.from, state.selection.to, (node: any) => {
+      if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+        const currentStyle = node.attrs.style || '';
+        const left = parseInt(currentStyle.match(/margin-left:\s*(\d+)em/)?.[1] || '0');
+        minLeft = Math.min(minLeft, left);
+        maxLeft = Math.max(maxLeft, left);
+        found = true;
+      }
+    });
+    if (!found) return { minLeft: 0, maxLeft: 0 };
+    return { minLeft, maxLeft };
   }, [editor]);
 
   if (!editor) {
@@ -869,24 +1011,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <button 
                 ref={el => { toolbarButtonRefs.current[12] = el; }}
                 tabIndex={toolbarFocusIdx === 12 ? 0 : -1}
-                aria-label="縮排"
-                aria-disabled={isFileLinkMode}
-                onClick={() => { handleFormatClick(() => handleIndent()); focusEditor(); }}
+                aria-label="左縮排"
+                aria-disabled={isFileLinkMode || getIndentLevelOfSelection().maxLeft >= 5}
+                disabled={isFileLinkMode || getIndentLevelOfSelection().maxLeft >= 5}
+                onClick={() => { handleFormatClick(() => handleIndentLeft()); focusEditor(); }}
                 onFocus={() => setToolbarFocusIdx(12)}
-                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500" 
-                title="縮排"
+                className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500 ${getIndentLevelOfSelection().maxLeft >= 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="左縮排 (Tab)"
               >
                 <Indent className="h-4 w-4" />
               </button>
               <button 
                 ref={el => { toolbarButtonRefs.current[13] = el; }}
                 tabIndex={toolbarFocusIdx === 13 ? 0 : -1}
-                aria-label="減少縮排"
-                aria-disabled={isFileLinkMode}
-                onClick={() => { handleFormatClick(() => handleOutdent()); focusEditor(); }}
+                aria-label="減少左縮排"
+                aria-disabled={isFileLinkMode || getIndentLevelOfSelection().minLeft <= 0}
+                disabled={isFileLinkMode || getIndentLevelOfSelection().minLeft <= 0}
+                onClick={() => { handleFormatClick(() => handleOutdentLeft()); focusEditor(); }}
                 onFocus={() => setToolbarFocusIdx(13)}
-                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500" 
-                title="減少縮排"
+                className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500 ${getIndentLevelOfSelection().minLeft <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="減少左縮排 (Shift+Tab)"
               >
                 <Outdent className="h-4 w-4" />
               </button>
@@ -1094,6 +1238,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               aria-label="文件內容編輯區"
               data-testid="tiptap-editor"
               tabIndex={0}
+              onKeyDown={e => {
+                if (e.key === 'Tab' && e.ctrlKey && e.altKey) {
+                  e.preventDefault();
+                  if (e.shiftKey) handleOutdentRight();
+                  else handleIndentRight();
+                } else if (e.key === 'Tab') {
+                  e.preventDefault();
+                  if (e.shiftKey) handleOutdentLeft();
+                  else handleIndentLeft();
+                }
+              }}
             />
           </div>
         )}
@@ -1271,24 +1426,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <button 
                 ref={el => { toolbarButtonRefs.current[12] = el; }}
                 tabIndex={toolbarFocusIdx === 12 ? 0 : -1}
-                aria-label="縮排"
-                aria-disabled={isFileLinkMode}
-                onClick={() => { handleFormatClick(() => handleIndent()); focusEditor(); }}
+                aria-label="左縮排"
+                aria-disabled={isFileLinkMode || getIndentLevelOfSelection().maxLeft >= 5}
+                disabled={isFileLinkMode || getIndentLevelOfSelection().maxLeft >= 5}
+                onClick={() => { handleFormatClick(() => handleIndentLeft()); focusEditor(); }}
                 onFocus={() => setToolbarFocusIdx(12)}
-                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500" 
-                title="縮排"
+                className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500 ${getIndentLevelOfSelection().maxLeft >= 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="左縮排 (Tab)"
               >
                 <Indent className="h-4 w-4" />
               </button>
               <button 
                 ref={el => { toolbarButtonRefs.current[13] = el; }}
                 tabIndex={toolbarFocusIdx === 13 ? 0 : -1}
-                aria-label="減少縮排"
-                aria-disabled={isFileLinkMode}
-                onClick={() => { handleFormatClick(() => handleOutdent()); focusEditor(); }}
+                aria-label="減少左縮排"
+                aria-disabled={isFileLinkMode || getIndentLevelOfSelection().minLeft <= 0}
+                disabled={isFileLinkMode || getIndentLevelOfSelection().minLeft <= 0}
+                onClick={() => { handleFormatClick(() => handleOutdentLeft()); focusEditor(); }}
                 onFocus={() => setToolbarFocusIdx(13)}
-                className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500" 
-                title="減少縮排"
+                className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:ring-2 focus:ring-indigo-500 ${getIndentLevelOfSelection().minLeft <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="減少左縮排 (Shift+Tab)"
               >
                 <Outdent className="h-4 w-4" />
               </button>
@@ -1493,6 +1650,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               aria-label="文件內容編輯區"
               data-testid="tiptap-editor"
               tabIndex={0}
+              onKeyDown={e => {
+                if (e.key === 'Tab' && e.ctrlKey && e.altKey) {
+                  e.preventDefault();
+                  if (e.shiftKey) handleOutdentRight();
+                  else handleIndentRight();
+                } else if (e.key === 'Tab') {
+                  e.preventDefault();
+                  if (e.shiftKey) handleOutdentLeft();
+                  else handleIndentLeft();
+                }
+              }}
             />
           </div>
         </div>
